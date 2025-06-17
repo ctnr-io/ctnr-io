@@ -11,7 +11,6 @@ export async function* kubectlApply(yamlContent: string): AsyncIterable<string> 
     stdin: "piped",
     stdout: "piped",
     stderr: "piped",
-    env: Deno.env.toObject(),
   });
 
   const process = command.spawn();

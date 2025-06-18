@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { Context } from "core/context.ts";
+import { Context, StdioContext } from "core/context.ts";
 import kubernetes from "util/kube-client.ts";
+import { Buffer } from "node:buffer";
 
 export const meta = {
   aliases: {
@@ -11,20 +12,18 @@ export const meta = {
   },
 };
 
-export const Input = z.tuple([
-  z.string().describe("Name of the container"),
-  z.object({
-    interactive: z.boolean().optional().default(false).describe("Run interactively"),
-    terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
-  }),
-]);
+export const Input = z.object({
+  name: z.string().describe("Name of the container"),
+  interactive: z.boolean().optional().default(false).describe("Run interactively"),
+  terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
+});
 
 export type Input = z.infer<typeof Input>;
 
-export default (context: Context) => async (input: Input) => {
+export default (context: StdioContext) => async (input: Input) => {
   const defer: Array<() => unknown> = [];
   try {
-    const [name, { interactive = false, terminal = false }] = input;
+    const { name, interactive = false, terminal = false } = input;
 
     const tunnel = await kubernetes.CoreV1.namespace("default").tunnelPodAttach(name, {
       stdin: interactive,
@@ -35,38 +34,36 @@ export default (context: Context) => async (input: Input) => {
       container: name,
     });
 
-    // Create an AbortController to manage all streams
-    if (interactive) {
-      if (Deno.stdin.isTerminal()) {
-        Deno.stdin.setRaw(true);
-      }
-
-      // Ensure the tunnel is ready before piping stdin
-      await tunnel.ready;
-
-      // Set the initial terminal size
-      tunnel.ttySetSize(Deno.consoleSize());
-      const resizeHandler = () => tunnel.ttySetSize(Deno.consoleSize());
-      Deno.addSignalListener("SIGWINCH", resizeHandler);
-      defer.push(() => Deno.removeSignalListener("SIGWINCH", resizeHandler));
+    if (terminal) {
+      (async () => {
+        const generator = context.stdio.terminalSizeChan();
+        defer.push(() => generator.return());
+        for await (const terminalSize of generator) {
+          tunnel.ttySetSize(terminalSize);
+        }
+      })();
     }
 
-    console.info(`Container ${name} is running. Press Ctrl+D to exit. Press Ctrl+P Ctrl+Q to detach.`);
-    interactive && console.info("Press ENTER to send input to the container.");
+    console.info(`Attaching to container ${name}...`);
+
+    const stdoutWriter = context.stdio.stdout.getWriter();
+    const encoder = new TextEncoder();
+    stdoutWriter.write(encoder.encode(`Container ${name} is running.\r\n`));
+    interactive && stdoutWriter.write(encoder.encode("Press Ctrl+D to exit.\r\n"));
+    interactive && stdoutWriter.write(encoder.encode("Press Ctrl+P Ctrl+Q to detach.\r\n"));
+    interactive && stdoutWriter.write(encoder.encode("Press ENTER to send input to the container.\r\n"));
+    stdoutWriter.releaseLock();
 
     // Read logs to display them in the terminal
     await Promise.any([
-      interactive && Deno.stdin.readable.pipeTo(tunnel.stdin, {
+      interactive && context.stdio.stdin.pipeTo(tunnel.stdin, {
         signal: context.signal,
-        preventClose: true,
       }).catch(() => {}),
-      tunnel.stdout.pipeTo(Deno.stdout.writable, {
+      tunnel.stdout.pipeTo(context.stdio.stdout, {
         signal: context.signal,
-        preventClose: true,
       }).catch(() => {}),
-      tunnel.stderr.pipeTo(Deno.stderr.writable, {
+      tunnel.stderr.pipeTo(context.stdio.stderr, {
         signal: context.signal,
-        preventClose: true,
       }).catch(() => {}),
     ]);
   } catch (error) {

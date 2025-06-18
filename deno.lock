@@ -8,8 +8,9 @@
     "jsr:@std/assert@*": "1.0.12",
     "jsr:@std/assert@^1.0.12": "1.0.13",
     "jsr:@std/async@^1.0.12": "1.0.12",
-    "jsr:@std/bytes@^1.0.2": "1.0.5",
+    "jsr:@std/bytes@^1.0.2": "1.0.6",
     "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/crypto@^1.0.4": "1.0.4",
     "jsr:@std/data-structures@^1.0.6": "1.0.7",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
@@ -22,8 +23,9 @@
     "jsr:@std/path@1.0.6": "1.0.6",
     "jsr:@std/path@^1.0.8": "1.0.9",
     "jsr:@std/path@^1.0.9": "1.0.9",
-    "jsr:@std/streams@1": "1.0.9",
+    "jsr:@std/streams@1": "1.0.10",
     "jsr:@std/streams@1.0.5": "1.0.5",
+    "jsr:@std/streams@^1.0.10": "1.0.10",
     "jsr:@std/streams@^1.0.9": "1.0.9",
     "jsr:@std/testing@*": "1.0.10",
     "jsr:@std/testing@^1.0.10": "1.0.11",
@@ -31,22 +33,27 @@
     "jsr:@std/yaml@1": "1.0.8",
     "jsr:@std/yaml@1.0.5": "1.0.5",
     "jsr:@std/yaml@^1.0.5": "1.0.6",
-    "jsr:@std/yaml@^1.0.6": "1.0.6",
+    "jsr:@std/yaml@^1.0.6": "1.0.8",
     "jsr:@std/yaml@^1.0.8": "1.0.8",
     "jsr:@tmpl/core@~0.5.17": "0.5.17",
     "jsr:@tmpl/core@~0.5.25": "0.5.25",
     "jsr:@tmpl/gen@~0.5.25": "0.5.25",
     "npm:@orpc/client@^1.5.2": "1.5.2",
     "npm:@orpc/server@^1.5.2": "1.5.2",
-    "npm:@trpc/server@11": "11.0.0_typescript@5.8.2",
+    "npm:@trpc/client@^11.4.1": "11.4.2_@trpc+server@11.4.1__typescript@5.8.2_typescript@5.8.2",
+    "npm:@trpc/server@^11.3.2": "11.4.1_typescript@5.8.2",
+    "npm:@trpc/server@^11.4.1": "11.4.1_typescript@5.8.2",
     "npm:@types/ip6addr@~0.2.6": "0.2.6",
     "npm:@types/ip@^1.1.3": "1.1.3",
     "npm:@types/node@*": "22.12.0",
+    "npm:@types/ws@^8.2.0": "8.18.1",
     "npm:ip6addr@~0.2.5": "0.2.5",
     "npm:itertools-ts@^2.2.0": "2.2.0",
     "npm:openapi-typescript@*": "7.6.1_typescript@5.8.2",
     "npm:trpc-cli@~0.9.2": "0.9.2_zod@3.25.65",
+    "npm:ts-pattern@^5.7.1": "5.7.1",
     "npm:ts-to-zod@^3.15.0": "3.15.0_typescript@5.8.2",
+    "npm:ws@8": "8.18.2",
     "npm:zod@^3.24.2": "3.24.2"
   },
   "jsr": {
@@ -93,6 +100,9 @@
     },
     "@std/bytes@1.0.5": {
       "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/bytes@1.0.6": {
+      "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
     },
     "@std/crypto@1.0.4": {
       "integrity": "cee245c453bd5366207f4d8aa25ea3e9c86cecad2be3fefcaa6cb17203d79340"
@@ -149,6 +159,12 @@
       "integrity": "a9d26b1988cdd7aa7b1f4b51e1c36c1557f3f252880fa6cc5b9f37078b1a5035",
       "dependencies": [
         "jsr:@std/bytes@^1.0.5"
+      ]
+    },
+    "@std/streams@1.0.10": {
+      "integrity": "75c0b1431873cd0d8b3d679015220204d36d3c7420d93b60acfc379eb0dc30af",
+      "dependencies": [
+        "jsr:@std/bytes@^1.0.6"
       ]
     },
     "@std/testing@1.0.10": {
@@ -379,9 +395,10 @@
     "@standard-schema/spec@1.0.0": {
       "integrity": "sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA=="
     },
-    "@trpc/server@11.0.0_typescript@5.8.2": {
-      "integrity": "sha512-xY9q/b/wR/tWGYTm5xmRjivkYD2EZZXmOKmHuNJRYZuLbieeNUsdfQRjJC409WB1pjKWInomhHwuA8bahZJ4lQ==",
+    "@trpc/client@11.4.2_@trpc+server@11.4.1__typescript@5.8.2_typescript@5.8.2": {
+      "integrity": "sha512-Eep1rorAsATs9bxgaXf+BV34CRs4lAKQmwumUL4CNdNDkJItyfuWUr3xWx0np1w3EzUDVA0YDMK93iKDBBA0KQ==",
       "dependencies": [
+        "@trpc/server",
         "typescript"
       ]
     },
@@ -408,6 +425,12 @@
     },
     "@types/omelette@0.4.5": {
       "integrity": "sha512-zUCJpVRwfMcZfkxSCGp73mgd3/xesvPz5tQJIORlfP/zkYEyp9KUfF7IP3RRjyZR3DwxkPs96/IFf70GmYZYHQ=="
+    },
+    "@types/ws@8.18.1": {
+      "integrity": "sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==",
+      "dependencies": [
+        "@types/node"
+      ]
     },
     "@typescript/vfs@1.6.1_typescript@5.8.2": {
       "integrity": "sha512-JwoxboBh7Oz1v38tPbkrZ62ZXNHAk9bJ7c9x0eI5zBfBnBYGhURdbnh7Z4smN/MV48Y5OCcZb58n972UtbazsA==",
@@ -1101,7 +1124,7 @@
     "trpc-cli@0.9.2_zod@3.25.65": {
       "integrity": "sha512-JCixLtLCC40Nd8n9i8yM6tr1modW4eT5u7JGJ/S6QAO09Ptds/jcZRXe5QvAiWG63sXNHG29VnEdw8rFIU0LuA==",
       "dependencies": [
-        "@trpc/server@11.4.1_typescript@5.8.2",
+        "@trpc/server",
         "@types/omelette",
         "commander",
         "picocolors",
@@ -1109,6 +1132,9 @@
         "zod-to-json-schema"
       ],
       "bin": true
+    },
+    "ts-pattern@5.7.1": {
+      "integrity": "sha512-EGs8PguQqAAUIcQfK4E9xdXxB6s2GK4sJfT/vcc9V1ELIvC4LH/zXu2t/5fajtv6oiRCxdv7BgtVK3vWgROxag=="
     },
     "ts-to-zod@3.15.0_typescript@5.8.2": {
       "integrity": "sha512-Lu5ITqD8xCIo4JZp4Cg3iSK3J2x3TGwwuDtNHfAIlx1mXWKClRdzqV+x6CFEzhKtJlZzhyvJIqg7DzrWfsdVSg==",
@@ -1212,6 +1238,9 @@
         "string-width",
         "strip-ansi"
       ]
+    },
+    "ws@8.18.2": {
+      "integrity": "sha512-DMricUmwGZUVr++AEAe2uiVM7UoO9MAVZMDu05UQOaUII0lp+zOzLLU4Xqh/JvTqklB1T4uELaaPBKyjE1r4fQ=="
     },
     "yaml-ast-parser@0.0.43": {
       "integrity": "sha512-2PTINUwsRqSd+s8XxKaJWQlUuEMHJQyEuh2edBbW8KNJz0SJPwUSD2zRWqezFEdN7IzAgeuYHFUCF7o8zRdZ0A=="
@@ -1493,7 +1522,7 @@
       "jsr:@std/assert@^1.0.12",
       "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/path@^1.0.9",
-      "jsr:@std/streams@^1.0.9",
+      "jsr:@std/streams@^1.0.10",
       "jsr:@std/testing@^1.0.10",
       "jsr:@std/uuid@^1.0.6",
       "jsr:@std/yaml@^1.0.8",
@@ -1501,13 +1530,17 @@
       "jsr:@tmpl/gen@~0.5.25",
       "npm:@orpc/client@^1.5.2",
       "npm:@orpc/server@^1.5.2",
-      "npm:@trpc/server@11",
+      "npm:@trpc/client@^11.4.1",
+      "npm:@trpc/server@^11.4.1",
       "npm:@types/ip6addr@~0.2.6",
       "npm:@types/ip@^1.1.3",
+      "npm:@types/ws@^8.2.0",
       "npm:ip6addr@~0.2.5",
       "npm:itertools-ts@^2.2.0",
       "npm:trpc-cli@~0.9.2",
+      "npm:ts-pattern@^5.7.1",
       "npm:ts-to-zod@^3.15.0",
+      "npm:ws@8",
       "npm:zod@^3.24.2"
     ]
   }

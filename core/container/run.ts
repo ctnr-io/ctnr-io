@@ -48,6 +48,7 @@ export default (context: StdioContext) => async (input: Input) => {
     },
     spec: {
       restartPolicy: "Never",
+      runtimeClassName: "gvisor",
       containers: [
         {
           name,

@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { Context, StdioContext } from "core/context.ts";
+import { StdioContext } from "core/context.ts";
 import kubernetes from "util/kube-client.ts";
-import { Buffer } from "node:buffer";
 
 export const meta = {
   aliases: {

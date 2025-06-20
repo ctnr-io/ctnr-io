@@ -16,6 +16,29 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
   // return { user: authenticatedUser };
   const ws = opts.res as ws.WebSocket;
 
+  const terminalSizeGenerator = createAsyncGeneratorListener(
+    "terminal-size",
+    (eventType, handler) => {
+      upgradeWSSWebSocket(
+        ws,
+        (event) => {
+          if (event instanceof Buffer) {
+            try {
+              const parsed = JSON.parse(Buffer.from(event).toString("utf-8"));
+              if (parsed && parsed.type === eventType) {
+                handler(parsed.data);
+                return true;
+              }
+            } catch {}
+          }
+          return false;
+        }
+      );
+    },
+    () => ws.close(),
+    (size: { columns: number; rows: number }) => size,
+  )
+
   return {
     ...opts,
     signal: undefined,
@@ -71,29 +94,7 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
           ws.close();
         },
       }),
-      terminalSizeChan: () =>
-        createAsyncGeneratorListener(
-          "terminal-size",
-          (eventType, handler) => {
-            upgradeWSSWebSocket(
-              ws,
-              (event) => {
-                if (event instanceof Buffer) {
-                  try {
-                    const parsed = JSON.parse(Buffer.from(event).toString("utf-8"));
-                    if (parsed && parsed.type === eventType) {
-                      handler(parsed.data);
-                      return true;
-                    }
-                  } catch {}
-                }
-                return false;
-              }
-            );
-          },
-          () => ws.close(),
-          (size: { columns: number; rows: number }) => size,
-        ),
+      terminalSizeChan: () => terminalSizeGenerator,
     },
   };
 }

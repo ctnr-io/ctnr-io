@@ -34,13 +34,13 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
             } catch {}
           }
           return false;
-        }
+        },
       );
     },
     () => ws.close(),
     (_eventType, size) => size as { columns: number; rows: number },
   );
-  
+
   // Create a generator for signal events
   const signalGenerator = createAsyncGeneratorListener(
     ["signal"],
@@ -58,7 +58,7 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
             } catch {}
           }
           return false;
-        }
+        },
       );
     },
     () => ws.close(),
@@ -93,11 +93,6 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
             },
           );
         },
-        cancel() {
-          console.debug("Stdin stream cancelled.");
-          // Don't close the WebSocket when stdin is cancelled
-          // Just log the cancellation
-        },
       }),
       stdout: new WritableStream({
         write(chunk) {
@@ -117,7 +112,14 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
           }));
         },
       }),
-      setRaw: (value: boolean) => ws.send(JSON.stringify({ type: "set-raw", value })), 
+      exit: (code: number) => {
+        // Send an exit code message to the client
+        ws.send(JSON.stringify({
+          type: "exit-code",
+          code, // Default to 0 if no code is provided
+        }));
+      },
+      setRaw: (value: boolean) => ws.send(JSON.stringify({ type: "set-raw", value })),
       signalChan: () => signalGenerator,
       terminalSizeChan: () => terminalSizeGenerator,
     },

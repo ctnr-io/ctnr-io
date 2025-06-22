@@ -12,6 +12,7 @@ export type StdioContext = Context & {
     stdin: ReadableStream;
     stdout: WritableStream;
     stderr: WritableStream;
+    exit: (code: number) => void;
     setRaw: (value: boolean) => void;
     signalChan: () => AsyncGenerator<Signals, void, unknown>;
     terminalSizeChan: () => AsyncGenerator<{ columns: number; rows: number }, void, unknown>;

@@ -43,6 +43,7 @@ export const ctnr = createCli({
     stdin: Deno.stdin.readable,
     stdout,
     stderr,
+    exit: Deno.exit.bind(Deno),
     setRaw: Deno.stdin.setRaw.bind(Deno.stdin),
     signalChan: async function* () {
       if (!Deno.stdin.isTerminal()) {

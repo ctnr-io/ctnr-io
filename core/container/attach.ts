@@ -116,6 +116,13 @@ export default (context: StdioContext) => async (input: Input) => {
       }),
     });
 
+    defer.push(async () => {
+      // Get pod resource
+      const podResource = await kubernetes.CoreV1.namespace("default").getPod(name);
+      // Close the tunnel and clean up resources
+      context.stdio.exit(podResource.status?.containerStatuses?.[0]?.state?.terminated?.exitCode || 0);
+    });
+
     // Read logs to display them in the terminal
     await Promise.any([
       context.stdio.stdin.pipeThrough(
@@ -134,6 +141,7 @@ export default (context: StdioContext) => async (input: Input) => {
   } catch (error) {
     console.debug(`Error in stream processing:`, error);
   } finally {
+    console.debug(`Cleaning up resources...`);
     // Run cleanup functions in reverse order
     for (const deferFn of defer.toReversed()) {
       try {

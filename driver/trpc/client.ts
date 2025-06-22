@@ -8,6 +8,19 @@ export const wsClient = createWSClient({
       // token: 'your-supabase-access-token', // Replace with your actual token
     };
   },
+  onClose(cause) {
+    // Handle WebSocket close event gracefully
+    if (cause?.code === 1005) {
+      // This is a clean close, likely from Ctrl+D (EOF)
+      // We can exit the process gracefully
+      console.log("WebSocket connection closed cleanly.");
+      // Optional: You can exit the process here if needed
+      // Deno.exit(0);
+    } else {
+      // This is an unexpected close
+      console.error(`WebSocket connection closed with code ${cause?.code || "unknown"}`);
+    }
+  },
 });
 
 export const client = createTRPCClient<Router>({

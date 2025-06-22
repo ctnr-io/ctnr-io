@@ -3,11 +3,17 @@ export type Context = {
   // defer: (fn: () => void) => void;
 };
 
+export type Signals =
+  | "SIGINT"
+  | "SIGQUIT"
+
 export type StdioContext = Context & {
   stdio: {
     stdin: ReadableStream;
     stdout: WritableStream;
     stderr: WritableStream;
+    setRaw: (value: boolean) => void;
+    signalChan: () => AsyncGenerator<Signals, void, unknown>;
     terminalSizeChan: () => AsyncGenerator<{ columns: number; rows: number }, void, unknown>;
   };
 };

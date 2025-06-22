@@ -4,10 +4,6 @@ import { cliRouter } from "./router.ts";
 import { wsClient } from "../client.ts";
 import { createAsyncGeneratorListener } from "util/async-generator.ts";
 
-if (Deno.stdin.isTerminal()) {
-  Deno.stdin.setRaw(true);
-}
-
 export const remoteCli = createCli({
   router: cliRouter,
   context: createClientContext({
@@ -16,20 +12,35 @@ export const remoteCli = createCli({
     stdin: Deno.stdin.readable,
     stdout: Deno.stdout.writable,
     stderr: Deno.stderr.writable,
+    setRaw: Deno.stdin.setRaw.bind(Deno.stdin),
+    signalChan: async function* () {
+      if (!Deno.stdin.isTerminal()) {
+        return;
+      }
+      yield* createAsyncGeneratorListener(
+        [
+          "SIGINT",
+          "SIGQUIT",
+        ] as const,
+        Deno.addSignalListener,
+        Deno.removeSignalListener,
+        (eventType) => eventType,
+      )
+    },
     terminalSizeChan: async function* () {
-        if (!Deno.stdin.isTerminal()) {
-          return;
-        }
-        // Send the initial terminal size
-        yield Deno.consoleSize();
-        // Send terminal size updates
-        yield* createAsyncGeneratorListener(
-          "SIGWINCH",
-          Deno.addSignalListener,
-          Deno.removeSignalListener,
-          Deno.consoleSize,
-        );
-      },
+      if (!Deno.stdin.isTerminal()) {
+        return;
+      }
+      // Send the initial terminal size
+      yield Deno.consoleSize();
+      // Send terminal size updates
+      yield* createAsyncGeneratorListener(
+        ["SIGWINCH"],
+        Deno.addSignalListener,
+        Deno.removeSignalListener,
+        Deno.consoleSize,
+      );
+    },
   }),
 });
 

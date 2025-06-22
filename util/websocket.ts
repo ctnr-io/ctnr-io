@@ -1,29 +1,31 @@
-import { createWSClient } from "@trpc/client";
 import * as ws from "ws";
 
-export type WSClient = ReturnType<typeof createWSClient>;
+/**
+ * Bypass the default `onmessage` handler to allow custom handling of messages
+ * @param WebSocket The WebSocket instance to upgrade
+ * @param handler Custom handler for the event
+ * @returns The upgraded WebSocket instance
+ */
+export function bypassWebSocketMessageHandler<T>(
+  ws: WebSocket,
+  handler: (event: MessageEvent) => boolean,
+) {
+  const originalOnMessage = ws.onmessage;
+  ws.onmessage = (event: MessageEvent) => {
+    if (!handler(event)) {
+      return originalOnMessage?.call(ws, event);
+    }
+  };
+  return ws;
+}
 
 /**
- * Upgrade a WSClient to handle specific events with a predicate.
  * Bypass the default `onmessage` handler to allow custom handling of messages
- * @param wsClient The WSClient instance to upgrade
- * @param predicate Check if the event should be handled by the custom handler
+ * @param ws The ws.WebSocket instance to upgrade
  * @param handler Custom handler for the event
  * @returns The upgraded WSClient instance
  */
-export function upgradeWSClient<T>(
-  wsClient: WSClient,
-  upgrader: (event: any) => boolean,
-) {
-  const originalOnMessage = wsClient.connection!.ws.onmessage;
-  wsClient.connection!.ws.onmessage = (event: MessageEvent) => {
-    if (!upgrader(event)) {
-      return originalOnMessage?.call(wsClient.connection!.ws, event);
-    }
-  };
-}
-
-export function upgradeWSSWebSocket(
+export function bypassWsWebSocketMessageHandler(
   ws: ws.WebSocket,
   upgrader: (event: ws.RawData) => boolean,
 ): void {

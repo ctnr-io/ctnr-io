@@ -1,10 +1,21 @@
-import { Context } from "core/context.ts";
+import { Context, Signals } from "core/context.ts";
 import { Buffer } from "node:buffer";
-import { WSClient, upgradeWSClient } from "util/trpc-websocket.ts";
+import { bypassWebSocketMessageHandler } from "util/websocket.ts";
+import { createWSClient } from "@trpc/client";
+import { wsClient } from "../client.ts";
 
 export function createClientContext(
-  opts: { wsClient: WSClient; stdin: ReadableStream; stdout: WritableStream; stderr: WritableStream, terminalSizeChan: () => AsyncGenerator<{ columns: number; rows: number }> },
+  opts: {
+    wsClient: ReturnType<typeof createWSClient>;
+    stdin: ReadableStream;
+    stdout: WritableStream;
+    stderr: WritableStream;
+    setRaw: (value: boolean) => void,
+    signalChan: () => AsyncGenerator<Signals>;
+    terminalSizeChan: () => AsyncGenerator<{ columns: number; rows: number }>;
+  },
 ): Context {
+
   opts.stdin.pipeTo(
     new WritableStream({
       write(chunk) {
@@ -15,14 +26,17 @@ export function createClientContext(
         }));
       },
       close() {
-        // Optionally, you can send a message to the WebSocket to indicate that stdin is closed
-        opts.wsClient.connection?.ws.close();
+        // Send a message to the WebSocket to indicate that stdin has reached EOF (Ctrl+D)
+        // Instead of closing the connection, we send a special message
+        opts.wsClient.connection?.ws.send(JSON.stringify({
+          type: "stdin-eof",
+        }));
       },
     }),
   );
 
-  upgradeWSClient(
-    opts.wsClient,
+  bypassWebSocketMessageHandler(
+    opts.wsClient.connection!.ws,
     (event) => {
       try {
         const parsed = JSON.parse(event.data);
@@ -38,16 +52,33 @@ export function createClientContext(
           stderrWriter.releaseLock();
           return true;
         }
+        if (parsed.type === "set-raw") {
+          opts.setRaw(parsed.value);
+          return true;
+        }
       } catch (e) {
       }
-      return false
+      return false;
     },
   );
 
   (async () => {
     while (!opts.wsClient.connection?.state || opts.wsClient.connection?.state !== "open") {
       // Wait for the WebSocket connection to be established
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    for await (const signal of opts.signalChan()) {
+      opts.wsClient.connection?.ws.send(JSON.stringify({
+        type: "signal",
+        data: signal,
+      }));
+    }
+  })();
+
+  (async () => {
+    while (!opts.wsClient.connection?.state || opts.wsClient.connection?.state !== "open") {
+      // Wait for the WebSocket connection to be established
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
     // Send the initial terminal size
     opts.wsClient.connection?.ws.send(JSON.stringify({

@@ -22,6 +22,7 @@ export const Input = z.object({
   port: z.array(z.number()).optional().describe("port to expose"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
+  force: z.boolean().optional().default(false).describe("Force recreate the container if it already exists"),
   // scaleType: z.enum(["concurrency", "rps", "cpu", "memory"]).optional().describe("Type of scaling to apply"),
   // scale: z.object({
   //   min: z.number().optional(),
@@ -34,7 +35,7 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>;
 
 export default (context: StdioContext) => async (input: Input) => {
-  const { name, image, env = [], port = [], interactive, terminal, command } = input;
+  const { name, image, env = [], port = [], interactive, terminal, force, command } = input;
 
   const podResource: Pod = {
     apiVersion: "v1",
@@ -48,7 +49,7 @@ export default (context: StdioContext) => async (input: Input) => {
     },
     spec: {
       restartPolicy: "Never",
-      runtimeClassName: "gvisor",
+      // runtimeClassName: "gvisor",
       containers: [
         {
           name,
@@ -90,36 +91,38 @@ export default (context: StdioContext) => async (input: Input) => {
 
   // Check if the pod already exists and is running
   const pod = await kubernetes.CoreV1.namespace("default").getPod(name).catch(() => null);
-  if (!pod || pod.status?.phase !== "Running") {
-    // Delete existing pod if not running
-    {
-      if (pod && pod.status?.phase !== "Running") {
-        stderrWriter.write(`Container ${name} already exists. Deleting it before creating a new one.\r\n`);
-        kubernetes.CoreV1.namespace("default").deletePod(name, {
-          abortSignal: context.signal,
-        });
-        stdoutWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
-        // Wait for the pod to be deleted
-        await waitPodEvent(context, name, "DELETED");
+  if (pod) {
+    if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
+      if (force) {
+        stdoutWriter.write(`Container ${name} already exists and is ${pod.status.phase.toLowerCase()}. Forcing recreation...\r\n`);
+      } else {
+        stdoutWriter.write(`Container ${name} already exists and is running. Use --force to recreate it, or access it with \`attach\` command.\r\n`);
+        stdoutWriter.releaseLock();
+        stderrWriter.releaseLock();
+        return;
       }
+    } else {
+      stdoutWriter.write(`Container ${name} already exists but is not running. Recreating it...\r\n`);
     }
+    kubernetes.CoreV1.namespace("default").deletePod(name, {
+      abortSignal: context.signal,
+      gracePeriodSeconds: 0, // Force delete immediately
+    });
+    stdoutWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
+    // Wait for the pod to be deleted
+    await waitPodEvent(context, name, "DELETED");
+  }
 
-    // Create pod if it doesn't exist or is not running
-    {
-      kubernetes.CoreV1.namespace("default").createPod(podResource, {
-        abortSignal: context.signal,
-      });
-      stdoutWriter.write(
-        `Container ${name} created. Waiting for it to be ready...\r\n`,
-      );
-      // Watch for pod events
-      await waitPodStatus(context, name, "ContainersReady").catch(() => {});
-    }
-  } else {
-    stderrWriter.write(
-      `Container ${name} is already running.\r\n`,
+  // Create the pod
+  {
+    kubernetes.CoreV1.namespace("default").createPod(podResource, {
+      abortSignal: context.signal,
+    });
+    stdoutWriter.write(
+      `Container ${name} created. Waiting for it to be ready...\r\n`,
     );
-    return;
+    // Watch for pod events
+    await waitPodStatus(context, name, "ContainersReady").catch(() => {});
   }
 
   stdoutWriter.releaseLock();

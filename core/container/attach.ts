@@ -1,6 +1,8 @@
-import { z } from "zod";
+import { boolean, z } from "zod";
 import { StdioContext } from "core/context.ts";
 import kubernetes from "util/kube-client.ts";
+import { Writable } from "node:stream";
+import { toNodeRuntimeHandler } from "@cloudydeno/kubernetes-apis/core/v1";
 
 export const meta = {
   aliases: {
@@ -19,6 +21,35 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
+const handleCtrlPCtrlQ = ({ terminal, stdout }: {
+  terminal: boolean;
+  stdout: WritableStream;
+}) => {
+  let stdinLastChunk: Uint8Array | null = null;
+  const stdoutWriter = stdout.getWriter();
+  stdoutWriter.write(`Press Ctrl+P Ctrl+Q to detach.\r\n`);
+  stdoutWriter.releaseLock();
+  return (
+    chunk: Uint8Array,
+    controller: TransformStreamDefaultController<any>,
+  ): void => {
+    if (terminal) {
+      // Check for Ctrl+P Ctrl+Q sequence
+      if (
+        stdinLastChunk?.[0] === 0x10 && chunk[0] === 0x11
+      ) {
+        // Detach from the container
+        controller.terminate();
+      } else {
+        // Store the last chunk for the next iteration
+        stdinLastChunk = chunk;
+      }
+    }
+    // Otherwise, just pass the chunk through
+    controller.enqueue(chunk);
+  };
+};
+
 export default (context: StdioContext) => async (input: Input) => {
   const defer: Array<() => unknown> = [];
   try {
@@ -33,36 +64,71 @@ export default (context: StdioContext) => async (input: Input) => {
       container: name,
     });
 
-    if (terminal) {
+    if (terminal && interactive) {
+      const signalChanAsyncGenerator = context.stdio.signalChan();
+      defer.push(() => signalChanAsyncGenerator.return());
       (async () => {
-        const generator = context.stdio.terminalSizeChan();
-        defer.push(() => generator.return());
-        for await (const terminalSize of generator) {
+        for await (const signal of signalChanAsyncGenerator) {
+          switch (signal) {
+            case "SIGINT":
+              tunnel.ttyWriteSignal("INTR");
+              break;
+            case "SIGQUIT":
+              tunnel.ttyWriteSignal("QUIT");
+              break;
+          }
+        }
+      })();
+    }
+
+    if (terminal) {
+      const terminalSizeAsyncGenerator = context.stdio.terminalSizeChan();
+      defer.push(() => terminalSizeAsyncGenerator.return());
+      (async () => {
+        for await (const terminalSize of terminalSizeAsyncGenerator) {
           tunnel.ttySetSize(terminalSize);
         }
       })();
     }
 
-    console.info(`Attaching to container ${name}...`);
+    if (terminal) {
+      context.stdio.setRaw(true);
+      defer.push(() => context.stdio.setRaw(false));
+    }
 
     const stdoutWriter = context.stdio.stdout.getWriter();
-    const encoder = new TextEncoder();
-    stdoutWriter.write(encoder.encode(`Container ${name} is running.\r\n`));
-    interactive && stdoutWriter.write(encoder.encode("Press Ctrl+D to exit.\r\n"));
-    interactive && stdoutWriter.write(encoder.encode("Press Ctrl+P Ctrl+Q to detach.\r\n"));
-    interactive && stdoutWriter.write(encoder.encode("Press ENTER to send input to the container.\r\n"));
+    stdoutWriter.write(`Container ${name} is running.\r\n`);
+    interactive && stdoutWriter.write(`Press ENTER if you don't see a command prompt.\r\n`);
     stdoutWriter.releaseLock();
+
+    const stdioController = new AbortController();
+    context.signal?.addEventListener("abort", () => {
+      stdioController.abort();
+    });
+    defer.push(() => {
+      context.signal?.removeEventListener("abort", stdioController.abort);
+    });
+
+    const handleCtrlPCtrlQStream = new TransformStream({
+      transform: handleCtrlPCtrlQ({
+        terminal,
+        stdout: context.stdio.stdout,
+      }),
+    });
 
     // Read logs to display them in the terminal
     await Promise.any([
-      interactive && context.stdio.stdin.pipeTo(tunnel.stdin, {
-        signal: context.signal,
-      }).catch(() => {}),
+      context.stdio.stdin.pipeThrough(
+        terminal ? handleCtrlPCtrlQStream : new TransformStream(),
+      )
+        .pipeTo(
+          interactive ? tunnel.stdin : context.stdio.stdout,
+        ),
       tunnel.stdout.pipeTo(context.stdio.stdout, {
-        signal: context.signal,
+        signal: stdioController.signal,
       }).catch(() => {}),
       tunnel.stderr.pipeTo(context.stdio.stderr, {
-        signal: context.signal,
+        signal: stdioController.signal,
       }).catch(() => {}),
     ]);
   } catch (error) {

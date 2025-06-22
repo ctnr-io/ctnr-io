@@ -3,10 +3,11 @@ import { createAsyncGeneratorListener } from "util/async-generator.ts";
 
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import * as ws from "ws";
-import { StdioContext } from "core/context.ts";
+import { Signals, StdioContext } from "core/context.ts";
 import { Buffer } from "node:buffer";
 import { router } from "./router.ts";
-import { upgradeWSSWebSocket } from "util/trpc-websocket.ts";
+import { bypassWsWebSocketMessageHandler } from "util/websocket.ts";
+import { number } from "zod";
 
 export type Router = typeof router;
 
@@ -16,10 +17,11 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
   // return { user: authenticatedUser };
   const ws = opts.res as ws.WebSocket;
 
+  // Create a generator for terminal size events
   const terminalSizeGenerator = createAsyncGeneratorListener(
-    "terminal-size",
+    ["terminal-size"] as const,
     (eventType, handler) => {
-      upgradeWSSWebSocket(
+      bypassWsWebSocketMessageHandler(
         ws,
         (event) => {
           if (event instanceof Buffer) {
@@ -36,8 +38,32 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
       );
     },
     () => ws.close(),
-    (size: { columns: number; rows: number }) => size,
-  )
+    (_eventType, size) => size as { columns: number; rows: number },
+  );
+  
+  // Create a generator for signal events
+  const signalGenerator = createAsyncGeneratorListener(
+    ["signal"],
+    (eventType, handler) => {
+      bypassWsWebSocketMessageHandler(
+        ws,
+        (event) => {
+          if (event instanceof Buffer) {
+            try {
+              const parsed = JSON.parse(Buffer.from(event).toString("utf-8"));
+              if (parsed && parsed.type === eventType) {
+                handler(parsed.data);
+                return true;
+              }
+            } catch {}
+          }
+          return false;
+        }
+      );
+    },
+    () => ws.close(),
+    (eventType, signal) => signal as Signals,
+  );
 
   return {
     ...opts,
@@ -45,7 +71,7 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
     stdio: {
       stdin: new ReadableStream({
         start(controller) {
-          upgradeWSSWebSocket(
+          bypassWsWebSocketMessageHandler(
             ws,
             (event) => {
               if (event instanceof Buffer) {
@@ -53,6 +79,12 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
                   const parsed = JSON.parse(Buffer.from(event).toString("utf-8"));
                   if (parsed && parsed.type === "stdin") {
                     controller.enqueue(new TextEncoder().encode(parsed.data));
+                    return true;
+                  }
+                  // Handle EOF signal (Ctrl+D) from client
+                  if (parsed && parsed.type === "stdin-eof") {
+                    // Close the stream properly without closing the WebSocket
+                    controller.close();
                     return true;
                   }
                 } catch {}
@@ -63,8 +95,8 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
         },
         cancel() {
           console.debug("Stdin stream cancelled.");
-          // Optionally, you can send a message to the WebSocket to indicate that stdin is cancelled
-          ws.close();
+          // Don't close the WebSocket when stdin is cancelled
+          // Just log the cancellation
         },
       }),
       stdout: new WritableStream({
@@ -75,10 +107,6 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
             data: Buffer.from(chunk).toString("utf-8"),
           }));
         },
-        close() {
-          // Optionally, you can send a message to the WebSocket to indicate that stdout is closed
-          ws.close();
-        },
       }),
       stderr: new WritableStream({
         write(chunk) {
@@ -88,12 +116,9 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
             data: Buffer.from(chunk).toString("utf-8"),
           }));
         },
-        close() {
-          console.debug("Stderr stream closed.");
-          // Optionally, you can send a message to the WebSocket to indicate that stderr is closed
-          ws.close();
-        },
       }),
+      setRaw: (value: boolean) => ws.send(JSON.stringify({ type: "set-raw", value })), 
+      signalChan: () => signalGenerator,
       terminalSizeChan: () => terminalSizeGenerator,
     },
   };

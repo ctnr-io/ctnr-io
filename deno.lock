@@ -9,11 +9,10 @@
     "jsr:@std/assert@^1.0.12": "1.0.13",
     "jsr:@std/async@^1.0.12": "1.0.12",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
-    "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/bytes@^1.0.5": "1.0.6",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/crypto@^1.0.4": "1.0.4",
     "jsr:@std/data-structures@^1.0.6": "1.0.7",
-    "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@*": "1.0.7",
     "jsr:@std/fs@^1.0.15": "1.0.15",
     "jsr:@std/fs@^1.0.16": "1.0.17",
@@ -112,9 +111,6 @@
     },
     "@std/data-structures@1.0.7": {
       "integrity": "16932d2c8d281f65eaaa2209af2473209881e33b1ced54cd1b015e7b4cdbb0d2"
-    },
-    "@std/dotenv@0.225.3": {
-      "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
     },
     "@std/encoding@1.0.7": {
       "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
@@ -1520,7 +1516,6 @@
       "jsr:@cloudydeno/kubernetes-apis@~0.5.2",
       "jsr:@cloudydeno/kubernetes-client@~0.7.5",
       "jsr:@std/assert@^1.0.12",
-      "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/path@^1.0.9",
       "jsr:@std/streams@^1.0.10",
       "jsr:@std/testing@^1.0.10",

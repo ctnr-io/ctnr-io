@@ -141,6 +141,9 @@ const handler = applyWSSHandler({
     // connection is terminated if pong message is not received in this many milliseconds
     pongWaitMs: 5000,
   },
+  onError: (err) => {
+    console.error("WebSocket error:", err);
+  },
 });
 
 wss.on("connection", (ws) => {

@@ -2,9 +2,8 @@ import { z } from "zod";
 import kubernetes from "util/kube-client.ts";
 import { Context, StdioContext } from "core/context.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
-import { WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
+import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
-import { stdout } from "node:process";
 
 export const meta = {
   aliases: {
@@ -50,6 +49,8 @@ export default (context: StdioContext) => async (input: Input) => {
     spec: {
       restartPolicy: "Never",
       // runtimeClassName: "gvisor",
+      hostNetwork: false, // Do not use host network
+      automountServiceAccountToken: false, // Prevent user access to kubernetes API
       containers: [
         {
           name,
@@ -77,12 +78,22 @@ export default (context: StdioContext) => async (input: Input) => {
               command: ["true"],
             },
           },
+          securityContext: {
+            allowPrivilegeEscalation: false,
+            capabilities: {
+              drop: ["ALL"],
+            },
+          },
+          // Add limits to prevent fork bombs attack
+          resources: {
+            limits: {
+              cpu: new Quantity(100, "m"), // 100 milliCPU
+              memory: new Quantity(256, "Mi"), // 256 MiB
+            },
+            // requests: resources?.requests || {},
+          },
         },
       ],
-      // resources: {
-      //   limits: resources?.limits || {},
-      //   requests: resources?.requests || {},
-      // },
     },
   };
 
@@ -94,9 +105,13 @@ export default (context: StdioContext) => async (input: Input) => {
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
-        stdoutWriter.write(`Container ${name} already exists and is ${pod.status.phase.toLowerCase()}. Forcing recreation...\r\n`);
+        stdoutWriter.write(
+          `Container ${name} already exists and is ${pod.status.phase.toLowerCase()}. Forcing recreation...\r\n`,
+        );
       } else {
-        stdoutWriter.write(`Container ${name} already exists and is running. Use --force to recreate it, or access it with \`attach\` command.\r\n`);
+        stdoutWriter.write(
+          `Container ${name} already exists and is running. Use --force to recreate it, or access it with \`attach\` command.\r\n`,
+        );
         stdoutWriter.releaseLock();
         stderrWriter.releaseLock();
         return;

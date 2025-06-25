@@ -1,8 +1,6 @@
-import { boolean, z } from "zod";
-import { StdioContext } from "core/context.ts";
+import { z } from "zod";
+import { StdioContext, namespace } from "core/context.ts";
 import kubernetes from "util/kube-client.ts";
-import { Writable } from "node:stream";
-import { toNodeRuntimeHandler } from "@cloudydeno/kubernetes-apis/core/v1";
 
 export const meta = {
   aliases: {
@@ -55,7 +53,7 @@ export default (context: StdioContext) => async (input: Input) => {
   try {
     const { name, interactive = false, terminal = false } = input;
 
-    const tunnel = await kubernetes.CoreV1.namespace("default").tunnelPodAttach(name, {
+    const tunnel = await kubernetes.CoreV1.namespace(namespace).tunnelPodAttach(name, {
       stdin: interactive,
       tty: terminal,
       stdout: true,
@@ -118,7 +116,7 @@ export default (context: StdioContext) => async (input: Input) => {
 
     defer.push(async () => {
       // Get pod resource
-      const podResource = await kubernetes.CoreV1.namespace("default").getPod(name);
+      const podResource = await kubernetes.CoreV1.namespace(namespace).getPod(name);
       // Close the tunnel and clean up resources
       context.stdio.exit(podResource.status?.containerStatuses?.[0]?.state?.terminated?.exitCode || 0);
     });

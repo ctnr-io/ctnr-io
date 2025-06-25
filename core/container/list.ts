@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Context } from "core/context.ts";
+import { Context, namespace } from "core/context.ts";
 import kubernetes from "util/kube-client.ts";
 
 export const meta = {}
@@ -10,7 +10,7 @@ export type Input = z.infer<typeof Input>
 
 export default (context: Context) => async (input: Input) => {
 	// List pods with label ctnr.io/container
-	const pods = await kubernetes.CoreV1.namespace("default").getPodList({
+	const pods = await kubernetes.CoreV1.namespace(namespace).getPodList({
 		labelSelector: "ctnr.io/container",
 	});
 	return pods.items.map((pod) => ({

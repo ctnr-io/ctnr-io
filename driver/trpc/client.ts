@@ -18,14 +18,14 @@ export const wsClient = createWSClient({
   },
   onError(err) {
     // Handle WebSocket error event
-    console.error("WebSocket error:", err);
+    console.debug("WebSocket error:", err);
   },
   onClose(cause) {
     // Handle WebSocket close event gracefully
     if (cause?.code === 1005) {
       // This is a clean close, likely from Ctrl+D (EOF)
       // We can exit the process gracefully
-      console.log("WebSocket connection closed cleanly.");
+      console.debug("WebSocket connection closed cleanly.");
       // Optional: You can exit the process here if needed
       // Deno.exit(0);
     } else {

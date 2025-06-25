@@ -18,3 +18,5 @@ export type StdioContext = Context & {
     terminalSizeChan: () => AsyncGenerator<{ columns: number; rows: number }, void, unknown>;
   };
 };
+
+export const namespace = "ctnr-edge" as const;

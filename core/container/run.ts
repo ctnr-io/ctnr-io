@@ -1,6 +1,6 @@
 import { z } from "zod";
 import kubernetes from "util/kube-client.ts";
-import { Context, StdioContext } from "core/context.ts";
+import { Context, StdioContext, namespace } from "core/context.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
@@ -41,7 +41,7 @@ export default (context: StdioContext) => async (input: Input) => {
     kind: "Pod",
     metadata: {
       name,
-      namespace: "default",
+      namespace,
       labels: {
         "ctnr.io/container": name,
       },
@@ -101,7 +101,7 @@ export default (context: StdioContext) => async (input: Input) => {
   const stderrWriter = context.stdio.stderr.getWriter();
 
   // Check if the pod already exists and is running
-  const pod = await kubernetes.CoreV1.namespace("default").getPod(name).catch(() => null);
+  const pod = await kubernetes.CoreV1.namespace(namespace).getPod(name).catch(() => null);
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
@@ -119,7 +119,7 @@ export default (context: StdioContext) => async (input: Input) => {
     } else {
       stdoutWriter.write(`Container ${name} already exists but is not running. Recreating it...\r\n`);
     }
-    kubernetes.CoreV1.namespace("default").deletePod(name, {
+    kubernetes.CoreV1.namespace(namespace).deletePod(name, {
       abortSignal: context.signal,
       gracePeriodSeconds: 0, // Force delete immediately
     });
@@ -130,7 +130,7 @@ export default (context: StdioContext) => async (input: Input) => {
 
   // Create the pod
   {
-    kubernetes.CoreV1.namespace("default").createPod(podResource, {
+    kubernetes.CoreV1.namespace(namespace).createPod(podResource, {
       abortSignal: context.signal,
     });
     stdoutWriter.write(
@@ -152,7 +152,7 @@ export default (context: StdioContext) => async (input: Input) => {
 };
 
 async function waitPodEvent(context: Context, name: string, eventType: WatchEvent<any, any>["type"]): Promise<void> {
-  const podWatcher = await kubernetes.CoreV1.namespace("default").watchPodList({
+  const podWatcher = await kubernetes.CoreV1.namespace(namespace).watchPodList({
     labelSelector: `ctnr.io/container=${name}`,
     abortSignal: context.signal,
   });
@@ -175,7 +175,7 @@ async function waitPodStatus(
   name: string,
   status: "Initialized" | "Ready" | "ContainersReady" | "PodScheduled",
 ): Promise<void> {
-  const podWatcher = await kubernetes.CoreV1.namespace("default").watchPodList({
+  const podWatcher = await kubernetes.CoreV1.namespace(namespace).watchPodList({
     labelSelector: `ctnr.io/container=${name}`,
     abortSignal: context.signal,
   });

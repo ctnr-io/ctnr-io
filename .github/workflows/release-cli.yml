@@ -1,0 +1,181 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0 - without v prefix)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  CLI_NAME: ctnr
+  REGISTRY_URL: https://api.ctnr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-msvc
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: linux
+            arch: x64
+            ext: ""
+          - target: aarch64-unknown-linux-gnu
+            os: linux
+            arch: arm64
+            ext: ""
+          - target: x86_64-apple-darwin
+            os: darwin
+            arch: x64
+            ext: ""
+          - target: aarch64-apple-darwin
+            os: darwin
+            arch: arm64
+            ext: ""
+          - target: x86_64-pc-windows-msvc
+            os: windows
+            arch: x64
+            ext: ".exe"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: latest 
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "version_number=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "version_number=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compile binary
+        run: |
+          mkdir -p dist
+          
+          # Set environment variables for compilation
+          export CTNR_API_URL="${{ env.REGISTRY_URL }}"
+          export CTNR_DEFAULT_CONTEXT="production"
+          
+          # Compile the CLI with embedded environment variables
+          deno compile \
+            --allow-all \
+            --target ${{ matrix.target }} \
+            --output dist/${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
+            driver/trpc/remote-cli/main.ts
+        env:
+          CTNR_API_URL: ${{ env.REGISTRY_URL }}
+          CTNR_DEFAULT_CONTEXT: production
+
+      - name: Create tarball (Unix)
+        if: matrix.os != 'windows'
+        run: |
+          cd dist
+          tar -czf ${{ env.CLI_NAME }}-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}
+
+      - name: Create zip (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          cd dist
+          zip ${{ env.CLI_NAME }}-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.zip ${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            dist/${{ env.CLI_NAME }}-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "version_number=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "version_number=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Prepare release assets
+        run: |
+          # Flatten the artifact structure
+          find dist -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            mv "$file" ./
+          done
+
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            *.tar.gz
+            *.zip
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          echo "Creating tag: $TAG"
+          
+          # Delete existing tag if it exists
+          git tag -d "$TAG" 2>/dev/null || true
+          git push origin ":refs/tags/$TAG" 2>/dev/null || true
+          
+          # Create and push new tag
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

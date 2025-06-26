@@ -1,8 +1,8 @@
 import { createCli } from "trpc-cli";
 import { createClientContext } from "./context.ts";
 import { cliRouter } from "./router.ts";
-import { wsClient } from "../client.ts";
-import { createAsyncGeneratorListener } from "util/async-generator.ts";
+import { wsClient } from "driver/trpc/client.ts";
+import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 
 export const remoteCli = createCli({
   router: cliRouter,

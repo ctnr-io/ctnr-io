@@ -1,8 +1,8 @@
 import { trpc } from "./trpc.ts";
 
-import * as Run from "core/container/run.ts";
-import * as List from "core/container/list.ts";
-import * as Attach from "core/container/attach.ts";
+import * as Run from "api/core/run.ts";
+import * as List from "api/core/list.ts";
+import * as Attach from "api/core/attach.ts";
 
 export const run = trpc.procedure.meta(Run.meta).input(Run.Input).mutation(
   async function ({ input, signal, ctx }) {

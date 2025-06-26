@@ -1,6 +1,6 @@
 import { z } from "zod";
-import kubernetes from "util/kube-client.ts";
-import { Context, StdioContext, namespace } from "core/context.ts";
+import kubernetes from "lib/kube-client.ts";
+import { Context, StdioContext, namespace } from "api/context.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";

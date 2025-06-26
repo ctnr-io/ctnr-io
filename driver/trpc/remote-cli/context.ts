@@ -1,6 +1,6 @@
-import { Context, StdioContext } from "core/context.ts";
+import { Context, StdioContext } from "api/context.ts";
 import { Buffer } from "node:buffer";
-import { bypassWebSocketMessageHandler } from "util/websocket.ts";
+import { bypassWebSocketMessageHandler } from "lib/websocket.ts";
 import { createWSClient } from "@trpc/client";
 
 export function createClientContext(

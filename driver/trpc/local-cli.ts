@@ -1,4 +1,4 @@
-import { createAsyncGeneratorListener } from "util/async-generator.ts";
+import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 import { router } from "./router.ts";
 import { createCli } from "trpc-cli";
 

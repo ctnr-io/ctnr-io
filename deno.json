@@ -2,12 +2,11 @@
   "tasks": {
     "trpc:watch": "deno run -A --unstable-net --watch driver/trpc/server.ts",
     "trpc:serve": "deno run -A --unstable-net driver/trpc/server.ts",
-    "trpc:cli": "deno run -A --unstable-net driver/trpc/cli.ts",
-    "trpc:remote-cli": "deno run -A --unstable-net driver/trpc/remote-cli/main.ts",
+    "trpc:local-cli": "deno run -A --unstable-net driver/trpc/local-cli.ts",
     "orpc:watch": "deno run -A --unstable-net --watch driver/orpc/server.ts",
     "orpc:serve": "deno run -A --unstable-net driver/orpc/server.ts",
     "orpc:cli": "deno run -A --unstable-net driver/orpc/cli.ts",
-    "ctnr": "deno run -A --unstable-net driver/trpc/remote-cli/main.ts",
+    "cli": "deno run -A --unstable-net cli/main.ts",
     "env": "env"
   },
   "imports": {
@@ -35,8 +34,10 @@
     "ts-to-zod": "npm:ts-to-zod@^3.15.0",
     "ws": "npm:ws@^8.0.0",
     "zod": "npm:zod@^3.24.2",
-    "core/": "./core/",
-    "util/": "./util/"
+    "api/": "./api/",
+    "cli/": "./cli/",
+    "driver/": "./driver/",
+    "lib/": "./lib/"
   },
   "compilerOptions": {
     "jsx": "react",

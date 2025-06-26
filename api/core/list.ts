@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { Context, namespace } from "core/context.ts";
-import kubernetes from "util/kube-client.ts";
+import { Context, namespace } from "api/context.ts";
+import kubernetes from "lib/kube-client.ts";
 
 export const meta = {}
 

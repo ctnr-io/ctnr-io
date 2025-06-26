@@ -1,7 +1,7 @@
-import * as Run from "core/container/run.ts";
-import * as List from "core/container/list.ts";
-import * as Attach from "core/container/attach.ts";
-import { client } from "../client.ts";
+import * as Run from "api/core/run.ts";
+import * as List from "api/core/list.ts";
+import * as Attach from "api/core/attach.ts";
+import { client } from "driver/trpc/client.ts";
 import { initTRPC } from "@trpc/server";
 
 export const trpc = initTRPC.context().create();

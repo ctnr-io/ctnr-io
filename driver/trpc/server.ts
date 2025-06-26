@@ -1,13 +1,12 @@
 import { CreateWSSContextFnOptions } from "@trpc/server/adapters/ws";
-import { createAsyncGeneratorListener } from "util/async-generator.ts";
 
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import * as ws from "ws";
-import { Signals, StdioContext } from "core/context.ts";
+import { Signals, StdioContext } from "api/context.ts";
 import { Buffer } from "node:buffer";
 import { router } from "./router.ts";
-import { bypassWsWebSocketMessageHandler } from "util/websocket.ts";
-import { number } from "zod";
+import { bypassWsWebSocketMessageHandler } from "lib/websocket.ts";
+import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 
 export type Router = typeof router;
 
@@ -141,7 +140,7 @@ const handler = applyWSSHandler({
     // connection is terminated if pong message is not received in this many milliseconds
     pongWaitMs: 5000,
   },
-  onError: (err) => {
+  onError: (err: any) => {
     console.error("WebSocket error:", err);
   },
 });

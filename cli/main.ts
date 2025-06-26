@@ -1,0 +1,1 @@
+import 'driver/trpc/remote-cli/main.ts';

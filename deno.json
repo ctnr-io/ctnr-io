@@ -1,4 +1,5 @@
 {
+  "version": "0.1.0",
   "tasks": {
     "trpc:watch": "deno run -A --unstable-net --watch driver/trpc/server.ts",
     "trpc:serve": "deno run -A --unstable-net driver/trpc/server.ts",

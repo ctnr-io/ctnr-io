@@ -1,15 +1,9 @@
-name: Release CLI
+name: Push Tag - Release CLI
 
 on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., 1.0.0 - without v prefix)'
-        required: true
-        default: '1.0.0'
 
 permissions:
   contents: write
@@ -20,7 +14,7 @@ env:
   REGISTRY_URL: https://api.ctnr.io
 
 jobs:
-  build:
+  build-cli:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -64,15 +58,9 @@ jobs:
       - name: Get version
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-            echo "version_number=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-            echo "version_number=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          fi
+          echo "version=$(cat deno.json | jq -r '.version)" >> $GITHUB_OUTPUT
 
-      - name: Compile binary
+      - name: Compile cli binary
         run: |
           mkdir -p dist
           
@@ -85,7 +73,7 @@ jobs:
             --allow-all \
             --target ${{ matrix.target }} \
             --output dist/${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
-            driver/trpc/remote-cli/main.ts
+            cli/main.ts
         env:
           CTNR_API_URL: ${{ env.REGISTRY_URL }}
           CTNR_DEFAULT_CONTEXT: production
@@ -109,8 +97,8 @@ jobs:
           path: |
             dist/${{ env.CLI_NAME }}-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
 
-  release:
-    needs: build
+  release-cli:
+    needs: build-cli
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -122,13 +110,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-            echo "version_number=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-            echo "version_number=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          fi
+          echo "version=$(cat deno.json | jq -r '.version)" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -155,27 +137,5 @@ jobs:
             *.tar.gz
             *.zip
           fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure Git
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Create and push tag
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          TAG="${{ steps.version.outputs.version }}"
-          echo "Creating tag: $TAG"
-          
-          # Delete existing tag if it exists
-          git tag -d "$TAG" 2>/dev/null || true
-          git push origin ":refs/tags/$TAG" 2>/dev/null || true
-          
-          # Create and push new tag
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

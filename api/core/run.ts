@@ -43,7 +43,7 @@ export default (context: StdioContext) => async (input: Input) => {
       name,
       namespace,
       labels: {
-        "ctnr.io/container": name,
+        "ctnr.io/name": name,
       },
     },
     spec: {

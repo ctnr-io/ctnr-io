@@ -1,0 +1,37 @@
+name: Push Main - Create Tag
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          echo "version=$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+          echo "Creating tag: v$TAG"
+          
+          # Create and push new tag
+          git tag -a "v$TAG" -m "Release v$TAG"
+          git push --delete origin "v$TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

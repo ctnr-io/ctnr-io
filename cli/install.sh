@@ -5,7 +5,7 @@ set -e
 # Usage: curl -fsSL https://get.ctnr.io | bash
 
 CLI_NAME="ctnr"
-REPO="ctnr-io/api"
+REPO="ctnr-io/ctnr"
 INSTALL_DIR="/usr/local/bin"
 
 # Colors for output
@@ -68,9 +68,9 @@ install_cli() {
     log "Installing ${CLI_NAME} ${version} for ${platform}..."
 
     if [[ "$platform" == *"windows"* ]]; then
-        filename="${CLI_NAME}-${version}-${platform}.zip"
+        filename="${CLI_NAME}-cli-${version}-${platform}.zip"
     else
-        filename="${CLI_NAME}-${version}-${platform}.tar.gz"
+        filename="${CLI_NAME}-cli-${version}-${platform}.tar.gz"
     fi
 
     download_url="https://github.com/${REPO}/releases/download/${version}/${filename}"
@@ -90,7 +90,7 @@ install_cli() {
     fi
 
     # Find the binary
-    binary_name="${CLI_NAME}-${platform//windows/windows-x64}"
+    binary_name="${CLI_NAME}-cli-${platform//windows/windows-x64}"
     if [[ "$platform" == *"windows"* ]]; then
         binary_name="${binary_name}.exe"
     fi

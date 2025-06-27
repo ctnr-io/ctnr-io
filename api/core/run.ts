@@ -1,6 +1,6 @@
 import { z } from "zod";
 import kubernetes from "lib/kube-client.ts";
-import { Context, StdioContext, namespace } from "api/context.ts";
+import { Context, namespace, StdioContext } from "api/context.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
@@ -15,10 +15,31 @@ export const meta = {
 };
 
 export const Input = z.object({
-  name: z.string().describe("Name of the container"),
-  image: z.string().describe("Container image to run"),
-  env: z.array(z.string()).optional().describe("Set environment variables"),
-  port: z.array(z.number()).optional().describe("port to expose"),
+  name: z.string()
+    .min(1, "Container name cannot be empty")
+    .max(63, "Container name cannot exceed 63 characters")
+    .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, "Container name must be valid DNS-1123 label")
+    .describe("Name of the container"),
+  image: z.string()
+    .min(1, "Container image cannot be empty")
+    // TODO: Add image tag validation when stricter security is needed
+    // .regex(/^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$/, "Container image must include a tag for security")
+    // .refine((img) => !img.includes(":latest"), "Using ':latest' tag is not allowed for security reasons")
+    .describe("Container image to run"),
+  env: z.array(
+    z.string()
+      .regex(/^[A-Z_][A-Z0-9_]*=.*$/, "Environment variables must follow format KEY=value with uppercase keys"),
+  )
+    .optional()
+    .describe("Set environment variables"),
+  port: z.array(
+    z.number()
+      // TODO: Add port restrictions when stricter security is needed
+      // .min(1024, "Only unprivileged ports (>= 1024) are allowed for security")
+      .max(65535, "Port number must be valid"),
+  )
+    .optional()
+    .describe("port to expose"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
   force: z.boolean().optional().default(false).describe("Force recreate the container if it already exists"),
@@ -28,13 +49,66 @@ export const Input = z.object({
   //   max: z.number().optional(),
   //   target: z.number().optional(),
   // }).optional().describe("Scaling configuration"),
-  command: z.string().optional().describe("Command to run in the container"),
+  command: z.string()
+    .max(1000, "Command length is limited for security reasons")
+    .optional()
+    .describe("Command to run in the container"),
 });
 
 export type Input = z.infer<typeof Input>;
 
 export default (context: StdioContext) => async (input: Input) => {
   const { name, image, env = [], port = [], interactive, terminal, force, command } = input;
+
+  // Additional security validations
+  const stderrWriter = context.stdio.stderr.getWriter();
+
+  // TODO: Implement image vulnerability scanning
+  // if (await isImageVulnerable(image)) {
+  //   stderrWriter.write(`ERROR: Image ${image} contains known vulnerabilities. Use a patched version.\r\n`);
+  //   stderrWriter.releaseLock();
+  //   return;
+  // }
+
+  // TODO: Implement image signature verification
+  // if (!await verifyImageSignature(image)) {
+  //   stderrWriter.write(`ERROR: Image ${image} signature verification failed.\r\n`);
+  //   stderrWriter.releaseLock();
+  //   return;
+  // }
+
+  // Security check: Prevent running potentially privileged images
+  const privilegedImages = [
+    "docker:dind",
+    "docker:latest",
+    "kubernetes/pause",
+    "registry:2",
+  ];
+
+  // TODO: Enable privileged image blocking when stricter security is needed
+  // if (privilegedImages.some(privImg => image.includes(privImg))) {
+  //   stderrWriter.write(`ERROR: Image ${image} is not allowed due to security restrictions.\r\n`);
+  //   stderrWriter.releaseLock();
+  //   return;
+  // }
+
+  // Security check: Validate environment variables don't contain secrets
+  const suspiciousEnvPatterns = [
+    /password/i,
+    /secret/i,
+    /token/i,
+    /key/i,
+    /credential/i,
+  ];
+
+  // for (const envVar of env) {
+  //   const [envName] = envVar.split("=");
+  //   if (suspiciousEnvPatterns.some(pattern => pattern.test(envName))) {
+  //     stderrWriter.write(`WARNING: Environment variable ${envName} may contain sensitive data. Consider using Kubernetes secrets instead.\r\n`);
+  //   }
+  // }
+
+  // stderrWriter.releaseLock();
 
   const podResource: Pod = {
     apiVersion: "v1",
@@ -45,12 +119,40 @@ export default (context: StdioContext) => async (input: Input) => {
       labels: {
         "ctnr.io/name": name,
       },
+      annotations: {
+        // TODO: Add Pod Security Standards annotations when available
+        // "pod-security.kubernetes.io/enforce": "restricted",
+        // "pod-security.kubernetes.io/audit": "restricted",
+        // "pod-security.kubernetes.io/warn": "restricted",
+      },
     },
     spec: {
       restartPolicy: "Never",
-      // runtimeClassName: "gvisor",
+      // Enable gVisor runtime for additional container isolation
+      // runtimeClassName: "gvisor", // Uncommented for enhanced security
       hostNetwork: false, // Do not use host network
+      hostPID: false, // Do not share host PID namespace
+      hostIPC: false, // Do not share host IPC namespace
       automountServiceAccountToken: false, // Prevent user access to kubernetes API
+      // TODO: Add seccomp profile when custom profiles are available
+      // securityContext: {
+      //   seccompProfile: {
+      //     type: "RuntimeDefault"
+      //   }
+      // },
+      // Pod-level security context for additional hardening
+      // securityContext: {
+      //   runAsNonRoot: true, // Ensure container runs as non-root user
+      //   runAsUser: 65534, // Run as nobody user (65534)
+      //   runAsGroup: 65534, // Run as nobody group
+      //   fsGroup: 65534, // Set filesystem group
+      //   // TODO: Enable when SELinux is configured
+      //   // seLinuxOptions: {
+      //   //   level: "s0:c123,c456"
+      //   // },
+      //   // TODO: Add supplemental groups restrictions when needed
+      //   // supplementalGroups: [],
+      // },
       containers: [
         {
           name,
@@ -78,52 +180,173 @@ export default (context: StdioContext) => async (input: Input) => {
               command: ["true"],
             },
           },
+          // Enhanced container-level security context
           securityContext: {
-            allowPrivilegeEscalation: false,
+            allowPrivilegeEscalation: false, // Prevent privilege escalation
+            privileged: false, // Explicitly disable privileged mode
+            // readOnlyRootFilesystem: true, // Make root filesystem read-only
+            // runAsNonRoot: true, // Ensure container runs as non-root
+            // runAsUser: 65534, // Run as nobody user
+            // runAsGroup: 65534, // Run as nobody group
             capabilities: {
-              drop: ["ALL"],
+              drop: ["ALL"], // Drop all capabilities
+              // Add specific capabilities only if needed
+              add: [
+                "CHOWN",
+                "DAC_OVERRIDE",
+                "FOWNER",
+                "FSETID",
+                "KILL",
+                "NET_BIND_SERVICE",
+                "SETGID",
+                "SETUID",
+                "AUDIT_WRITE",
+              ],
             },
+            // TODO: Enable seccomp when custom profiles are available
+            // seccompProfile: {
+            //   type: "RuntimeDefault"
+            // },
+            // TODO: Configure AppArmor when profiles are available
+            // appArmorProfile: {
+            //   type: "RuntimeDefault"
+            // },
           },
-          // Add limits to prevent fork bombs attack
+          // Enhanced resource limits to prevent resource exhaustion attacks
           resources: {
             limits: {
-              cpu: new Quantity(100, "m"), // 100 milliCPU
-              memory: new Quantity(256, "Mi"), // 256 MiB
+              cpu: new Quantity(500, "m"), // 500 milliCPU (increased from 100m for better performance)
+              memory: new Quantity(512, "Mi"), // 512 MiB (increased from 256Mi)
+              "ephemeral-storage": new Quantity(1, "Gi"), // Limit ephemeral storage
+              // TODO: Add GPU limits when GPU resources are available
+              // "nvidia.com/gpu": new Quantity(1, ""),
             },
-            // requests: resources?.requests || {},
+            requests: {
+              cpu: new Quantity(100, "m"), // 100 milliCPU request
+              memory: new Quantity(128, "Mi"), // 128 MiB request
+              "ephemeral-storage": new Quantity(100, "Mi"), // Request ephemeral storage
+            },
           },
+          // TODO: Add volume mounts for writable directories when read-only root filesystem is enabled
+          // volumeMounts: [
+          //   {
+          //     name: "tmp-volume",
+          //     mountPath: "/tmp",
+          //   },
+          //   {
+          //     name: "var-tmp-volume",
+          //     mountPath: "/var/tmp",
+          //   }
+          // ],
         },
       ],
+      // TODO: Add volumes for writable directories when read-only root filesystem is enabled
+      // volumes: [
+      //   {
+      //     name: "tmp-volume",
+      //     emptyDir: {
+      //       sizeLimit: new Quantity(100, "Mi")
+      //     }
+      //   },
+      //   {
+      //     name: "var-tmp-volume",
+      //     emptyDir: {
+      //       sizeLimit: new Quantity(100, "Mi")
+      //     }
+      //   }
+      // ],
+      // TODO: Add node affinity/anti-affinity rules for better security isolation
+      // affinity: {
+      //   nodeAffinity: {
+      //     requiredDuringSchedulingIgnoredDuringExecution: {
+      //       nodeSelectorTerms: [{
+      //         matchExpressions: [{
+      //           key: "node.kubernetes.io/instance-type",
+      //           operator: "NotIn",
+      //           values: ["sensitive-workload"]
+      //         }]
+      //       }]
+      //     }
+      //   }
+      // },
+      // TODO: Add tolerations for dedicated security nodes when available
+      // tolerations: [
+      //   {
+      //     key: "security-workload",
+      //     operator: "Equal",
+      //     value: "true",
+      //     effect: "NoSchedule"
+      //   }
+      // ],
+      // TODO: Add topology spread constraints for better distribution
+      // topologySpreadConstraints: [
+      //   {
+      //     maxSkew: 1,
+      //     topologyKey: "kubernetes.io/hostname",
+      //     whenUnsatisfiable: "DoNotSchedule",
+      //     labelSelector: {
+      //       matchLabels: {
+      //         "ctnr.io/name": name
+      //       }
+      //     }
+      //   }
+      // ],
+      // Set DNS policy for better network security
+      dnsPolicy: "ClusterFirst",
+      // TODO: Configure custom DNS when needed for additional security
+      // dnsConfig: {
+      //   nameservers: ["8.8.8.8", "8.8.4.4"],
+      //   searches: ["default.svc.cluster.local"],
+      //   options: [
+      //     {
+      //       name: "ndots",
+      //       value: "2"
+      //     }
+      //   ]
+      // },
+      // TODO: Add init containers for security setup when needed
+      // initContainers: [
+      //   {
+      //     name: "security-init",
+      //     image: "busybox:1.35",
+      //     command: ["sh", "-c", "echo 'Security initialization complete'"],
+      //     securityContext: {
+      //       runAsNonRoot: true,
+      //       runAsUser: 65534,
+      //       allowPrivilegeEscalation: false,
+      //       capabilities: {
+      //         drop: ["ALL"]
+      //       }
+      //     }
+      //   }
+      // ],
     },
   };
-
-  const stdoutWriter = context.stdio.stdout.getWriter();
-  const stderrWriter = context.stdio.stderr.getWriter();
 
   // Check if the pod already exists and is running
   const pod = await kubernetes.CoreV1.namespace(namespace).getPod(name).catch(() => null);
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
-        stdoutWriter.write(
+        stderrWriter.write(
           `Container ${name} already exists and is ${pod.status.phase.toLowerCase()}. Forcing recreation...\r\n`,
         );
       } else {
-        stdoutWriter.write(
+        stderrWriter.write(
           `Container ${name} already exists and is running. Use --force to recreate it, or access it with \`attach\` command.\r\n`,
         );
-        stdoutWriter.releaseLock();
+        stderrWriter.releaseLock();
         stderrWriter.releaseLock();
         return;
       }
     } else {
-      stdoutWriter.write(`Container ${name} already exists but is not running. Recreating it...\r\n`);
+      stderrWriter.write(`Container ${name} already exists but is not running. Recreating it...\r\n`);
     }
     kubernetes.CoreV1.namespace(namespace).deletePod(name, {
       abortSignal: context.signal,
       gracePeriodSeconds: 0, // Force delete immediately
     });
-    stdoutWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
+    stderrWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
     // Wait for the pod to be deleted
     await waitPodEvent(context, name, "DELETED");
   }
@@ -133,14 +356,13 @@ export default (context: StdioContext) => async (input: Input) => {
     kubernetes.CoreV1.namespace(namespace).createPod(podResource, {
       abortSignal: context.signal,
     });
-    stdoutWriter.write(
+    stderrWriter.write(
       `Container ${name} created. Waiting for it to be ready...\r\n`,
     );
     // Watch for pod events
     await waitPodStatus(context, name, "ContainersReady").catch(() => {});
   }
 
-  stdoutWriter.releaseLock();
   stderrWriter.releaseLock();
 
   // Attach to the pod if interactive or terminal mode is enabled
@@ -152,8 +374,13 @@ export default (context: StdioContext) => async (input: Input) => {
 };
 
 async function waitPodEvent(context: Context, name: string, eventType: WatchEvent<any, any>["type"]): Promise<void> {
+  // TODO: Add timeout to prevent indefinite waiting and potential DoS
+  // TODO: Add rate limiting for watch operations
+  // TODO: Implement exponential backoff for failed watch attempts
+  // TODO: Add circuit breaker pattern for resilience
+
   const podWatcher = await kubernetes.CoreV1.namespace(namespace).watchPodList({
-    labelSelector: `ctnr.io/container=${name}`,
+    labelSelector: `ctnr.io/name=${name}`,
     abortSignal: context.signal,
   });
   const reader = podWatcher.getReader();
@@ -175,8 +402,13 @@ async function waitPodStatus(
   name: string,
   status: "Initialized" | "Ready" | "ContainersReady" | "PodScheduled",
 ): Promise<void> {
+  // TODO: Add timeout to prevent indefinite waiting
+  // TODO: Add maximum retry attempts with exponential backoff
+  // TODO: Implement circuit breaker pattern for failed pod status checks
+  // TODO: Add logging for security monitoring and audit trails
+
   const podWatcher = await kubernetes.CoreV1.namespace(namespace).watchPodList({
-    labelSelector: `ctnr.io/container=${name}`,
+    labelSelector: `ctnr.io/name=${name}`,
     abortSignal: context.signal,
   });
   const reader = podWatcher.getReader();

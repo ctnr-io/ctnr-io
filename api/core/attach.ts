@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { StdioContext, namespace } from "api/context.ts";
+import { namespace, StdioContext } from "api/context.ts";
 import kubernetes from "lib/kube-client.ts";
 
 export const meta = {
@@ -62,22 +62,24 @@ export default (context: StdioContext) => async (input: Input) => {
       container: name,
     });
 
-    if (terminal && interactive) {
-      const signalChanAsyncGenerator = context.stdio.signalChan();
-      defer.push(() => signalChanAsyncGenerator.return());
-      (async () => {
-        for await (const signal of signalChanAsyncGenerator) {
-          switch (signal) {
-            case "SIGINT":
+    const signalChanAsyncGenerator = context.stdio.signalChan();
+    defer.push(() => signalChanAsyncGenerator.return());
+    (async () => {
+      for await (const signal of signalChanAsyncGenerator) {
+        switch (signal) {
+          case "SIGINT":
+            if (terminal && interactive) {
               tunnel.ttyWriteSignal("INTR");
-              break;
-            case "SIGQUIT":
+            }
+            break;
+          case "SIGQUIT":
+            if (terminal && interactive) {
               tunnel.ttyWriteSignal("QUIT");
-              break;
-          }
+            }
+            break;
         }
-      })();
-    }
+      }
+    })();
 
     if (terminal) {
       const terminalSizeAsyncGenerator = context.stdio.terminalSizeChan();

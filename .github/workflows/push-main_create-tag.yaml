@@ -18,7 +18,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          echo "version=$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
+          echo "version=v$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
 
       - name: Configure Git
         run: |
@@ -28,10 +28,14 @@ jobs:
       - name: Create and push tag
         run: |
           TAG="${{ steps.version.outputs.version }}"
-          echo "Creating tag: v$TAG"
+          echo "Creating tag: $TAG"
+          
+          # Delete existing tag if it exists (locally and remotely)
+          git tag -d "$TAG" 2>/dev/null || true
+          git push --delete origin "$TAG" 2>/dev/null || true
           
           # Create and push new tag
-          git tag -a "v$TAG" -m "Release v$TAG"
-          git push --delete origin "v$TAG"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -16,7 +16,7 @@ curl -fsSL https://get.ctnr.io | bash
 
 #### Download from GitHub Releases
 
-Download the latest release for your platform from the [releases page](https://github.com/ctnr-io/api/releases).
+Download the latest release for your platform from the [releases page](https://github.com/ctnr-io/ctnr/releases).
 
 **Linux/macOS:**
 ```bash
@@ -39,7 +39,7 @@ chmod +x /usr/local/bin/ctnr
 You can also download and run the install script manually:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ctnr-io/api/main/cli/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ctnr-io/ctnr/main/cli/install.sh | bash
 ```
 
 ## Verify Installation
@@ -131,7 +131,7 @@ This CLI is built with Deno and TypeScript. The source code is located in the `d
 
 ```bash
 # Clone the repository
-git clone https://github.com/ctnr-io/api.git
+git clone https://github.com/ctnr-io/ctnr.git
 cd api
 
 # Install Deno (if not already installed)
@@ -147,7 +147,7 @@ deno compile --allow-all --output ctnr driver/trpc/remote-cli/main.ts
 ## Support
 
 - **Documentation**: [docs.ctnr.io](https://docs.ctnr.io)
-- **Issues**: [GitHub Issues](https://github.com/ctnr-io/api/issues)
+- **Issues**: [GitHub Issues](https://github.com/ctnr-io/ctnr/issues)
 - **Community**: [Discord](https://discord.gg/ctnr)
 
 ## License

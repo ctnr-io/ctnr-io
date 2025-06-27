@@ -1,3 +1,4 @@
+import 'lib/utils.ts'
 import { CreateWSSContextFnOptions } from "@trpc/server/adapters/ws";
 
 import { applyWSSHandler } from "@trpc/server/adapters/ws";

@@ -1,3 +1,4 @@
+import 'lib/utils.ts';
 import { createCli } from "trpc-cli";
 import { createClientContext } from "./context.ts";
 import { cliRouter } from "./router.ts";

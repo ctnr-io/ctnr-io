@@ -1,12 +1,13 @@
+import 'lib/utils.ts'
 import { createTRPCClient, createWSClient, wsLink } from "@trpc/client";
 import { Router } from "./server.ts";
 
-console.debug({
-  CTNR_TRPC_API: Deno.env.get("CTNR_TRPC_API")
-})
-
 export const wsClient = createWSClient({
-  url: Deno.env.get("CTNR_TRPC_API") || "ws://localhost:3000",
+  url: Deno.env.get("CTNR_API_URL") || "https://api.ctnr.io",
+  lazy: {
+    closeMs: 1000, // Delay before closing the connection if no messages are sent
+    // enabled: true, // Enable lazy connection
+  },
   connectionParams: () => {
     return {
       // token: 'your-supabase-access-token', // Replace with your actual token
@@ -14,11 +15,12 @@ export const wsClient = createWSClient({
   },
   onOpen() {
     // Handle WebSocket open event
-    console.log("WebSocket connection established.");
+    console.debug("WebSocket connection established.");
   },
   onError(err) {
     // Handle WebSocket error event
     console.debug("WebSocket error:", err);
+    Deno.exit(1); // Exit the process on error
   },
   onClose(cause) {
     // Handle WebSocket close event gracefully
@@ -30,7 +32,7 @@ export const wsClient = createWSClient({
       // Deno.exit(0);
     } else {
       // This is an unexpected close
-      console.error(`WebSocket connection closed with code ${cause?.code || "unknown"}`);
+      console.debug(`WebSocket connection closed with code ${cause?.code || "unknown"}`);
     }
   },
 });

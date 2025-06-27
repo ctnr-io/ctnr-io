@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_run:
+    workflows: ["Push Main - Create Tag"]
+    types:
+      - completed
 
 permissions:
   contents: write
@@ -11,7 +15,7 @@ permissions:
 
 env:
   CLI_NAME: ctnr
-  REGISTRY_URL: https://api.ctnr.io
+  CTNR_API_URL: https://api.ctnr.io
 
 jobs:
   build-cli:
@@ -58,44 +62,42 @@ jobs:
       - name: Get version
         id: version
         run: |
-          echo "version=$(cat deno.json | jq -r '.version)" >> $GITHUB_OUTPUT
+          echo "version=v$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
 
       - name: Compile cli binary
         run: |
           mkdir -p dist
           
           # Set environment variables for compilation
-          export CTNR_API_URL="${{ env.REGISTRY_URL }}"
-          export CTNR_DEFAULT_CONTEXT="production"
+          export CTNR_API_URL="${{ env.CTNR_API_URL }}"
           
           # Compile the CLI with embedded environment variables
           deno compile \
             --allow-all \
             --target ${{ matrix.target }} \
-            --output dist/${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
+            --output dist/${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
             cli/main.ts
         env:
-          CTNR_API_URL: ${{ env.REGISTRY_URL }}
-          CTNR_DEFAULT_CONTEXT: production
+          CTNR_API_URL: ${{ env.CTNR_API_URL }}
 
       - name: Create tarball (Unix)
         if: matrix.os != 'windows'
         run: |
           cd dist
-          tar -czf ${{ env.CLI_NAME }}-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}
+          tar -czf ${{ env.CLI_NAME }}-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}
 
       - name: Create zip (Windows)
         if: matrix.os == 'windows'
         run: |
           cd dist
-          zip ${{ env.CLI_NAME }}-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.zip ${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+          zip ${{ env.CLI_NAME }}-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.zip ${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.CLI_NAME }}-${{ matrix.os }}-${{ matrix.arch }}
+          name: ${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}
           path: |
-            dist/${{ env.CLI_NAME }}-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            dist/${{ env.CLI_NAME }}-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
 
   release-cli:
     needs: build-cli
@@ -110,7 +112,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          echo "version=$(cat deno.json | jq -r '.version)" >> $GITHUB_OUTPUT
+          echo "version=$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -128,8 +130,8 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: Release ${{ steps.version.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
           generate_release_notes: true

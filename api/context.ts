@@ -1,4 +1,5 @@
 import { KubeClient } from "lib/kube-client.ts";
+import { Session, SupportedStorage, User } from "@supabase/supabase-js";
 
 export type SignalContext = {
   signal: AbortSignal | undefined;
@@ -27,7 +28,13 @@ export type KubernetesContext = {
   };
 };
 
+export type AuthContext = {
+  auth: {
+    session: Session | null; 
+  }
+};
+
 export const namespace = "ctnr-edge" as const;
 
-export type ServerContext = SignalContext & StdioContext & KubernetesContext;
-export type ClientContext = SignalContext & StdioContext;
+export type ServerContext = SignalContext & StdioContext & KubernetesContext & AuthContext;
+export type ClientContext = SignalContext & StdioContext & AuthContext;

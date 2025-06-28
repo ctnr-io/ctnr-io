@@ -1,5 +1,5 @@
 import 'lib/utils.ts'
-import { createTRPCClient, createWSClient, wsLink } from "@trpc/client";
+import { createTRPCClient, createWSClient, TRPCClient, wsLink } from "@trpc/client";
 import { Router } from "./server.ts";
 
 export const wsClient = createWSClient({
@@ -41,4 +41,4 @@ export const client = createTRPCClient<Router>({
   links: [wsLink({
     client: wsClient,
   })],
-});
+}) as TRPCClient<Router>;

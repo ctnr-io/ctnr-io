@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   create-tag:
@@ -15,9 +16,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get Version
+      - name: Get version
         id: version
-        uses: codacy/git-version@2.7.1
+        uses: ietf-tools/semver-action@v1.10.2 
+        with:  
+          token: ${{ github.token }}
+          branch: main
+          fallbackTag: 0bd5f7dbbf1a0d56ef605613bbcc79203e482d15
 
       - name: Configure Git
         run: |
@@ -26,7 +31,7 @@ jobs:
 
       - name: Create and push tag
         run: |
-          TAG="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.next }}"
           echo "Creating tag: $TAG"
           
           # Delete existing tag if it exists (locally and remotely)
@@ -38,8 +43,9 @@ jobs:
           git push origin "$TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: convictional/trigger-workflow-and-wait@v1.6.5
+    
+      - name: Trigger release cli
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: ${{ github.repository_owner }}
           repo: ${{ github.event.repository.name }}
@@ -48,3 +54,7 @@ jobs:
           ref: ${{ github.ref }} 
           wait_interval: 10
           propagate_failure: true
+          client_payload: |
+            {
+              "version": "${{ steps.version.outputs.next }}"
+            }

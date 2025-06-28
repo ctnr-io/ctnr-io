@@ -2,24 +2,35 @@ import { ClientContext } from "api/context.ts";
 import { Buffer } from "node:buffer";
 import { bypassWebSocketMessageHandler } from "lib/websocket.ts";
 import { TRPCClient } from "@trpc/client";
-import { Router } from "../router.ts";
+import { performOAuthFlowOnce } from "./auth.ts";
+import { ServerRouter } from "../../server/router.ts";
+import { createTRPCWebSocketClient } from "../mod.ts";
 
-export type CliContext = {
-  client: Promise<TRPCClient<Router>>;
+export type RemoteCliContext = {
+  lazy: <R>(
+    callback: ({ client }: {
+      client: TRPCClient<ServerRouter>;
+    }) => Promise<R>,
+  ) => Promise<R>;
 };
 
-export function createClientContext(
+
+
+export function createRemoteCliContext(
   opts: ClientContext,
-): CliContext {
+): RemoteCliContext {
   return {
-    client: (async () => {
-      const { wsClient, client } = await import("../client.ts");
+    lazy: async (callback) => {
+      const client = await createTRPCWebSocketClient();
+      const session = await performOAuthFlowOnce();
+      opts.auth.session = session;
+      await client.trpc.auth.setSession.mutate(session);
 
       opts.stdio.stdin.pipeTo(
         new WritableStream({
           write(chunk) {
             // Forward stdin data to the WebSocket as a JSON object
-            wsClient.connection?.ws.send(JSON.stringify({
+            client.websocket.connection?.ws.send(JSON.stringify({
               type: "stdin",
               data: Buffer.from(chunk).toString("utf-8"),
             }));
@@ -28,7 +39,7 @@ export function createClientContext(
             console.log("Stdin stream closed, sending EOF to server.");
             // Send a message to the WebSocket to indicate that stdin has reached EOF (Ctrl+D)
             // Instead of closing the connection, we send a special message
-            wsClient.connection?.ws.send(JSON.stringify({
+            client.websocket.connection?.ws.send(JSON.stringify({
               type: "stdin-eof",
             }));
           },
@@ -36,7 +47,7 @@ export function createClientContext(
       );
 
       bypassWebSocketMessageHandler(
-        wsClient.connection!.ws,
+        client.websocket.connection!.ws,
         (event) => {
           try {
             const parsed = JSON.parse(event.data);
@@ -68,13 +79,14 @@ export function createClientContext(
         },
       );
 
+      while (!client.websocket.connection?.state || client.websocket.connection?.state !== "open") {
+        // Wait for the WebSocket connection to be established
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
       (async () => {
-        while (!wsClient.connection?.state || wsClient.connection?.state !== "open") {
-          // Wait for the WebSocket connection to be established
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
         for await (const signal of opts.stdio.signalChan()) {
-          wsClient.connection?.ws.send(JSON.stringify({
+          client.websocket.connection?.ws.send(JSON.stringify({
             type: "signal",
             data: signal,
           }));
@@ -82,18 +94,17 @@ export function createClientContext(
       })();
 
       (async () => {
-        while (!wsClient.connection?.state || wsClient.connection?.state !== "open") {
-          // Wait for the WebSocket connection to be established
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
         for await (const terminalSize of opts.stdio.terminalSizeChan()) {
-          wsClient.connection?.ws.send(JSON.stringify({
+          client.websocket.connection?.ws.send(JSON.stringify({
             type: "terminal-size",
             data: terminalSize,
           }));
         }
       })();
-      return client;
-    })(),
+
+      return callback({
+        client: client.trpc,
+      });
+    },
   };
 }

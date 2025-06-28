@@ -1,6 +1,6 @@
 import "lib/utils.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
-import { router } from "./router.ts";
+import { router } from "./procedures/router.ts";
 import { createCli } from "trpc-cli";
 
 // Override Deno Streams to permit to send string directly to stdout and stderr
@@ -78,6 +78,9 @@ export const ctnr = createCli({
         );
       },
     },
+    auth: {
+      session: null,
+    }
   },
 });
 

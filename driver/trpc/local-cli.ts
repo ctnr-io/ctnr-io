@@ -39,6 +39,9 @@ export const ctnr = createCli({
   router,
   context: {
     signal: undefined,
+    kube: {
+      client: {} as any, // Placeholder for KubeClient, should be initialized properly
+    },
     stdio: {
     stdin: Deno.stdin.readable,
     stdout,
@@ -49,15 +52,15 @@ export const ctnr = createCli({
       if (!Deno.stdin.isTerminal()) {
         return;
       }
-      yield* createAsyncGeneratorListener(
-        [
-          "SIGINT",
-          "SIGQUIT",
-        ] as const,
-        Deno.addSignalListener,
-        Deno.removeSignalListener,
-        (eventType) => eventType,
-      )
+      // yield* createAsyncGeneratorListener(
+      //   [
+      //     "SIGINT",
+      //     "SIGQUIT",
+      //   ] as const,
+      //   Deno.addSignalListener,
+      //   Deno.removeSignalListener,
+      //   (eventType) => eventType,
+      // )
     },
     terminalSizeChan: async function* () {
       if (!Deno.stdin.isTerminal()) {
@@ -73,6 +76,7 @@ export const ctnr = createCli({
         Deno.consoleSize,
       );
     },
+    
   },
   },
 });

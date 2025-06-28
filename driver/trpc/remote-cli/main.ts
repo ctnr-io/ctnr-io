@@ -21,15 +21,15 @@ export const remoteCli = createCli({
         if (!Deno.stdin.isTerminal()) {
           return;
         }
-        yield* createAsyncGeneratorListener(
-          [
-            "SIGINT",
-            "SIGQUIT",
-          ] as const,
-          Deno.addSignalListener,
-          Deno.removeSignalListener,
-          (eventType) => eventType,
-        );
+        // yield* createAsyncGeneratorListener(
+        //   [
+        //     "SIGINT",
+        //     "SIGQUIT",
+        //   ] as const,
+        //   Deno.addSignalListener,
+        //   Deno.removeSignalListener,
+        //   (eventType) => eventType,
+        // );
       },
       terminalSizeChan: async function* () {
         if (!Deno.stdin.isTerminal()) {

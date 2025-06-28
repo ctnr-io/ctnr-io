@@ -1,24 +1,20 @@
-import 'lib/utils.ts'
+import "lib/utils.ts";
 import { CreateWSSContextFnOptions } from "@trpc/server/adapters/ws";
 
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import * as ws from "ws";
 import { Buffer } from "node:buffer";
-import { router } from "./router.ts";
 import { bypassWsWebSocketMessageHandler } from "lib/websocket.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 import { ServerContext, Signals } from "api/context.ts";
 import { getKubeClient } from "lib/kube-client.ts";
-
-export type Router = typeof router;
+import { router } from "./router.ts";
+// import { verifySupabaseToken } from "lib/supabase.ts";
 
 const kubeClient = await getKubeClient();
 
-function createServerContext(opts: CreateWSSContextFnOptions): ServerContext {
+async function createServerContext(opts: CreateWSSContextFnOptions): Promise<ServerContext> {
   const abortController = new AbortController();
-  // const token = opts.connectionParams?.token;
-  // ... authenticate with Supabase
-  // return { user: authenticatedUser };
   const ws = opts.res as ws.WebSocket;
 
   // Create a generator for terminal size events
@@ -70,68 +66,86 @@ function createServerContext(opts: CreateWSSContextFnOptions): ServerContext {
     (eventType, signal) => signal as Signals,
   );
 
-  return {
-    ...opts,
-    signal: abortController.signal,
-    kube: {
-      client: kubeClient,
-    },
-    stdio: {
-      stdin: new ReadableStream({
-        start(controller) {
-          bypassWsWebSocketMessageHandler(
-            ws,
-            (event) => {
-              if (event instanceof Buffer) {
-                try {
-                  const parsed = JSON.parse(Buffer.from(event).toString("utf-8"));
-                  if (parsed && parsed.type === "stdin") {
-                    controller.enqueue(new TextEncoder().encode(parsed.data));
-                    return true;
-                  }
-                  // Handle EOF signal (Ctrl+D) from client
-                  if (parsed && parsed.type === "stdin-eof") {
-                    // Close the stream properly without closing the WebSocket
-                    controller.close();
-                    return true;
-                  }
-                } catch {}
-              }
-              return false;
-            },
-          );
-        },
-      }),
-      stdout: new WritableStream({
-        write(chunk) {
-          // Send as a JSON object that can be parsed by the client
-          ws.send(JSON.stringify({
-            type: "stdout",
-            data: Buffer.from(chunk).toString("utf-8"),
-          }));
-        },
-      }),
-      stderr: new WritableStream({
-        write(chunk) {
-          // Send as a JSON object that can be parsed by the client
-          ws.send(JSON.stringify({
-            type: "stderr",
-            data: Buffer.from(chunk).toString("utf-8"),
-          }));
-        },
-      }),
-      exit: (code: number) => {
-        // Send an exit code message to the client
+  const stdio = {
+    stdin: new ReadableStream({
+      start(controller) {
+        bypassWsWebSocketMessageHandler(
+          ws,
+          (event) => {
+            if (event instanceof Buffer) {
+              try {
+                const parsed = JSON.parse(Buffer.from(event).toString("utf-8"));
+                if (parsed && parsed.type === "stdin") {
+                  controller.enqueue(new TextEncoder().encode(parsed.data));
+                  return true;
+                }
+                // Handle EOF signal (Ctrl+D) from client
+                if (parsed && parsed.type === "stdin-eof") {
+                  // Close the stream properly without closing the WebSocket
+                  controller.close();
+                  return true;
+                }
+              } catch {}
+            }
+            return false;
+          },
+        );
+      },
+    }),
+    stdout: new WritableStream({
+      write(chunk) {
+        // Send as a JSON object that can be parsed by the client
         ws.send(JSON.stringify({
-          type: "exit-code",
-          code, // Default to 0 if no code is provided
+          type: "stdout",
+          data: Buffer.from(chunk).toString("utf-8"),
         }));
       },
-      setRaw: (value: boolean) => ws.send(JSON.stringify({ type: "set-raw", value })),
-      signalChan: () => signalGenerator,
-      terminalSizeChan: () => terminalSizeGenerator,
+    }),
+    stderr: new WritableStream({
+      write(chunk) {
+        // Send as a JSON object that can be parsed by the client
+        ws.send(JSON.stringify({
+          type: "stderr",
+          data: Buffer.from(chunk).toString("utf-8"),
+        }));
+      },
+    }),
+    exit: (code: number) => {
+      // Send an exit code message to the client
+      ws.send(JSON.stringify({
+        type: "exit-code",
+        code, // Default to 0 if no code is provided
+      }));
     },
+    setRaw: (value: boolean) => ws.send(JSON.stringify({ type: "set-raw", value })),
+    signalChan: () => signalGenerator,
+    terminalSizeChan: () => terminalSizeGenerator,
   };
+
+  // const token = opts.req.headers["authorization"]?.replace("Bearer ", "")!;
+  // Authenticate with Supabase
+  try {
+    // const user = await verifySupabaseToken(token);
+
+    const context: ServerContext = {
+      ...opts,
+      // user,
+      signal: abortController.signal,
+      stdio,
+      kube: {
+        client: kubeClient,
+      },
+      auth: {
+        session: null, // Replace with actual session retrieval logic if needed
+      }
+    };
+
+    return context;
+  } catch (error) {
+    console.error("Failed to verify Supabase token:", error);
+    ws.close(1008, "Authentication failed");
+    throw new Error("Authentication failed");
+  }
 }
 
 const wss = new ws.WebSocketServer({

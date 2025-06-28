@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag version to release'
+        required: true
 
 permissions:
   contents: write
@@ -57,7 +62,23 @@ jobs:
 
       - name: Get Version
         id: version
-        uses: codacy/git-version@2.7.1
+        run: |
+          # If workflow is triggered by a tag, use the tag name
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "Tag version detected: ${{ github.ref_name }}"
+          else
+            # Ensure the tag with the version exists
+            echo "Checking for tag with version ${{ github.event.inputs.version }}"
+            if [[ -z "${{ github.event.inputs.version }}" ]]; then
+              echo "No version input provided."
+              exit 1
+            else 
+              echo "version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+              echo "Using version from input: ${{ github.event.inputs.version }}"
+            fi
+          fi
+
 
       - name: Compile cli binary
         run: |
@@ -104,10 +125,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get version
+      - name: Get Version
         id: version
         run: |
-          echo "version=$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
+          # If workflow is triggered by a tag, use the tag name
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "Tag version detected: ${{ github.ref_name }}"
+          else
+            # Ensure the tag with the version exists
+            echo "Checking for tag with version ${{ github.event.inputs.version }}"
+            if [[ -z "${{ github.event.inputs.version }}" ]]; then
+              echo "No version input provided."
+              exit 1
+            else 
+              echo "version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+              echo "Using version from input: ${{ github.event.inputs.version }}"
+            fi
+          fi
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -125,8 +160,8 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
           generate_release_notes: true

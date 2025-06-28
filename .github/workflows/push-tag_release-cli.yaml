@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag version to release'
+        required: true
 
 permissions:
   contents: write
@@ -57,7 +62,18 @@ jobs:
 
       - name: Get Version
         id: version
-        uses: codacy/git-version@2.7.1
+        run: |
+          # Ensure the tag with the version exists
+          if git tag --list | grep -q -v "${{ github.event.inputs.version }}"; then
+            echo "Tag with version ${{ github.event.inputs.version }} already exists."
+            exit 1
+          fi
+          # Use the version from the input or fallback to the latest tag
+          if [ -z "${{ github.event.inputs.version }}" ]; then
+            echo "version=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          else
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          fi
 
       - name: Compile cli binary
         run: |
@@ -106,8 +122,11 @@ jobs:
 
       - name: Get version
         id: version
-        run: |
-          echo "version=$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
+        uses: ietf-tools/semver-action@v1.10.2 
+        with:  
+          token: ${{ github.token }}
+          branch: ${{ github.base_ref }}
+          fallbackTag: 0bd5f7dbbf1a0d56ef605613bbcc79203e482d15
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -125,8 +144,8 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.next }}
+          name: Release ${{ steps.version.outputs.next }}
           draft: false
           prerelease: false
           generate_release_notes: true

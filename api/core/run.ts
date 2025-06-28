@@ -156,7 +156,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
         {
           name,
           image,
-          stdin: interactive,
+          stdin: true,
           tty: terminal,
           command: command ? ["sh", "-c", command] : undefined,
           env: env.length === 0 ? [] : env.map((e) => {

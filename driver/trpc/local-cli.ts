@@ -1,3 +1,4 @@
+import "lib/utils.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 import { router } from "./router.ts";
 import { createCli } from "trpc-cli";
@@ -39,41 +40,44 @@ export const ctnr = createCli({
   router,
   context: {
     signal: undefined,
+    kube: {
+      client: {} as any, // Placeholder for KubeClient, should be initialized properly
+    },
     stdio: {
-    stdin: Deno.stdin.readable,
-    stdout,
-    stderr,
-    exit: Deno.exit.bind(Deno),
-    setRaw: Deno.stdin.setRaw.bind(Deno.stdin),
-    signalChan: async function* () {
-      if (!Deno.stdin.isTerminal()) {
-        return;
-      }
-      yield* createAsyncGeneratorListener(
-        [
-          "SIGINT",
-          "SIGQUIT",
-        ] as const,
-        Deno.addSignalListener,
-        Deno.removeSignalListener,
-        (eventType) => eventType,
-      )
+      stdin: Deno.stdin.readable,
+      stdout,
+      stderr,
+      exit: Deno.exit.bind(Deno),
+      setRaw: Deno.stdin.setRaw.bind(Deno.stdin),
+      signalChan: async function* () {
+        if (!Deno.stdin.isTerminal()) {
+          return;
+        }
+        // yield* createAsyncGeneratorListener(
+        //   [
+        //     "SIGINT",
+        //     "SIGQUIT",
+        //   ] as const,
+        //   Deno.addSignalListener,
+        //   Deno.removeSignalListener,
+        //   (eventType) => eventType,
+        // );
+      },
+      terminalSizeChan: async function* () {
+        if (!Deno.stdin.isTerminal()) {
+          return;
+        }
+        // Send the initial terminal size
+        yield Deno.consoleSize();
+        // Send terminal size updates
+        yield* createAsyncGeneratorListener(
+          ["SIGWINCH"],
+          Deno.addSignalListener,
+          Deno.removeSignalListener,
+          Deno.consoleSize,
+        );
+      },
     },
-    terminalSizeChan: async function* () {
-      if (!Deno.stdin.isTerminal()) {
-        return;
-      }
-      // Send the initial terminal size
-      yield Deno.consoleSize();
-      // Send terminal size updates
-      yield* createAsyncGeneratorListener(
-        ["SIGWINCH"],
-        Deno.addSignalListener,
-        Deno.removeSignalListener,
-        Deno.consoleSize,
-      );
-    },
-  },
   },
 });
 

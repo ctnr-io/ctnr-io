@@ -15,10 +15,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get version
+      - name: Get Version
         id: version
-        run: |
-          echo "version=v$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
+        uses: codacy/git-version@2.7.1
 
       - name: Configure Git
         run: |
@@ -39,3 +38,13 @@ jobs:
           git push origin "$TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_file_name: push-tag_release-cli.yaml
+          ref: ${{ github.ref }} 
+          wait_interval: 10
+          propagate_failure: true

@@ -4,10 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_run:
-    workflows: ["Push Main - Create Tag"]
-    types:
-      - completed
 
 permissions:
   contents: write
@@ -59,10 +55,9 @@ jobs:
         with:
           deno-version: latest 
 
-      - name: Get version
+      - name: Get Version
         id: version
-        run: |
-          echo "version=v$(cat deno.json | jq -r '.version')" >> $GITHUB_OUTPUT
+        uses: codacy/git-version@2.7.1
 
       - name: Compile cli binary
         run: |

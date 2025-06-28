@@ -4,10 +4,6 @@ import { Router } from "./server.ts";
 
 export const wsClient = createWSClient({
   url: Deno.env.get("CTNR_API_URL") || "https://api.ctnr.io",
-  lazy: {
-    closeMs: 1000, // Delay before closing the connection if no messages are sent
-    // enabled: true, // Enable lazy connection
-  },
   connectionParams: () => {
     return {
       // token: 'your-supabase-access-token', // Replace with your actual token

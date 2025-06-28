@@ -15,6 +15,7 @@ export type Router = typeof router;
 const kubeClient = await getKubeClient();
 
 function createServerContext(opts: CreateWSSContextFnOptions): ServerContext {
+  const abortController = new AbortController();
   // const token = opts.connectionParams?.token;
   // ... authenticate with Supabase
   // return { user: authenticatedUser };
@@ -31,6 +32,7 @@ function createServerContext(opts: CreateWSSContextFnOptions): ServerContext {
             try {
               const parsed = JSON.parse(Buffer.from(event).toString("utf-8"));
               if (parsed && parsed.type === eventType) {
+                console.debug("Terminal size event received:", parsed.data);
                 handler(parsed.data);
                 return true;
               }
@@ -70,7 +72,7 @@ function createServerContext(opts: CreateWSSContextFnOptions): ServerContext {
 
   return {
     ...opts,
-    signal: undefined,
+    signal: abortController.signal,
     kube: {
       client: kubeClient,
     },

@@ -1,15 +1,13 @@
 import 'lib/utils.ts';
 import { createCli } from "trpc-cli";
-import { createClientContext } from "./context.ts";
+import { CliContext, createClientContext } from "./context.ts";
 import { cliRouter } from "./router.ts";
-import { wsClient } from "driver/trpc/client.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 
 export const remoteCli = createCli({
   router: cliRouter,
   context: createClientContext({
     // Wait for the WebSocket connection to be established
-    wsClient: wsClient,
     signal: undefined,
     stdio: {
       stdin: Deno.stdin.readable,

@@ -1,13 +1,13 @@
 {
   "tasks": {
-    "trpc:watch": "deno run -A --unstable-net --watch driver/trpc/server.ts",
-    "trpc:serve": "deno run -A --unstable-net driver/trpc/server.ts",
-    "trpc:local-cli": "deno run -A --unstable-net driver/trpc/local-cli.ts",
-    "orpc:watch": "deno run -A --unstable-net --watch driver/orpc/server.ts",
-    "orpc:serve": "deno run -A --unstable-net driver/orpc/server.ts",
-    "orpc:cli": "deno run -A --unstable-net driver/orpc/cli.ts",
-    "cli": "deno run -A --unstable-net cli/main.ts",
-    "env": "env"
+    "trpc:watch": "dotenvx run -- deno run -A --unstable-net --watch driver/trpc/server.ts",
+    "trpc:serve": "dotenvx run -- deno run -A --unstable-net driver/trpc/server.ts",
+    "trpc:local-cli": "dotenvx run -- deno run -A --unstable-net driver/trpc/local-cli.ts",
+    "orpc:watch": "dotenvx run -- deno run -A --unstable-net --watch driver/orpc/server.ts",
+    "orpc:serve": "dotenvx run -- deno run -A --unstable-net driver/orpc/server.ts",
+    "orpc:cli": "dotenvx run -- deno run -A --unstable-net driver/orpc/cli.ts",
+    "cli": "dotenvx run -- deno run -A --unstable-net cli/main.ts",
+    "env": "dotenvx run -- env"
   },
   "imports": {
     "@cloudydeno/kubernetes-apis": "jsr:@cloudydeno/kubernetes-apis@^0.5.2",

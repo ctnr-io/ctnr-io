@@ -1,4 +1,4 @@
-import { Context, StdioContext } from "api/context.ts";
+import { ClientContext, SignalContext } from "api/context.ts";
 import { Buffer } from "node:buffer";
 import { bypassWebSocketMessageHandler } from "lib/websocket.ts";
 import { createWSClient } from "@trpc/client";
@@ -6,8 +6,8 @@ import { createWSClient } from "@trpc/client";
 export function createClientContext(
   opts: {
     wsClient: ReturnType<typeof createWSClient>;
-  } & StdioContext,
-): Context {
+  } & ClientContext,
+): SignalContext {
 
   opts.stdio.stdin.pipeTo(
     new WritableStream({

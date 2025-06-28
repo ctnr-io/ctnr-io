@@ -3,15 +3,18 @@ import { CreateWSSContextFnOptions } from "@trpc/server/adapters/ws";
 
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import * as ws from "ws";
-import { Signals, StdioContext } from "api/context.ts";
 import { Buffer } from "node:buffer";
 import { router } from "./router.ts";
 import { bypassWsWebSocketMessageHandler } from "lib/websocket.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
+import { ServerContext, Signals } from "api/context.ts";
+import { getKubeClient } from "lib/kube-client.ts";
 
 export type Router = typeof router;
 
-function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
+const kubeClient = await getKubeClient();
+
+function createServerContext(opts: CreateWSSContextFnOptions): ServerContext {
   // const token = opts.connectionParams?.token;
   // ... authenticate with Supabase
   // return { user: authenticatedUser };
@@ -68,6 +71,9 @@ function createServerContext(opts: CreateWSSContextFnOptions): StdioContext {
   return {
     ...opts,
     signal: undefined,
+    kube: {
+      client: kubeClient,
+    },
     stdio: {
       stdin: new ReadableStream({
         start(controller) {

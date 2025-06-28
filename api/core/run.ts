@@ -1,6 +1,5 @@
 import { z } from "zod";
-import kubernetes from "lib/kube-client.ts";
-import { Context, namespace, StdioContext } from "api/context.ts";
+import {  ServerContext, namespace } from "api/context.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
@@ -57,11 +56,11 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
-export default (context: StdioContext) => async (input: Input) => {
+export default (ctx: ServerContext) => async (input: Input) => {
   const { name, image, env = [], port = [], interactive, terminal, force, command } = input;
 
   // Additional security validations
-  const stderrWriter = context.stdio.stderr.getWriter();
+  const stderrWriter = ctx.stdio.stderr.getWriter();
 
   // TODO: Implement image vulnerability scanning
   // if (await isImageVulnerable(image)) {
@@ -121,9 +120,9 @@ export default (context: StdioContext) => async (input: Input) => {
       },
       annotations: {
         // TODO: Add Pod Security Standards annotations when available
-        // "pod-security.kubernetes.io/enforce": "restricted",
-        // "pod-security.kubernetes.io/audit": "restricted",
-        // "pod-security.kubernetes.io/warn": "restricted",
+        // "pod-security.ctx.kube.client.io/enforce": "restricted",
+        // "pod-security.ctx.kube.client.io/audit": "restricted",
+        // "pod-security.ctx.kube.client.io/warn": "restricted",
       },
     },
     spec: {
@@ -140,7 +139,7 @@ export default (context: StdioContext) => async (input: Input) => {
       //     type: "RuntimeDefault"
       //   }
       // },
-      // Pod-level security context for additional hardening
+      // Pod-level security ctx for additional hardening
       // securityContext: {
       //   runAsNonRoot: true, // Ensure container runs as non-root user
       //   runAsUser: 65534, // Run as nobody user (65534)
@@ -180,7 +179,7 @@ export default (context: StdioContext) => async (input: Input) => {
               command: ["true"],
             },
           },
-          // Enhanced container-level security context
+          // Enhanced container-level security ctx
           securityContext: {
             allowPrivilegeEscalation: false, // Prevent privilege escalation
             privileged: false, // Explicitly disable privileged mode
@@ -261,7 +260,7 @@ export default (context: StdioContext) => async (input: Input) => {
       //     requiredDuringSchedulingIgnoredDuringExecution: {
       //       nodeSelectorTerms: [{
       //         matchExpressions: [{
-      //           key: "node.kubernetes.io/instance-type",
+      //           key: "node.ctx.kube.client.io/instance-type",
       //           operator: "NotIn",
       //           values: ["sensitive-workload"]
       //         }]
@@ -282,7 +281,7 @@ export default (context: StdioContext) => async (input: Input) => {
       // topologySpreadConstraints: [
       //   {
       //     maxSkew: 1,
-      //     topologyKey: "kubernetes.io/hostname",
+      //     topologyKey: "ctx.kube.client.io/hostname",
       //     whenUnsatisfiable: "DoNotSchedule",
       //     labelSelector: {
       //       matchLabels: {
@@ -324,7 +323,7 @@ export default (context: StdioContext) => async (input: Input) => {
   };
 
   // Check if the pod already exists and is running
-  const pod = await kubernetes.CoreV1.namespace(namespace).getPod(name).catch(() => null);
+  const pod = await ctx.kube.client.CoreV1.namespace(namespace).getPod(name).catch(() => null);
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
@@ -342,46 +341,46 @@ export default (context: StdioContext) => async (input: Input) => {
     } else {
       stderrWriter.write(`Container ${name} already exists but is not running. Recreating it...\r\n`);
     }
-    kubernetes.CoreV1.namespace(namespace).deletePod(name, {
-      abortSignal: context.signal,
+    ctx.kube.client.CoreV1.namespace(namespace).deletePod(name, {
+      abortSignal: ctx.signal,
       gracePeriodSeconds: 0, // Force delete immediately
     });
     stderrWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
     // Wait for the pod to be deleted
-    await waitPodEvent(context, name, "DELETED");
+    await waitPodEvent(ctx, name, "DELETED");
   }
 
   // Create the pod
   {
-    kubernetes.CoreV1.namespace(namespace).createPod(podResource, {
-      abortSignal: context.signal,
+    ctx.kube.client.CoreV1.namespace(namespace).createPod(podResource, {
+      abortSignal: ctx.signal,
     });
     stderrWriter.write(
       `Container ${name} created. Waiting for it to be ready...\r\n`,
     );
     // Watch for pod events
-    await waitPodStatus(context, name, "ContainersReady").catch(() => {});
+    await waitPodStatus(ctx, name, "ContainersReady").catch(() => {});
   }
 
   stderrWriter.releaseLock();
 
   // Attach to the pod if interactive or terminal mode is enabled
-  await attach(context)({
+  await attach(ctx)({
     name,
     interactive,
     terminal,
   });
 };
 
-async function waitPodEvent(context: Context, name: string, eventType: WatchEvent<any, any>["type"]): Promise<void> {
+async function waitPodEvent(ctx: ServerContext, name: string, eventType: WatchEvent<any, any>["type"]): Promise<void> {
   // TODO: Add timeout to prevent indefinite waiting and potential DoS
   // TODO: Add rate limiting for watch operations
   // TODO: Implement exponential backoff for failed watch attempts
   // TODO: Add circuit breaker pattern for resilience
 
-  const podWatcher = await kubernetes.CoreV1.namespace(namespace).watchPodList({
+  const podWatcher = await ctx.kube.client.CoreV1.namespace(namespace).watchPodList({
     labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: context.signal,
+    abortSignal: ctx.signal,
   });
   const reader = podWatcher.getReader();
   while (true) {
@@ -398,7 +397,7 @@ async function waitPodEvent(context: Context, name: string, eventType: WatchEven
 }
 
 async function waitPodStatus(
-  context: Context,
+  ctx: ServerContext,
   name: string,
   status: "Initialized" | "Ready" | "ContainersReady" | "PodScheduled",
 ): Promise<void> {
@@ -407,9 +406,9 @@ async function waitPodStatus(
   // TODO: Implement circuit breaker pattern for failed pod status checks
   // TODO: Add logging for security monitoring and audit trails
 
-  const podWatcher = await kubernetes.CoreV1.namespace(namespace).watchPodList({
+  const podWatcher = await ctx.kube.client.CoreV1.namespace(namespace).watchPodList({
     labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: context.signal,
+    abortSignal: ctx.signal,
   });
   const reader = podWatcher.getReader();
   while (true) {

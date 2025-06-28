@@ -1,5 +1,5 @@
 import { initTRPC } from "@trpc/server";
-import { StdioContext } from "api/context.ts";
+import { ServerContext } from "api/context.ts";
 
-export const trpc = initTRPC.context<StdioContext>().create();
+export const trpc = initTRPC.context<ServerContext>().create();
 // Create a new tRPC instance

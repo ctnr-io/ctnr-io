@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { namespace, StdioContext } from "api/context.ts";
-import kubernetes from "lib/kube-client.ts";
+import { ServerContext, namespace } from "api/context.ts";
 
 export const meta = {
   aliases: {
@@ -48,21 +47,21 @@ const handleCtrlPCtrlQ = ({ terminal, stdout }: {
   };
 };
 
-export default (context: StdioContext) => async (input: Input) => {
+export default (ctx: ServerContext) => async (input: Input) => {
   const defer: Array<() => unknown> = [];
   try {
     const { name, interactive = false, terminal = false } = input;
 
-    const tunnel = await kubernetes.CoreV1.namespace(namespace).tunnelPodAttach(name, {
+    const tunnel = await ctx.kube.client.CoreV1.namespace(namespace).tunnelPodAttach(name, {
       stdin: interactive,
       tty: terminal,
       stdout: true,
       stderr: true,
-      abortSignal: context.signal,
+      abortSignal: ctx.signal,
       container: name,
     });
 
-    const signalChanAsyncGenerator = context.stdio.signalChan();
+    const signalChanAsyncGenerator = ctx.stdio.signalChan();
     defer.push(() => signalChanAsyncGenerator.return());
     (async () => {
       for await (const signal of signalChanAsyncGenerator) {
@@ -82,7 +81,7 @@ export default (context: StdioContext) => async (input: Input) => {
     })();
 
     if (terminal) {
-      const terminalSizeAsyncGenerator = context.stdio.terminalSizeChan();
+      const terminalSizeAsyncGenerator = ctx.stdio.terminalSizeChan();
       defer.push(() => terminalSizeAsyncGenerator.return());
       (async () => {
         for await (const terminalSize of terminalSizeAsyncGenerator) {
@@ -92,49 +91,49 @@ export default (context: StdioContext) => async (input: Input) => {
     }
 
     if (terminal) {
-      context.stdio.setRaw(true);
-      defer.push(() => context.stdio.setRaw(false));
+      ctx.stdio.setRaw(true);
+      defer.push(() => ctx.stdio.setRaw(false));
     }
 
-    const stdoutWriter = context.stdio.stdout.getWriter();
+    const stdoutWriter = ctx.stdio.stdout.getWriter();
     stdoutWriter.write(`Container ${name} is running.\r\n`);
     interactive && stdoutWriter.write(`Press ENTER if you don't see a command prompt.\r\n`);
     stdoutWriter.releaseLock();
 
     const stdioController = new AbortController();
-    context.signal?.addEventListener("abort", () => {
+    ctx.signal?.addEventListener("abort", () => {
       stdioController.abort();
     });
     defer.push(() => {
-      context.signal?.removeEventListener("abort", stdioController.abort);
+      ctx.signal?.removeEventListener("abort", stdioController.abort);
     });
 
     const handleCtrlPCtrlQStream = new TransformStream({
       transform: handleCtrlPCtrlQ({
         terminal,
-        stdout: context.stdio.stdout,
+        stdout: ctx.stdio.stdout,
       }),
     });
 
     defer.push(async () => {
       // Get pod resource
-      const podResource = await kubernetes.CoreV1.namespace(namespace).getPod(name);
+      const podResource = await ctx.kube.client.CoreV1.namespace(namespace).getPod(name);
       // Close the tunnel and clean up resources
-      context.stdio.exit(podResource.status?.containerStatuses?.[0]?.state?.terminated?.exitCode || 0);
+      ctx.stdio.exit(podResource.status?.containerStatuses?.[0]?.state?.terminated?.exitCode || 0);
     });
 
     // Read logs to display them in the terminal
     await Promise.any([
-      context.stdio.stdin.pipeThrough(
+      ctx.stdio.stdin.pipeThrough(
         terminal ? handleCtrlPCtrlQStream : new TransformStream(),
       )
         .pipeTo(
-          interactive ? tunnel.stdin : context.stdio.stdout,
+          interactive ? tunnel.stdin : ctx.stdio.stdout,
         ),
-      tunnel.stdout.pipeTo(context.stdio.stdout, {
+      tunnel.stdout.pipeTo(ctx.stdio.stdout, {
         signal: stdioController.signal,
       }).catch(() => {}),
-      tunnel.stderr.pipeTo(context.stdio.stderr, {
+      tunnel.stderr.pipeTo(ctx.stdio.stderr, {
         signal: stdioController.signal,
       }).catch(() => {}),
     ]);

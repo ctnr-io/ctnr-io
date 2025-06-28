@@ -1,13 +1,15 @@
-export type Context = {
+import { KubeClient } from "lib/kube-client.ts";
+
+export type SignalContext = {
   signal: AbortSignal | undefined;
   // defer: (fn: () => void) => void;
 };
 
 export type Signals =
   | "SIGINT"
-  | "SIGQUIT"
+  | "SIGQUIT";
 
-export type StdioContext = Context & {
+export type StdioContext = {
   stdio: {
     stdin: ReadableStream;
     stdout: WritableStream;
@@ -19,4 +21,13 @@ export type StdioContext = Context & {
   };
 };
 
+export type KubernetesContext = {
+  kube: {
+    client: KubeClient;
+  };
+};
+
 export const namespace = "ctnr-edge" as const;
+
+export type ServerContext = SignalContext & StdioContext & KubernetesContext;
+export type ClientContext = SignalContext & StdioContext;

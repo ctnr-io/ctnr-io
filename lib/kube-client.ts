@@ -8,7 +8,7 @@ import { SpdyEnabledRestClient } from "./spdy-enabled-rest-client.ts";
 
 const kubeconfig = Deno.env.get("KUBECONFIG") || Deno.env.get("HOME") + "/.kube/config";
 
-async function getKubeClient() {
+export async function getKubeClient() {
   let client: RestClient;
   try {
     client = await SpdyEnabledRestClient.forInCluster();
@@ -29,4 +29,4 @@ async function getKubeClient() {
   };
 }
 
-export default await getKubeClient();
+export type KubeClient = Awaited<ReturnType<typeof getKubeClient>>;

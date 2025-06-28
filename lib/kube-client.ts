@@ -6,7 +6,10 @@ import * as YAML from "@std/yaml";
 import { RestClient } from "@cloudydeno/kubernetes-apis/common.ts";
 import { SpdyEnabledRestClient } from "./spdy-enabled-rest-client.ts";
 
-const kubeconfig = Deno.env.get("KUBECONFIG") || Deno.env.get("HOME") + "/.kube/config";
+const kubeconfig = Deno.env.get("KUBECONFIG")!
+if (!kubeconfig) {
+  throw new Error("KUBECONFIG environment variable is not set.");
+}
 
 export async function getKubeClient() {
   let client: RestClient;

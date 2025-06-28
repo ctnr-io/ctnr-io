@@ -1,6 +1,6 @@
 import { z } from "zod";
-import {  ServerContext, namespace } from "api/context.ts";
-import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
+import { namespace, ServerContext } from "api/context.ts";
+import { Pod, toPodStatus } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
 
@@ -156,7 +156,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
         {
           name,
           image,
-          stdin: true,
+          stdin: interactive,
           tty: terminal,
           command: command ? ["sh", "-c", command] : undefined,
           env: env.length === 0 ? [] : env.map((e) => {
@@ -323,7 +323,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
   };
 
   // Check if the pod already exists and is running
-  const pod = await ctx.kube.client.CoreV1.namespace(namespace).getPod(name).catch(() => null);
+  let pod = await ctx.kube.client.CoreV1.namespace(namespace).getPod(name).catch(() => null);
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
@@ -335,41 +335,71 @@ export default (ctx: ServerContext) => async (input: Input) => {
           `Container ${name} already exists and is running. Use --force to recreate it, or access it with \`attach\` command.\r\n`,
         );
         stderrWriter.releaseLock();
-        stderrWriter.releaseLock();
         return;
       }
     } else {
       stderrWriter.write(`Container ${name} already exists but is not running. Recreating it...\r\n`);
     }
-    ctx.kube.client.CoreV1.namespace(namespace).deletePod(name, {
-      abortSignal: ctx.signal,
-      gracePeriodSeconds: 0, // Force delete immediately
-    });
     stderrWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
-    // Wait for the pod to be deleted
-    await waitPodEvent(ctx, name, "DELETED");
+    await Promise.all([
+      waitPodEvent(ctx, name, "DELETED"),
+      ctx.kube.client.CoreV1.namespace(namespace).deletePod(name, {
+        abortSignal: ctx.signal,
+        gracePeriodSeconds: 0, // Force delete immediately
+      }),
+    ]);
   }
 
   // Create the pod
-  {
-    ctx.kube.client.CoreV1.namespace(namespace).createPod(podResource, {
-      abortSignal: ctx.signal,
-    });
-    stderrWriter.write(
-      `Container ${name} created. Waiting for it to be ready...\r\n`,
-    );
-    // Watch for pod events
-    await waitPodStatus(ctx, name, "ContainersReady").catch(() => {});
-  }
+  stderrWriter.write(
+    `Container ${name} created. Waiting for it to be ready...\r\n`,
+  );
+  ctx.kube.client.CoreV1.namespace(namespace).createPod(podResource, {
+    abortSignal: ctx.signal,
+  });
+  pod = await waitForPod(ctx, name, (pod) => {
+    switch (pod.status?.phase) {
+      case "Succeeded": {
+        stderrWriter.write(`Container ${name} completed successfully.\r\n`);
+        return true;
+      }
+      case "Running":
+        if (pod.status?.containerStatuses?.[0]?.ready) {
+          return true;
+        }
+        if (pod.status?.containerStatuses?.[0]?.state?.terminated) {
+          stderrWriter.write(
+            `Container ${name} terminated with exit code ${
+              pod.status.containerStatuses[0].state.terminated.exitCode
+            }.\r\n`,
+          );
+          return true;
+        }
+        return false;
+      default:
+        return false;
+    }
+  });
 
   stderrWriter.releaseLock();
 
-  // Attach to the pod if interactive or terminal mode is enabled
-  await attach(ctx)({
-    name,
-    interactive,
-    terminal,
-  });
+  if (pod?.status?.phase === "Running") {
+    // Attach to the pod if interactive or terminal mode is enabled
+    await attach(ctx)({
+      name,
+      interactive,
+      terminal,
+    });
+  } else {
+    const logs = await ctx.kube.client.CoreV1.namespace(namespace).streamPodLog(name, {
+      follow: true,
+      container: name,
+      abortSignal: ctx.signal,
+    })
+    await logs.pipeTo(ctx.stdio.stdout, {
+      signal: ctx.signal,
+    })
+  }
 };
 
 async function waitPodEvent(ctx: ServerContext, name: string, eventType: WatchEvent<any, any>["type"]): Promise<void> {
@@ -399,7 +429,7 @@ async function waitPodEvent(ctx: ServerContext, name: string, eventType: WatchEv
 async function waitPodStatus(
   ctx: ServerContext,
   name: string,
-  status: "Initialized" | "Ready" | "ContainersReady" | "PodScheduled",
+  status: "Initialized" | "Ready" | "ContainersReady" | "PodScheduled" | "PodCompleted" | "PodFailed" | "PodReady",
 ): Promise<void> {
   // TODO: Add timeout to prevent indefinite waiting
   // TODO: Add maximum retry attempts with exponential backoff
@@ -420,6 +450,28 @@ async function waitPodStatus(
     }
     if (done) {
       return;
+    }
+  }
+}
+
+async function waitForPod(
+  ctx: ServerContext,
+  name: string,
+  predicate: (pod: Pod) => boolean | Promise<boolean>,
+): Promise<Pod> {
+  const podWatcher = await ctx.kube.client.CoreV1.namespace(namespace).watchPodList({
+    labelSelector: `ctnr.io/name=${name}`,
+    abortSignal: ctx.signal,
+  });
+  const reader = podWatcher.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    const pod = value?.object as Pod;
+    if (await predicate(pod)) {
+      return pod;
+    }
+    if (done) {
+      return pod;
     }
   }
 }

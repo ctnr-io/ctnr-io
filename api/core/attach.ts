@@ -56,7 +56,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
     const { name, interactive = false, terminal = false } = input;
 
     const tunnel = await ctx.kube.client.CoreV1.namespace(namespace).tunnelPodAttach(name, {
-      stdin: true,
+      stdin: interactive,
       tty: terminal,
       stdout: true,
       stderr: true,
@@ -152,7 +152,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
     );
 
     // Wait for any stream to complete
-    const result = await Promise.any(streamPromises);
+    const result = await Promise.all(streamPromises);
     console.debug(`Stream processing completed with result:`, result);
   } catch (error) {
     console.debug(`Error in stream processing:`, error);

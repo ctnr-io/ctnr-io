@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { namespace, ServerContext } from "api/context.ts";
-import { Pod, toPodStatus } from "@cloudydeno/kubernetes-apis/core/v1";
+import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
 
@@ -58,10 +58,16 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>;
 
 export default (ctx: ServerContext) => async (input: Input) => {
+  const stderrWriter = ctx.stdio.stderr.getWriter();
+  
+  if (!ctx.auth.session) {
+    stderrWriter.write("ERROR: You must be authenticated to run containers.\r\n");
+    return;
+  }
+
   const { name, image, env = [], port = [], interactive, terminal, detach, force, command } = input;
 
   // Additional security validations
-  const stderrWriter = ctx.stdio.stderr.getWriter();
 
   // TODO: Implement image vulnerability scanning
   // if (await isImageVulnerable(image)) {

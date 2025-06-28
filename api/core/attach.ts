@@ -56,7 +56,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
     const { name, interactive = false, terminal = false } = input;
 
     const tunnel = await ctx.kube.client.CoreV1.namespace(namespace).tunnelPodAttach(name, {
-      stdin: true,
+      stdin: interactive,
       tty: terminal,
       stdout: true,
       stderr: true,

@@ -41,6 +41,7 @@ export const Input = z.object({
     .describe("port to expose"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
+  detach: z.boolean().optional().default(false).describe("Detach from the container after starting"),
   force: z.boolean().optional().default(false).describe("Force recreate the container if it already exists"),
   // scaleType: z.enum(["concurrency", "rps", "cpu", "memory"]).optional().describe("Type of scaling to apply"),
   // scale: z.object({
@@ -57,7 +58,7 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>;
 
 export default (ctx: ServerContext) => async (input: Input) => {
-  const { name, image, env = [], port = [], interactive, terminal, force, command } = input;
+  const { name, image, env = [], port = [], interactive, terminal, detach, force, command } = input;
 
   // Additional security validations
   const stderrWriter = ctx.stdio.stderr.getWriter();
@@ -332,7 +333,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
         );
       } else {
         stderrWriter.write(
-          `Container ${name} already exists and is running. Use --force to recreate it, or access it with \`attach\` command.\r\n`,
+          `Container ${name} already exists and is running. Use --force to recreate it.\r\n`,
         );
         stderrWriter.releaseLock();
         return;
@@ -383,7 +384,11 @@ export default (ctx: ServerContext) => async (input: Input) => {
 
   stderrWriter.releaseLock();
 
-  if (pod?.status?.phase === "Running") {
+  if (detach) {
+    // If detach is enabled, just return without attaching
+    console.debug(`Container ${name} is running. Detached successfully.`);
+    return;
+  } else if (pod?.status?.phase === "Running") {
     // Attach to the pod if interactive or terminal mode is enabled
     await attach(ctx)({
       name,

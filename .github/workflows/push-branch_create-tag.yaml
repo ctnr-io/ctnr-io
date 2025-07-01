@@ -50,24 +50,10 @@ jobs:
 
       - name: Get version
         id: version
-        continue-on-error: true
         uses: ietf-tools/semver-action@v1.10.2 
         with:  
           token: ${{ github.token }}
           branch: ${{ github.ref }}
-
-      - name: Handle version result
-        run: |
-          if [[ "${{ steps.version.outcome }}" == "failure" ]]; then
-            # Check the step logs for the specific error message
-            if grep -q "No commit resulted in a version bump since last release" <<< "${{ toJSON(steps.version) }}"; then
-              echo "::notice::No version bump needed since last release. Stopping pipeline gracefully."
-              exit 0
-            else
-              echo "::error::Version step failed for unknown reason"
-              exit 1
-            fi
-          fi
 
       - name: Generate final version
         id: final_version

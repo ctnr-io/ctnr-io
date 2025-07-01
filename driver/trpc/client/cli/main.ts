@@ -1,12 +1,14 @@
 import 'lib/utils.ts';
 import { createCli } from "trpc-cli";
-import { CliContext, createClientContext } from "./context.ts";
+import { createRemoteCliContext } from "./context.ts";
 import { cliRouter } from "./router.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 
 export const remoteCli = createCli({
   router: cliRouter,
-  context: createClientContext({
+  name: "ctnr",
+  description: "Ctnr Remote CLI",
+  context: createRemoteCliContext({
     // Wait for the WebSocket connection to be established
     signal: undefined,
     stdio: {
@@ -44,6 +46,9 @@ export const remoteCli = createCli({
         );
       },
     },
+    auth: {
+      session: null
+    }
   }),
 });
 

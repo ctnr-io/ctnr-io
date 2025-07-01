@@ -1,0 +1,115 @@
+name: Push Branch - Create Tag
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+      - hotfix/*
+      - release/*
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect branch type
+        id: branch
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            echo "is_main=true" >> $GITHUB_OUTPUT
+            echo "prerelease_suffix=" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            echo "is_main=false" >> $GITHUB_OUTPUT
+            echo "prerelease_suffix=beta" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH_NAME" == feature/* ]]; then
+            echo "is_main=false" >> $GITHUB_OUTPUT
+            FEATURE_NAME=$(echo "$BRANCH_NAME" | sed 's/feature\///' | sed 's/[^a-zA-Z0-9]/-/g')
+            echo "prerelease_suffix=alpha.$FEATURE_NAME" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH_NAME" == hotfix/* ]]; then
+            echo "is_main=false" >> $GITHUB_OUTPUT
+            echo "prerelease_suffix=hotfix" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH_NAME" == release/* ]]; then
+            echo "is_main=false" >> $GITHUB_OUTPUT
+            echo "prerelease_suffix=rc" >> $GITHUB_OUTPUT
+          else
+            echo "is_main=false" >> $GITHUB_OUTPUT
+            CLEAN_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]/-/g')
+            echo "prerelease_suffix=pre.$CLEAN_BRANCH" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get version
+        id: version
+        uses: ietf-tools/semver-action@v1.10.2 
+        with:  
+          token: ${{ github.token }}
+          branch: ${{ github.ref }}
+
+      - name: Generate final version
+        id: final_version
+        run: |
+          BASE_VERSION="${{ steps.version.outputs.next }}"
+          
+          if [[ "${{ steps.branch.outputs.is_main }}" == "true" ]]; then
+            FINAL_VERSION="$BASE_VERSION"
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          else
+            PRERELEASE_SUFFIX="${{ steps.branch.outputs.prerelease_suffix }}"
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            FINAL_VERSION="$BASE_VERSION-$PRERELEASE_SUFFIX.$TIMESTAMP"
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+          echo "Final version: $FINAL_VERSION"
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          TAG="${{ steps.final_version.outputs.version }}"
+          echo "Creating tag: $TAG"
+          
+          # Delete existing tag if it exists (locally and remotely)
+          git tag -d "$TAG" 2>/dev/null || true
+          git push --delete origin "$TAG" 2>/dev/null || true
+          
+          # Create and push new tag
+          if [[ "${{ steps.final_version.outputs.is_prerelease }}" == "true" ]]; then
+            git tag -a "$TAG" -m "Prerelease $TAG"
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+          fi
+          git push origin "$TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+      - name: Trigger release cli
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_file_name: push-tag_release-cli.yaml
+          ref: ${{ github.ref }} 
+          wait_interval: 10
+          propagate_failure: true
+          client_payload: |
+            {
+              "version": "${{ steps.final_version.outputs.version }}",
+              "is_prerelease": "${{ steps.final_version.outputs.is_prerelease }}",
+              "branch": "${{ steps.branch.outputs.branch_name }}"
+            }

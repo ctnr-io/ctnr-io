@@ -109,5 +109,5 @@ jobs:
           propagate_failure: true
           client_payload: |
             {
-              "version": "${{ steps.final_version.outputs.version }}",
+              "version": "${{ steps.final_version.outputs.version }}"
             }

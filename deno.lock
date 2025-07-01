@@ -49,7 +49,7 @@
     "jsr:@tmpl/core@~0.5.25": "0.5.25",
     "jsr:@tmpl/gen@~0.5.25": "0.5.25",
     "npm:@orpc/client@^1.5.2": "1.5.2",
-    "npm:@orpc/server@^1.5.2": "1.5.2",
+    "npm:@orpc/server@^1.5.2": "1.5.2_ws@8.18.2",
     "npm:@supabase/supabase-js@^2.45.4": "2.50.2",
     "npm:@trpc/client@^11.4.1": "11.4.2_@trpc+server@11.4.1__typescript@5.8.2_typescript@5.8.2",
     "npm:@trpc/server@^11.3.2": "11.4.1_typescript@5.8.2",
@@ -373,6 +373,23 @@
         "@orpc/standard-server-fetch",
         "@orpc/standard-server-node",
         "@orpc/standard-server-peer"
+      ]
+    },
+    "@orpc/server@1.5.2_ws@8.18.2": {
+      "integrity": "sha512-KegQlqfMXBoHMq4PKkOLsjHRJxG8QeFFOJtT7cs8b4w2+HRzelJb70Han4wny8ih023IWTj68SkyMc/iAUkyaw==",
+      "dependencies": [
+        "@orpc/client",
+        "@orpc/contract",
+        "@orpc/shared",
+        "@orpc/standard-server",
+        "@orpc/standard-server-aws-lambda",
+        "@orpc/standard-server-fetch",
+        "@orpc/standard-server-node",
+        "@orpc/standard-server-peer",
+        "ws"
+      ],
+      "optionalPeers": [
+        "ws"
       ]
     },
     "@orpc/shared@1.5.2": {

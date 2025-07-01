@@ -110,6 +110,4 @@ jobs:
           client_payload: |
             {
               "version": "${{ steps.final_version.outputs.version }}",
-              "is_prerelease": "${{ steps.final_version.outputs.is_prerelease }}",
-              "branch": "${{ steps.branch.outputs.branch_name }}"
             }

@@ -85,16 +85,20 @@ jobs:
           mkdir -p dist
           
           # Set environment variables for compilation
-          export CTNR_API_URL="${{ env.CTNR_API_URL }}"
+
+          curl -sfS https://dotenvx.sh/install.sh | sh
           
+          env
+ 
           # Compile the CLI with embedded environment variables
-          deno compile \
-            --allow-all \
+          deno task compile \
             --target ${{ matrix.target }} \
             --output dist/${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
-            cli/main.ts
+            cli/static_main.ts
         env:
           CTNR_API_URL: ${{ env.CTNR_API_URL }}
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
 
       - name: Create tarball (Unix)
         if: matrix.os != 'windows'

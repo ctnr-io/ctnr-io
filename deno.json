@@ -1,5 +1,7 @@
 {
   "tasks": {
+    "gen": "dotenvx run -- deno run -A jsr:@tmpl/gen .",
+    "compile": "deno task gen && deno compile -A --unstable-net",
     "trpc:server:watch": "dotenvx run -- deno run -A --unstable-net --watch driver/trpc/server/main.ts",
     "trpc:server:run": "dotenvx run -- deno run -A --unstable-net driver/trpc/server/main.ts",
     "trpc:server:cli": "dotenvx run -- deno run -A --unstable-net driver/trpc/server/cli.ts",

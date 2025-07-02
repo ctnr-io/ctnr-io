@@ -19,6 +19,7 @@ env:
   CTNR_API_URL: https://api.ctnr.io
   SUPABASE_URL: ${{ vars.SUPABASE_URL }}
   SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }} 
+  CTNR_VERSION: ${{ github.event.inputs.version }}
 
 jobs:
   build-cli:
@@ -81,7 +82,6 @@ jobs:
             fi
           fi
 
-
       - name: Compile cli binary
         run: |
           mkdir -p dist
@@ -90,8 +90,6 @@ jobs:
 
           curl -sfS https://dotenvx.sh/install.sh | sh
           
-          env
- 
           # Compile the CLI with embedded environment variables
           deno task compile \
             --target ${{ matrix.target }} \

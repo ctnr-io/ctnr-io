@@ -6,11 +6,16 @@ import { performOAuthFlowOnce } from "./auth.ts";
 import { ServerRouter } from "../../server/router.ts";
 import { createTRPCWebSocketClient } from "../mod.ts";
 
+type ProcedureOptions = {
+  authenticate: boolean;
+}
+
 export type RemoteCliContext = {
   lazy: <R>(
+    procedureOptions: ProcedureOptions,
     callback: ({ client }: {
       client: TRPCClient<ServerRouter>;
-    } & AuthContext) => Promise<R>,
+    }) => Promise<R>,
   ) => Promise<R>;
 };
 
@@ -20,7 +25,7 @@ export function createRemoteCliContext(
   return {
     // This function prevent to start websocket connection until the first call to `lazy`
     // This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
-    lazy: async (callback) => {
+    lazy: async (procedureOptions, callback) => {
       try {
         const client = await createTRPCWebSocketClient();
 
@@ -100,14 +105,13 @@ export function createRemoteCliContext(
           }
         })();
 
-        const session = await performOAuthFlowOnce();
-        await client.trpc.auth.login.mutate(session);
+        if (procedureOptions.authenticate) {
+          const session = await performOAuthFlowOnce();
+          await client.trpc.auth.login.mutate(session);
+        }
 
         return callback({
           client: client.trpc,
-          auth: {
-            session,
-          },
         });
       } catch (error) {
         console.debug("Error in lazy callback:", error);

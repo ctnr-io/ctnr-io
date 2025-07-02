@@ -13,7 +13,7 @@ export async function performOAuthFlow(): Promise<Session> {
     const client = getSupabaseClient({ storage: authStorage });
     const { data: { session } } = await client.auth.getSession();
     if (session?.access_token && (session?.expires_at ?? 0) < Date.now()) {
-      // console.info("🔑 Already authenticated, skipping OAuth flow");
+      console.info(`🔑 Authenticated as ${session.user.email}.`);
       return session;
     }
     console.info("🔑 Starting OAuth flow...");

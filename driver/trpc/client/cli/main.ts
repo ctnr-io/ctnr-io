@@ -8,6 +8,7 @@ try {
   const remoteCli = createCli({
     router: cliRouter,
     name: "ctnr",
+    version: Deno.env.get("CTNR_VERSION"),
     description: "Ctnr Remote CLI",
     context: createRemoteCliContext({
       // Wait for the WebSocket connection to be established

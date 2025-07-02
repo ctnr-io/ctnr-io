@@ -22,14 +22,17 @@ jobs:
         with:  
           token: ${{ github.token }}
           branch: main
-          fallbackTag: 0bd5f7dbbf1a0d56ef605613bbcc79203e482d15
+          noNewCommitBehavior: warn
+          noVersionBumpBehavior: warn
 
       - name: Configure Git
+        if: ${{ steps.version.outputs.next != '' }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Create and push tag
+        if: ${{ steps.version.outputs.next != '' }}
         run: |
           TAG="${{ steps.version.outputs.next }}"
           echo "Creating tag: $TAG"
@@ -45,6 +48,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
       - name: Trigger release cli
+        if: ${{ steps.version.outputs.next != '' }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: ${{ github.repository_owner }}

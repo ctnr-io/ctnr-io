@@ -1,4 +1,4 @@
-import { ClientContext } from "api/context.ts";
+import { AuthContext, ClientContext } from "api/context.ts";
 import { Buffer } from "node:buffer";
 import { bypassWebSocketMessageHandler } from "lib/websocket.ts";
 import { TRPCClient } from "@trpc/client";
@@ -10,21 +10,18 @@ export type RemoteCliContext = {
   lazy: <R>(
     callback: ({ client }: {
       client: TRPCClient<ServerRouter>;
-    }) => Promise<R>,
+    } & AuthContext) => Promise<R>,
   ) => Promise<R>;
 };
-
-
 
 export function createRemoteCliContext(
   opts: ClientContext,
 ): RemoteCliContext {
   return {
+    // This function prevent to start websocket connection until the first call to `lazy`
+    // This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
     lazy: async (callback) => {
       const client = await createTRPCWebSocketClient();
-      const session = await performOAuthFlowOnce();
-      opts.auth.session = session;
-      await client.trpc.auth.setSession.mutate(session);
 
       opts.stdio.stdin.pipeTo(
         new WritableStream({
@@ -102,8 +99,14 @@ export function createRemoteCliContext(
         }
       })();
 
+      const session = await performOAuthFlowOnce();
+      await client.trpc.auth.login.mutate(session);
+
       return callback({
         client: client.trpc,
+        auth: {
+          session,
+        }
       });
     },
   };

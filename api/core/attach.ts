@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { namespace, ServerContext } from "api/context.ts";
 
-export const meta = {
+export const Meta = {
   aliases: {
     options: {
       interactive: "i",

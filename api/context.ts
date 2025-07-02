@@ -30,7 +30,7 @@ export type KubernetesContext = {
 
 export type AuthContext = {
   auth: {
-    session: Session | null; 
+    session: Session | null;
   }
 };
 

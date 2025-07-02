@@ -4,7 +4,7 @@ import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
 
-export const meta = {
+export const Meta = {
   aliases: {
     options: {
       "interactive": "i",

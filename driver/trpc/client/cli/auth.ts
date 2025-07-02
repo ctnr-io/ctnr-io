@@ -13,9 +13,10 @@ export async function performOAuthFlow(): Promise<Session> {
     const client = getSupabaseClient({ storage: authStorage });
     const { data: { session } } = await client.auth.getSession();
     if (session?.access_token && (session?.expires_at ?? 0) < Date.now()) {
-      console.log("🔑 Already authenticated, skipping OAuth flow");
+      // console.info("🔑 Already authenticated, skipping OAuth flow");
       return session;
     }
+    console.info("🔑 Starting OAuth flow...");
 
     // Generate PKCE parameters
     const { server, promise, url, } = startCallbackServer();
@@ -34,23 +35,23 @@ export async function performOAuthFlow(): Promise<Session> {
     }
 
     if (Deno.stdin.isTerminal()) {
-      console.log(`📱 Opening browser for authentication...`);
+      console.info(`📱 Opening browser for authentication...`);
 
       // Open browser
       try {
         await openBrowser(oauth.data.url);
       } catch (error) {
         console.warn("Failed to open browser automatically:", error);
-        console.log(`Please manually open: ${oauth.data.url}`);
+        console.info(`Please manually open: ${oauth.data.url}`);
       }
     } else {
-      console.log("📱 Running in non-interactive mode, please open the following URL in your browser:");
-      console.log(`  ${oauth.data.url}`);
-      console.log("After authenticating, return to this terminal to continue.");
+      console.info("📱 Running in non-interactive mode, please open the following URL in your browser:");
+      console.info(`  ${oauth.data.url}`);
+      console.info("After authenticating, return to this terminal to continue.");
     }
 
     // Wait for callback
-    console.log("⏳ Waiting for authentication callback...");
+    console.info("⏳ Waiting for authentication callback...");
     const { code } = await promise;
 
     // Exchange code for tokens  exchangeCodeForTokens,
@@ -74,7 +75,7 @@ export async function performOAuthFlow(): Promise<Session> {
     // Shutdown server
     server.shutdown();
 
-    console.log("✅ Authentication successful!");
+    console.info("✅ Authentication successful!");
 
     return (await client.auth.getSession()).data.session!
   } catch (error) {
@@ -99,7 +100,7 @@ export async function logout(): Promise<void> {
     const supabase = getSupabaseClient({ storage: authStorage });
     await supabase.auth.signOut();
 
-    console.log("🔓 Logged out successfully");
+    console.info("🔓 Logged out successfully");
   } catch (error) {
     console.warn("Error during logout:", error);
   }

@@ -13,7 +13,7 @@ import { router } from "./router.ts";
 
 const kubeClient = await getKubeClient();
 
-async function createServerContext(opts: CreateWSSContextFnOptions): Promise<ServerContext> {
+function createServerContext(opts: CreateWSSContextFnOptions): ServerContext {
   const abortController = new AbortController();
   const ws = opts.res as ws.WebSocket;
 

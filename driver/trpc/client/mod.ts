@@ -9,9 +9,6 @@ export async function createTRPCWebSocketClient(): Promise<{
   const wsClient = createWSClient({
     url: Deno.env.get("CTNR_API_URL") || "https://api.ctnr.io",
     WebSocket: globalThis.WebSocket,
-    connectionParams: async () => {
-      return {}
-    },
     onOpen() {
       // Handle WebSocket open event
       console.debug("WebSocket connection established.");

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "api/context.ts";
 import { Session } from "@supabase/supabase-js";
 
-export const meta = {};
+export const Meta = {};
 
 export const Input = z.object({
   access_token: z.string(),
@@ -24,6 +24,5 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>;
 
 export default (ctx: ServerContext) => (input: Input) => {
-  // List pods with label ctnr.io/container
   ctx.auth.session = input as Session;
 };

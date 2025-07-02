@@ -5,22 +5,16 @@ import * as List from "api/core/list.ts";
 import * as Attach from "api/core/attach.ts";
 
 export const run = trpc.procedure
-  .meta(Run.meta)
+  .meta(Run.Meta)
   .input(Run.Input)
-  .mutation(async function ({ input, signal, ctx }) {
-    return await Run.default({ ...ctx, signal })(input);
-  });
+  .mutation(({ input, signal, ctx }) => Run.default({ ...ctx, signal })(input));
 
 export const list = trpc.procedure
-  .meta(List.meta)
+  .meta(List.Meta)
   .input(List.Input)
-  .mutation(async function ({ input, signal, ctx }) {
-    return await List.default({ ...ctx, signal })(input);
-  });
+  .mutation(({ input, signal, ctx }) => List.default({ ...ctx, signal })(input));
 
 export const attach = trpc.procedure
-  .meta(Attach.meta)
+  .meta(Attach.Meta)
   .input(Attach.Input)
-  .mutation(async function ({ input, signal, ctx }) {
-    return await Attach.default({ ...ctx, signal })(input);
-  });
+  .mutation(({ input, signal, ctx }) => Attach.default({ ...ctx, signal })(input));

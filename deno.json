@@ -10,8 +10,6 @@
   "imports": {
     "@cloudydeno/kubernetes-apis": "jsr:@cloudydeno/kubernetes-apis@^0.5.2",
     "@cloudydeno/kubernetes-client": "jsr:@cloudydeno/kubernetes-client@^0.7.5",
-    "@orpc/client": "npm:@orpc/client@^1.5.2",
-    "@orpc/server": "npm:@orpc/server@^1.5.2",
     "@std/assert": "jsr:@std/assert@^1.0.12",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",

@@ -15,7 +15,7 @@ const logLevel = match(Deno.env.get("LOG_LEVEL"))
 globalThis.console = {
 	...console,
 	debug: Deno.env.get("DEBUG") === "true" ? console.debug : () => {},
-	info: logLevel >= LogLevel.Info ? console.info : () => {},
-	warn: logLevel >= LogLevel.Warn ? console.warn : () => {},
-	error: logLevel >= LogLevel.Error ? console.error : () => {},
+	info: logLevel <= LogLevel.Info ? console.info : () => {},
+	warn: logLevel <= LogLevel.Warn ? console.warn : () => {},
+	error: logLevel <= LogLevel.Error ? console.error : () => {},
 }

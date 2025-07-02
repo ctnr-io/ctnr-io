@@ -116,16 +116,7 @@ install_cli() {
     log "✅ ${CLI_NAME} installed successfully!"
     log "Run '${CLI_NAME} --help' to get started."
     
-    # Set default environment variables
-    log "Setting up default configuration..."
-    if [ ! -f "$HOME/.ctnr/config" ]; then
-        mkdir -p "$HOME/.ctnr"
-        cat > "$HOME/.ctnr/config" << 'CONFIG_EOF'
-CTNR_API_URL=https://api.ctnr.io
-CTNR_DEFAULT_CONTEXT=production
-CONFIG_EOF
-        log "Created default config at $HOME/.ctnr/config"
-    fi
+    rm -f "$HOME/.ctnr/config"  # Remove old config if exists
 }
 
 # Check if running as root (not recommended)

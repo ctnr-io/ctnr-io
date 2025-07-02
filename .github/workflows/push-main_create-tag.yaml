@@ -62,3 +62,15 @@ jobs:
             {
               "version": "${{ steps.version.outputs.next }}"
             }
+      
+      - name: Remove tag if failure occured
+        if: ${{ failure() && steps.version.outputs.next != '' }}
+        run: |
+          TAG="${{ steps.version.outputs.next }}"
+          echo "Removing tag: $TAG due to failure"
+          
+          # Delete the tag locally and remotely
+          git tag -d "$TAG" 2>/dev/null || true
+          git push --delete origin "$TAG" 2>/dev/null || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

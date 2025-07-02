@@ -86,13 +86,14 @@ jobs:
           
           # Set environment variables for compilation
           export CTNR_API_URL="${{ env.CTNR_API_URL }}"
-          
+
+          curl -sfS https://dotenvx.sh/install.sh | sh
+ 
           # Compile the CLI with embedded environment variables
-          deno compile \
-            --allow-all \
+          deno task compile \
             --target ${{ matrix.target }} \
             --output dist/${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
-            cli/main.ts
+            cli/static_main.ts
         env:
           CTNR_API_URL: ${{ env.CTNR_API_URL }}
 

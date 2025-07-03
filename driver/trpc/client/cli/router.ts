@@ -3,7 +3,7 @@ import * as List from "api/core/list.ts";
 import * as Attach from "api/core/attach.ts";
 import { initTRPC } from "@trpc/server";
 import { RemoteCliContext } from "./context.ts";
-import { logout, performOAuthFlowOnce } from "./auth.ts";
+import { logout } from "./auth.ts";
 
 export const trpc = initTRPC.context<RemoteCliContext>().create();
 

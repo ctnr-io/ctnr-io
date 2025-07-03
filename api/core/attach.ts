@@ -156,6 +156,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
     console.debug(`Stream processing completed with result:`, result);
   } catch (error) {
     console.debug(`Error in stream processing:`, error);
+    ctx.stdio.exit(1);
   } finally {
     console.debug(`Cleaning up resources...`);
     // Run cleanup functions in reverse order

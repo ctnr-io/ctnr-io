@@ -39,7 +39,8 @@
     "api/": "./api/",
     "cli/": "./cli/",
     "driver/": "./driver/",
-    "lib/": "./lib/"
+    "lib/": "./lib/",
+    "ctx/": "./ctx/"
   },
   "compilerOptions": {
     "jsx": "react",

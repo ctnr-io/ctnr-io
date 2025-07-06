@@ -65,39 +65,47 @@ export const ensureUserNamespace = async (
       name: ${networkPolicyName}
       namespace: ${namespaceName}
     spec:
-      endpointSelector:
-        matchLabels:
-          "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-      ingress: 
-        # Allow from same namespace
-        - fromEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-        # Allow from external/public (outside cluster)
-        - fromEntities:
-            - world
-      egress:
-        # Allow to same namespace
-        - toEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-        # Allow DNS to kube-dns/CoreDNS in cluster
-        - toEndpoints:
-            - matchLabels:
-                io.kubernetes.pod.namespace: kube-system
-                k8s-app: kube-dns
-          toPorts:
-            - ports:
-              - port: "53"
-                protocol: TCP
-              - port: "53"
-                protocol: UDP
-              rules:
-                dns:
-                  - matchPattern: "*"
-        # Allow to external/public (outside cluster)
-        - toEntities:
-            - world
+      endpointSelector: {}
+      #   matchLabels:
+      #     "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+      # # ingress: 
+      # #   # Allow from same namespace
+      # #   - fromEndpoints:
+      # #       - matchLabels:
+      # #           "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+      # #   # Allow from same namespace
+      # #   - fromEndpoints:
+      # #       - matchLabels:
+      # #           "k8s:io.kubernetes.pod.namespace": ctnr-system
+      # #   # Allow from external/public (outside cluster)
+      # #   - fromEntities:
+      # #       - world
+      # egress:
+      #   # Allow to same namespace
+      #   - toEndpoints:
+      #       - matchLabels:
+      #           "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+      #   # Allow from same namespace
+      #   - fromEndpoints:
+      #       - matchLabels:
+      #           "k8s:io.kubernetes.pod.namespace": ctnr-system
+      #   # Allow DNS to kube-dns/CoreDNS in cluster
+      #   - toEndpoints:
+      #       - matchLabels:
+      #           io.kubernetes.pod.namespace: kube-system
+      #           k8s-app: kube-dns
+      #     toPorts:
+      #       - ports:
+      #         - port: "53"
+      #           protocol: TCP
+      #         - port: "53"
+      #           protocol: UDP
+      #         rules:
+      #           dns:
+      #             - matchPattern: "*"
+      #   # Allow to external/public (outside cluster)
+      #   - toEntities:
+            # - world
   `.parse(YAML.parse).data!;
 
 

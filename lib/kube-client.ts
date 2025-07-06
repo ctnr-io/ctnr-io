@@ -73,6 +73,10 @@ export const ensureUserNamespace = async (
         - fromEndpoints:
             - matchLabels:
                 "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+        # Allow from same namespace
+        - fromEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": ctnr-system
         # Allow from external/public (outside cluster)
         - fromEntities:
             - world

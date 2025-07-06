@@ -150,17 +150,17 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
           // Enhanced resource limits to prevent resource exhaustion attacks
           resources: {
             limits: {
-              cpu: new Quantity(500, "m"), // 500 milliCPU (increased from 100m for better performance)
-              memory: new Quantity(512, "Mi"), // 512 MiB (increased from 256Mi)
+              cpu: new Quantity(250, "m"), // 125 milliCPU (increased from 100m for better performance)
+              memory: new Quantity(512, "Mi"), // 256 MiB (increased from 256Mi)
               "ephemeral-storage": new Quantity(1, "Gi"), // Limit ephemeral storage
               // TODO: Add GPU limits when GPU resources are available
               // "nvidia.com/gpu": new Quantity(1, ""),
             },
-            requests: {
-              cpu: new Quantity(100, "m"), // 100 milliCPU request
-              memory: new Quantity(128, "Mi"), // 128 MiB request
-              "ephemeral-storage": new Quantity(100, "Mi"), // Request ephemeral storage
-            },
+            // requests: {
+            //   cpu: new Quantity(100, "m"), // 100 milliCPU request
+            //   memory: new Quantity(128, "Mi"), // 128 MiB request
+            //   "ephemeral-storage": new Quantity(100, "Mi"), // Request ephemeral storage
+            // },
           },
         },
       ],

@@ -22,7 +22,7 @@ const handler = applyWSSHandler({
     pongWaitMs: 5000,
   },
   onError: (err: any) => {
-    console.error("WebSocket error:", err);
+    console.error("WebSocket error:", err.message);
   },
 });
 

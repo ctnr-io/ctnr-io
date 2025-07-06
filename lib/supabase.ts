@@ -25,6 +25,7 @@ export function getSupabaseConfig(): SupabaseConfig {
   };
 }
 
+
 export function getSupabaseClient({ storage }: {
   storage?: SupportedStorage;
 }): SupabaseClient {

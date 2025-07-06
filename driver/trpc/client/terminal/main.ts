@@ -1,18 +1,16 @@
 import "lib/utils.ts";
 import { createCli } from "trpc-cli";
-import { createRemoteCliContext } from "./context.ts";
+import { createTrpcClientTerminalContext } from "./context.ts";
 import { cliRouter } from "./router.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
 
 try {
-  const remoteCli = createCli({
+  const clientCli = createCli({
     router: cliRouter,
     name: "ctnr",
     version: Deno.env.get("CTNR_VERSION"),
     description: "Ctnr Remote CLI",
-    context: createRemoteCliContext({
-      // Wait for the WebSocket connection to be established
-      signal: undefined,
+    context: await createTrpcClientTerminalContext({
       stdio: {
         stdin: Deno.stdin.readable,
         stdout: Deno.stdout.writable,
@@ -48,13 +46,10 @@ try {
           );
         },
       },
-      auth: {
-        session: null,
-      },
     }),
   });
 
-  await remoteCli.run();
+  await clientCli.run();
 } catch (error) {
   console.error("An error occurred while running the remote CLI:", error instanceof Error ? error.message : error);
   Deno.exit(1);

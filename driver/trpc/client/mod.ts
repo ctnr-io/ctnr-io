@@ -2,7 +2,13 @@ import "lib/utils.ts";
 import { createTRPCClient, createWSClient, TRPCClient, wsLink } from "@trpc/client";
 import { ServerRouter } from "driver/trpc/server/router.ts";
 
-export async function createTRPCWebSocketClient(): Promise<{
+export async function createTRPCWebSocketClient({
+  accessToken,
+  refreshToken,
+}: {
+  accessToken?: string;
+  refreshToken?: string;
+}): Promise<{
   websocket: ReturnType<typeof createWSClient>;
   trpc: TRPCClient<ServerRouter>;
 }> {
@@ -10,6 +16,12 @@ export async function createTRPCWebSocketClient(): Promise<{
 
   const wsClient = createWSClient({
     url: Deno.env.get("CTNR_API_URL")!,
+    connectionParams: async () => {
+      return {
+        accessToken,
+        refreshToken,
+      }
+    },
     WebSocket: globalThis.WebSocket,
     onOpen() {
       // Handle WebSocket open event

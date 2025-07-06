@@ -1,7 +1,10 @@
 import "lib/utils.ts";
 import { createAsyncGeneratorListener } from "lib/async-generator.ts";
-import { router } from "./procedures/router.ts";
+import { router } from "./router.ts";
 import { createCli } from "trpc-cli";
+import { createServerContext } from "ctx/server/mod.ts";
+import { getSupabaseClient } from "lib/supabase.ts";
+import { authStorage } from "../client/terminal/storage.ts";
 
 // Override Deno Streams to permit to send string directly to stdout and stderr
 const stdout = new WritableStream({
@@ -36,13 +39,20 @@ const stderr = new WritableStream({
   },
 });
 
+// TODO: login if no session found
+const supabaseClient = await getSupabaseClient({
+  storage: authStorage
+})
+const { data: { session } } = await supabaseClient.auth.getSession();
+if (!session) {
+  throw new Error("No active session found. Please log in first.");
+}
+
 export const ctnr = createCli({
   router,
-  context: {
-    signal: undefined,
-    kube: {
-      client: {} as any, // Placeholder for KubeClient, should be initialized properly
-    },
+  context: await createServerContext({
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
     stdio: {
       stdin: Deno.stdin.readable,
       stdout,
@@ -78,10 +88,7 @@ export const ctnr = createCli({
         );
       },
     },
-    auth: {
-      session: null,
-    }
-  },
+  }),
 });
 
 ctnr.run();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { namespace, ServerContext } from "api/context.ts";
+import { ServerContext } from "ctx/mod.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
@@ -57,71 +57,26 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
-export default (ctx: ServerContext) => async (input: Input) => {
+export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
   const stderrWriter = ctx.stdio.stderr.getWriter();
-  
+
   if (!ctx.auth.session) {
     stderrWriter.write("ERROR: You must be authenticated to run containers.\r\n");
     return;
   }
+  if (!ctx.auth.user) {
+    stderrWriter.write("ERROR: User is not available in the session.\r\n");
+    return;
+  }
 
   const { name, image, env = [], port = [], interactive, terminal, detach, force, command } = input;
-
-  // Additional security validations
-
-  // TODO: Implement image vulnerability scanning
-  // if (await isImageVulnerable(image)) {
-  //   stderrWriter.write(`ERROR: Image ${image} contains known vulnerabilities. Use a patched version.\r\n`);
-  //   stderrWriter.releaseLock();
-  //   return;
-  // }
-
-  // TODO: Implement image signature verification
-  // if (!await verifyImageSignature(image)) {
-  //   stderrWriter.write(`ERROR: Image ${image} signature verification failed.\r\n`);
-  //   stderrWriter.releaseLock();
-  //   return;
-  // }
-
-  // Security check: Prevent running potentially privileged images
-  const privilegedImages = [
-    "docker:dind",
-    "docker:latest",
-    "kubernetes/pause",
-    "registry:2",
-  ];
-
-  // TODO: Enable privileged image blocking when stricter security is needed
-  // if (privilegedImages.some(privImg => image.includes(privImg))) {
-  //   stderrWriter.write(`ERROR: Image ${image} is not allowed due to security restrictions.\r\n`);
-  //   stderrWriter.releaseLock();
-  //   return;
-  // }
-
-  // Security check: Validate environment variables don't contain secrets
-  const suspiciousEnvPatterns = [
-    /password/i,
-    /secret/i,
-    /token/i,
-    /key/i,
-    /credential/i,
-  ];
-
-  // for (const envVar of env) {
-  //   const [envName] = envVar.split("=");
-  //   if (suspiciousEnvPatterns.some(pattern => pattern.test(envName))) {
-  //     stderrWriter.write(`WARNING: Environment variable ${envName} may contain sensitive data. Consider using Kubernetes secrets instead.\r\n`);
-  //   }
-  // }
-
-  // stderrWriter.releaseLock();
 
   const podResource: Pod = {
     apiVersion: "v1",
     kind: "Pod",
     metadata: {
       name,
-      namespace,
+      namespace: ctx.kube.namespace,
       labels: {
         "ctnr.io/name": name,
       },
@@ -139,26 +94,8 @@ export default (ctx: ServerContext) => async (input: Input) => {
       hostNetwork: false, // Do not use host network
       hostPID: false, // Do not share host PID namespace
       hostIPC: false, // Do not share host IPC namespace
+      hostUsers: false, // Do not use host users, prevent root escalation
       automountServiceAccountToken: false, // Prevent user access to kubernetes API
-      // TODO: Add seccomp profile when custom profiles are available
-      // securityContext: {
-      //   seccompProfile: {
-      //     type: "RuntimeDefault"
-      //   }
-      // },
-      // Pod-level security ctx for additional hardening
-      // securityContext: {
-      //   runAsNonRoot: true, // Ensure container runs as non-root user
-      //   runAsUser: 65534, // Run as nobody user (65534)
-      //   runAsGroup: 65534, // Run as nobody group
-      //   fsGroup: 65534, // Set filesystem group
-      //   // TODO: Enable when SELinux is configured
-      //   // seLinuxOptions: {
-      //   //   level: "s0:c123,c456"
-      //   // },
-      //   // TODO: Add supplemental groups restrictions when needed
-      //   // supplementalGroups: [],
-      // },
       containers: [
         {
           name,
@@ -209,14 +146,6 @@ export default (ctx: ServerContext) => async (input: Input) => {
                 "AUDIT_WRITE",
               ],
             },
-            // TODO: Enable seccomp when custom profiles are available
-            // seccompProfile: {
-            //   type: "RuntimeDefault"
-            // },
-            // TODO: Configure AppArmor when profiles are available
-            // appArmorProfile: {
-            //   type: "RuntimeDefault"
-            // },
           },
           // Enhanced resource limits to prevent resource exhaustion attacks
           resources: {
@@ -233,57 +162,8 @@ export default (ctx: ServerContext) => async (input: Input) => {
               "ephemeral-storage": new Quantity(100, "Mi"), // Request ephemeral storage
             },
           },
-          // TODO: Add volume mounts for writable directories when read-only root filesystem is enabled
-          // volumeMounts: [
-          //   {
-          //     name: "tmp-volume",
-          //     mountPath: "/tmp",
-          //   },
-          //   {
-          //     name: "var-tmp-volume",
-          //     mountPath: "/var/tmp",
-          //   }
-          // ],
         },
       ],
-      // TODO: Add volumes for writable directories when read-only root filesystem is enabled
-      // volumes: [
-      //   {
-      //     name: "tmp-volume",
-      //     emptyDir: {
-      //       sizeLimit: new Quantity(100, "Mi")
-      //     }
-      //   },
-      //   {
-      //     name: "var-tmp-volume",
-      //     emptyDir: {
-      //       sizeLimit: new Quantity(100, "Mi")
-      //     }
-      //   }
-      // ],
-      // TODO: Add node affinity/anti-affinity rules for better security isolation
-      // affinity: {
-      //   nodeAffinity: {
-      //     requiredDuringSchedulingIgnoredDuringExecution: {
-      //       nodeSelectorTerms: [{
-      //         matchExpressions: [{
-      //           key: "node.ctx.kube.client.io/instance-type",
-      //           operator: "NotIn",
-      //           values: ["sensitive-workload"]
-      //         }]
-      //       }]
-      //     }
-      //   }
-      // },
-      // TODO: Add tolerations for dedicated security nodes when available
-      // tolerations: [
-      //   {
-      //     key: "security-workload",
-      //     operator: "Equal",
-      //     value: "true",
-      //     effect: "NoSchedule"
-      //   }
-      // ],
       // TODO: Add topology spread constraints for better distribution
       // topologySpreadConstraints: [
       //   {
@@ -310,27 +190,11 @@ export default (ctx: ServerContext) => async (input: Input) => {
       //     }
       //   ]
       // },
-      // TODO: Add init containers for security setup when needed
-      // initContainers: [
-      //   {
-      //     name: "security-init",
-      //     image: "busybox:1.35",
-      //     command: ["sh", "-c", "echo 'Security initialization complete'"],
-      //     securityContext: {
-      //       runAsNonRoot: true,
-      //       runAsUser: 65534,
-      //       allowPrivilegeEscalation: false,
-      //       capabilities: {
-      //         drop: ["ALL"]
-      //       }
-      //     }
-      //   }
-      // ],
     },
   };
 
   // Check if the pod already exists and is running
-  let pod = await ctx.kube.client.CoreV1.namespace(namespace).getPod(name).catch(() => null);
+  let pod = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(name).catch(() => null);
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
@@ -350,7 +214,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
     stderrWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
     await Promise.all([
       waitPodEvent(ctx, name, "DELETED"),
-      ctx.kube.client.CoreV1.namespace(namespace).deletePod(name, {
+      ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).deletePod(name, {
         abortSignal: ctx.signal,
         gracePeriodSeconds: 0, // Force delete immediately
       }),
@@ -361,7 +225,7 @@ export default (ctx: ServerContext) => async (input: Input) => {
   stderrWriter.write(
     `Container ${name} created. Waiting for it to be ready...\r\n`,
   );
-  ctx.kube.client.CoreV1.namespace(namespace).createPod(podResource, {
+  ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).createPod(podResource, {
     abortSignal: ctx.signal,
   });
   pod = await waitForPod(ctx, name, (pod) => {
@@ -396,19 +260,22 @@ export default (ctx: ServerContext) => async (input: Input) => {
     return;
   } else if (pod?.status?.phase === "Running") {
     // Attach to the pod if interactive or terminal mode is enabled
-    await attach(ctx)({
-      name,
-      interactive,
-      terminal,
+    await attach({
+      ctx,
+      input: {
+        name,
+        interactive,
+        terminal,
+      },
     });
   } else {
-    const logs = await ctx.kube.client.CoreV1.namespace(namespace).streamPodLog(name, {
+    const logs = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
       container: name,
       abortSignal: ctx.signal,
-    })
+    });
     await logs.pipeTo(ctx.stdio.stdout, {
       signal: ctx.signal,
-    })
+    });
   }
 };
 
@@ -418,7 +285,7 @@ async function waitPodEvent(ctx: ServerContext, name: string, eventType: WatchEv
   // TODO: Implement exponential backoff for failed watch attempts
   // TODO: Add circuit breaker pattern for resilience
 
-  const podWatcher = await ctx.kube.client.CoreV1.namespace(namespace).watchPodList({
+  const podWatcher = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).watchPodList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: ctx.signal,
   });
@@ -446,7 +313,7 @@ async function waitPodStatus(
   // TODO: Implement circuit breaker pattern for failed pod status checks
   // TODO: Add logging for security monitoring and audit trails
 
-  const podWatcher = await ctx.kube.client.CoreV1.namespace(namespace).watchPodList({
+  const podWatcher = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).watchPodList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: ctx.signal,
   });
@@ -469,7 +336,7 @@ async function waitForPod(
   name: string,
   predicate: (pod: Pod) => boolean | Promise<boolean>,
 ): Promise<Pod> {
-  const podWatcher = await ctx.kube.client.CoreV1.namespace(namespace).watchPodList({
+  const podWatcher = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).watchPodList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: ctx.signal,
   });

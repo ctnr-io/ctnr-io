@@ -1,13 +1,13 @@
 import { openBrowser, startCallbackServer } from "driver/trpc/client/terminal/auth-callback-server.ts";
 import { AuthClientContext } from "ctx/mod.ts";
 
-export default async ({ ctx }: { ctx: AuthClientContext }) => {
+export default async ({ ctx }: { ctx: AuthClientContext }): Promise<void> => {
   try {
     // Check if user is already authenticated
     const { data: { session } } = await ctx.auth.client.getSession();
     if (session?.access_token && (session?.expires_at ?? 0) < Date.now()) {
       console.info(`🔑 Authenticated as ${session.user.email}.`);
-      return session;
+      return
     }
     console.info("🔑 Starting OAuth flow...");
 

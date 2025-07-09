@@ -3,6 +3,7 @@ import { ServerContext } from "ctx/mod.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
+import { Expose, gatewayListeners, Port } from "./common.ts";
 
 export const Meta = {
   aliases: {
@@ -12,6 +13,7 @@ export const Meta = {
     },
   },
 };
+
 
 export const Input = z.object({
   name: z.string()
@@ -31,14 +33,8 @@ export const Input = z.object({
   )
     .optional()
     .describe("Set environment variables"),
-  port: z.array(
-    z.number()
-      // TODO: Add port restrictions when stricter security is needed
-      // .min(1024, "Only unprivileged ports (>= 1024) are allowed for security")
-      .max(65535, "Port number must be valid"),
-  )
-    .optional()
-    .describe("port to expose"),
+  port: z.array(Port).optional().describe("Expose ports in the container"),
+  expose: z.array(Expose).optional().describe("Expose ports to the gateway"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
   detach: z.boolean().optional().default(false).describe("Detach from the container after starting"),
@@ -69,7 +65,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
     return;
   }
 
-  const { name, image, env = [], port = [], interactive, terminal, detach, force, command } = input;
+  const { name, image, env = [], port, expose: exposePorts, interactive, terminal, detach, force, command } = input;
 
   const podResource: Pod = {
     apiVersion: "v1",
@@ -78,13 +74,8 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       name,
       namespace: ctx.kube.namespace,
       labels: {
+        "ctnr.io/owner-id": ctx.auth.user.id,
         "ctnr.io/name": name,
-      },
-      annotations: {
-        // TODO: Add Pod Security Standards annotations when available
-        // "pod-security.ctx.kube.client.io/enforce": "restricted",
-        // "pod-security.ctx.kube.client.io/audit": "restricted",
-        // "pod-security.ctx.kube.client.io/warn": "restricted",
       },
     },
     spec: {
@@ -107,7 +98,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
             const [name, value] = e.split("=");
             return { name, value };
           }),
-          ports: port.length === 0 ? [] : port.map((p) => ({ containerPort: p })),
+          ports: port,
           readinessProbe: {
             exec: {
               command: ["true"],
@@ -151,8 +142,8 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
           resources: {
             limits: {
               cpu: new Quantity(250, "m"), // 125 milliCPU (increased from 100m for better performance)
-              memory: new Quantity(512, "Mi"), // 256 MiB (increased from 256Mi)
-              "ephemeral-storage": new Quantity(1, "Gi"), // Limit ephemeral storage
+              memory: new Quantity(512, "M"), // 256 MiB (increased from 256Mi)
+              "ephemeral-storage": new Quantity(1, "G"), // Limit ephemeral storage
               // TODO: Add GPU limits when GPU resources are available
               // "nvidia.com/gpu": new Quantity(1, ""),
             },
@@ -253,6 +244,25 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
   });
 
   stderrWriter.releaseLock();
+
+  if (exposePorts) {
+    for (const port of exposePorts) {
+      // Expose the port to the gateway
+      try {
+        await expose({
+          ctx,
+          input: {
+            name,
+            port: port.port,
+            listener: port.name,
+          },
+        });
+        console.debug(`Port ${port.port} exposed on listener ${port.name} for container ${name}.`);
+      } catch (error) {
+        console.error(`Failed to expose port ${port.port} on listener ${port.name} for container ${name}:`, error);
+      }
+    }
+  }
 
   if (detach) {
     // If detach is enabled, just return without attaching

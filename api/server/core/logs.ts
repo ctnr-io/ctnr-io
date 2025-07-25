@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
+import { ContainerName } from "./_common.ts";
 
 export const Meta = {
   aliases: {
@@ -10,11 +11,7 @@ export const Meta = {
 };
 
 export const Input = z.object({
-  name: z.string()
-    .min(1, "Container name cannot be empty")
-    .max(63, "Container name cannot exceed 63 characters")
-    .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, "Container name must be valid DNS-1123 label")
-    .describe("Name of the container"),
+  name: ContainerName,
 	follow: z.boolean().optional().default(false).describe("Follow the logs of the container"),
 });
 

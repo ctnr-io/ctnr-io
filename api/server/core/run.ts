@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { Pod, Service } from "@cloudydeno/kubernetes-apis/core/v1";
+import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
-import { Publish } from "./_common.ts";
-import { ensureService } from "lib/kube-client.ts";
+import { ContainerName, Publish } from "./_common.ts";
+import * as Route from "./route.ts";
 
 export const Meta = {
   aliases: {
@@ -17,11 +17,7 @@ export const Meta = {
 };
 
 export const Input = z.object({
-  name: z.string()
-    .min(1, "Container name cannot be empty")
-    .max(63, "Container name cannot exceed 63 characters")
-    .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, "Container name must be valid DNS-1123 label")
-    .describe("Name of the container"),
+  name: ContainerName,
   image: z.string()
     .min(1, "Container image cannot be empty")
     // TODO: Add image tag validation when stricter security is needed
@@ -43,7 +39,7 @@ export const Input = z.object({
     .max(1000, "Command length is limited for security reasons")
     .optional()
     .describe("Command to run in the container"),
-});
+})
 
 export type Input = z.infer<typeof Input>;
 

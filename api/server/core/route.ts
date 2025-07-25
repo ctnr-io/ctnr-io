@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { PortName } from "./_common.ts";
-import { ensureCertManagerCertificate, ensureDNSEndpoint, ensureHttpRoute, ensureService } from "lib/kube-client.ts";
+import { ContainerName, PortName } from "./_common.ts";
+import { ensureCertManagerCertificate, ensureHttpRoute, ensureService } from "lib/kube-client.ts";
 import { hash } from "node:crypto";
 import * as shortUUID from "@opensrc/short-uuid";
 
@@ -14,13 +14,9 @@ export const Meta = {
 };
 
 export const Input = z.object({
-  name: z.string()
-    .min(1, "Container name cannot be empty")
-    .max(63, "Container name cannot exceed 63 characters")
-    .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, "Container name must be valid DNS-1123 label")
-    .describe("Name of the container"),
+  name: ContainerName,
   fqdn: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
-    "Fully qualified domain name for the route, defaults to '<name>-<port>.<user>.ctnr.io'",
+    "Fully qualified domain name for the route, defaults to '<port>-<name>-<user>.ctnr.io'",
   ),
   port: z.array(PortName).optional().describe(
     "Ports to expose, defaults to all ports of the container",

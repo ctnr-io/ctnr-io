@@ -7,6 +7,12 @@ export const gatewayListeners = [
   "grpc",
 ] as const;
 
+export const ContainerName = z.string()
+    .min(1, "Container name cannot be empty")
+    .max(63, "Container name cannot exceed 63 characters")
+    .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, "Container name must be valid DNS-1123 label")
+    .describe("Name of the container")
+
 export const PortProtocol = z.enum(['tcp', 'udp'])
   .describe("Protocol for the port, defaults to 'tcp' if not specified");
 

@@ -5,6 +5,7 @@
     "jsr:@cloudydeno/kubernetes-client@0.7.3": "0.7.3",
     "jsr:@cloudydeno/kubernetes-client@~0.7.5": "0.7.5",
     "jsr:@cloudydeno/stream-observables@1": "1.4.1",
+    "jsr:@opensrc/short-uuid@1": "1.0.0",
     "jsr:@std/assert@^1.0.12": "1.0.13",
     "jsr:@std/assert@^1.0.13": "1.0.13",
     "jsr:@std/async@^1.0.13": "1.0.13",
@@ -76,6 +77,9 @@
     },
     "@cloudydeno/stream-observables@1.4.1": {
       "integrity": "555aa3d786fcfd066d096fc943ea47afc688618e95146e615705e981008f57c0"
+    },
+    "@opensrc/short-uuid@1.0.0": {
+      "integrity": "80985b40538cd1f4a7aa1f7e9e9787ff07fe6475673ae7467391b0d7fc147945"
     },
     "@std/assert@1.0.13": {
       "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
@@ -1068,6 +1072,7 @@
     "dependencies": [
       "jsr:@cloudydeno/kubernetes-apis@~0.5.2",
       "jsr:@cloudydeno/kubernetes-client@~0.7.5",
+      "jsr:@opensrc/short-uuid@1",
       "jsr:@std/assert@^1.0.12",
       "jsr:@std/dotenv@~0.225.5",
       "jsr:@std/encoding@^1.0.10",

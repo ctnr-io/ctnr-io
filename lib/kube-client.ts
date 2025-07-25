@@ -9,6 +9,7 @@ import { RestClient } from "@cloudydeno/kubernetes-apis/common.ts";
 import { SpdyEnabledRestClient } from "./spdy-enabled-rest-client.ts";
 import { match, P } from "ts-pattern";
 import { yaml } from "@tmpl/core";
+import list from "api/server/core/list.ts";
 
 const kubeconfig = Deno.env.get("KUBECONFIG") || Deno.env.get("HOME") + "/.kube/config";
 
@@ -33,6 +34,88 @@ export async function getKubeClient() {
     },
     NetworkingV1NamespacedApi(namespace: string) {
       return new NetworkingV1NamespacedApi(client, namespace);
+    },
+    GatewayNetworkingV1(namespace: string) {
+      return {
+        getHTTPRoute: (name: string): Promise<HTTPRoute> =>
+          client.performRequest({
+            method: "GET",
+            path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
+            expectJson: true,
+          }) as Promise<HTTPRoute>,
+        createHTTPRoute: (body: HTTPRoute) =>
+          client.performRequest({
+            method: "POST",
+            path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
+            bodyJson: body,
+            expectJson: true,
+          }),
+        // patchHTTPRoute: (name: string, body: any) =>
+        //   client.performRequest({
+        //     method: "PATCH",
+        //     path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
+        //     body,
+        //     expectJson: true,
+        //   }),
+        deleteHTTPRoute: (name: string) =>
+          client.performRequest({
+            method: "DELETE",
+            path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
+            expectJson: true,
+          }),
+        listHTTPRoutes: () =>
+          client.performRequest({
+            method: "GET",
+            path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
+            expectJson: true,
+          }),
+      };
+    },
+    ExternalDNSV1alpha1(namespace: string) {
+      return {
+        getDNSEndpoint: (name: string) =>
+          client.performRequest({
+            method: "GET",
+            path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${name}`,
+            expectJson: true,
+          }) as Promise<DNSEndpoint>,
+        createDNSEndpoint: (body: DNSEndpoint) =>
+          client.performRequest({
+            method: "POST",
+            path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints`,
+            bodyJson: body,
+            expectJson: true,
+          }),
+        deleteDNSEndpoint: (name: string) =>
+          client.performRequest({
+            method: "DELETE",
+            path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${name}`,
+            expectJson: true,
+          }),
+      }
+    },
+    CertManagerV1(namespace: string) {
+      return {
+        getCertificate: (name: string) =>
+          client.performRequest({
+            method: "GET",
+            path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${name}`,
+            expectJson: true,
+          }) as Promise<CertManagerV1Certificate>,
+        createCertificate: (body: any) =>
+          client.performRequest({
+            method: "POST",
+            path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates`,
+            bodyJson: body,
+            expectJson: true,
+          }),
+        deleteCertificate: (name: string) =>
+          client.performRequest({
+            method: "DELETE",
+            path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${name}`,
+            expectJson: true,
+          }), 
+      };
     },
     get ApiextensionsV1Api() {
       return new ApiextensionsV1Api(client);
@@ -106,71 +189,14 @@ export const ensureUserNamespace = async (
             - world
   `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!;
 
-  // Ensure the user have one "host" service for all their containers
-  // This permit to optimize the number of service IPs allowed in the cluster
-  // permitting to have more users than if we used multiple services per user
-  const service: Service = {
-    apiVersion: "v1",
-    kind: "Service",
-    metadata: {
-      namespace: namespaceName,
-      name: `ctnr-user-host-service`,
-      labels: {
-        "ctnr.io/owner-id": userId,
-      },
-    },
-    spec: {
-      type: "ClusterIP",
-      selector: {
-        "ctnr.io/owner-id": userId, // Ensure the service is user-specific
-      },
-      ports: [
-        // Add the default socks port for future use, and permitting to have at least one port exposed for the service to be created
-        {
-          name: "socks",
-          port: 1080,
-          targetPort: 1080,
-          protocol: "TCP", // Default to TCP for security
-          appProtocol: "socks", // Use appProtocol to indicate the protocol used by the container
-        }
-      ],
-    },
-  } as const;
-
-  // Ensure the httproute
-  const httpRoute = yaml`
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-      namespace: ${namespaceName}
-      name: ctnr-user-httproute
-      labels:
-        "ctnr.io/owner-id": ${userId}
-    spec:
-      hostnames:
-      - "*.${userId}.ctnr.io"
-      parentRefs:
-      - name: public-gateway
-        namespace: kube-public
-        sectionName: https
-      - name: public-gateway
-        namespace: kube-public
-        sectionName: http
-      rules: []
-  `.parse<HTTPRoute>(YAML.parse as any).data!;
-
   await ensureNamespace(kc, namespace);
 
-  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
-
-  await ensureService(kc, namespaceName, service);
-
-  await ensureHttpRoute(kc, namespaceName, httpRoute);
+  // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
 
   return namespaceName;
 };
 
-type HTTPRoute = {
+export type HTTPRoute = {
   apiVersion: "gateway.networking.k8s.io/v1";
   kind: "HTTPRoute";
   metadata: {
@@ -185,6 +211,23 @@ type HTTPRoute = {
       sectionName: string;
     }>;
     rules: any[];
+  };
+};
+
+export type DNSEndpoint = {
+  apiVersion: "externaldns.k8s.io/v1alpha1";
+  kind: "DNSEndpoint";
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    endpoints: Array<{
+      dnsName: string;
+      recordTTL: number;
+      recordType: string;
+      targets: string[];
+    }>;
   };
 };
 
@@ -220,6 +263,24 @@ type CiliumNetworkPolicy = {
         };
       }>;
     }>;
+  };
+};
+
+type CertManagerV1Certificate = {
+  apiVersion: "cert-manager.io/v1";
+  kind: "Certificate";
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    secretName: string;
+    issuerRef: {
+      name: string;
+      kind: string;
+    };
+    commonName: string;
+    dnsNames: string[];
   };
 };
 
@@ -272,6 +333,7 @@ async function ensureCiliumNetworkPolicy(
     // if network policy exists, and match values, do nothing, else, replace it to ensure it match
     .with(networkPolicy, () => true)
     .otherwise(async () => {
+      console.debug("Replacing existing CiliumNetworkPolicy", networkPolicyName);
       // Delete the existing network policy first
       await kc.performRequest({
         method: "DELETE",
@@ -288,7 +350,7 @@ async function ensureCiliumNetworkPolicy(
     });
 }
 
-async function ensureService(kc: KubeClient, namespace: string, service: Service): Promise<void> {
+export async function ensureService(kc: KubeClient, namespace: string, service: Service): Promise<void> {
   // Get the service and return null if it does not exist
   const currentService = await kc.CoreV1.namespace(namespace).getService(service.metadata!.name!).catch(() => null);
   const nextService = {
@@ -314,23 +376,16 @@ async function ensureService(kc: KubeClient, namespace: string, service: Service
       spec: {
         type: nextService.spec?.type,
         selector: nextService.spec?.selector,
-        // ports are not compared here, as they are dynamic and can change
+        ports: nextService.spec?.ports as any,
       },
     }, () => true)
-    .otherwise(() => {
-      // else, patch it to ensure it match
-      return kc.CoreV1.namespace(namespace).patchService(
-        service.metadata!.name!,
-        "apply-patch",
-        nextService,
-        {
-          fieldManager: "ctnr.io",
-        },
-      );
+    .otherwise(async () => {
+      await kc.CoreV1.namespace(namespace).deleteService(service.metadata!.name!);
+      return kc.CoreV1.namespace(namespace).createService(nextService)
     });
 }
 
-async function ensureHttpRoute(kc: KubeClient, namespace: string, httpRoute: HTTPRoute): Promise<void> {
+export async function ensureHttpRoute(kc: KubeClient, namespace: string, httpRoute: HTTPRoute): Promise<void> {
   // Ensure the httproute
   const currentHttpRoute = await kc.performRequest({
     method: "GET",
@@ -339,14 +394,7 @@ async function ensureHttpRoute(kc: KubeClient, namespace: string, httpRoute: HTT
   })
     .then((res) => res as HTTPRoute)
     .catch(() => null);
-  const nextHttpRoute = {
-    ...httpRoute,
-    spec: {
-      ...httpRoute.spec,
-      // rules from the current route are added to the next route as they are dynamic and can change
-      rules: currentHttpRoute?.spec?.rules || [],
-    },
-  } as const;
+  const nextHttpRoute = httpRoute
   await match(
     currentHttpRoute,
   )
@@ -366,7 +414,7 @@ async function ensureHttpRoute(kc: KubeClient, namespace: string, httpRoute: HTT
       spec: {
         hostnames: nextHttpRoute.spec.hostnames as any,
         parentRefs: nextHttpRoute.spec.parentRefs as any,
-        // rules are not compared here, as they are dynamic and can change
+        rules: nextHttpRoute.spec.rules as any,
       },
     }, () => true)
     .otherwise(async () => {
@@ -383,5 +431,88 @@ async function ensureHttpRoute(kc: KubeClient, namespace: string, httpRoute: HTT
         bodyJson: nextHttpRoute as any,
         expectJson: true,
       });
+    });
+}
+
+export async function ensureDNSEndpoint(
+  kc: KubeClient,
+  namespace: string,
+  dnsEndpoint: DNSEndpoint
+): Promise<void> {
+  // Get the DNS endpoint and return null if it does not exist
+  const currentDnsEndpoint = await kc.performRequest({
+    method: "GET",
+    path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${dnsEndpoint.metadata.name}`,
+    expectJson: true,
+  })
+    .then((res) => res as DNSEndpoint)
+    .catch(() => null);
+  await match(
+    currentDnsEndpoint,
+  )
+    // if DNS endpoint does not exist, create it
+    .with(null, () =>
+      kc.performRequest({
+        method: "POST",
+        path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints`,
+        bodyJson: dnsEndpoint,
+        expectJson: true,
+      }))
+    // if DNS endpoint exists, and match values, do nothing,
+    .with({
+      metadata: {
+        name: dnsEndpoint.metadata.name,
+        namespace: dnsEndpoint.metadata.namespace,
+      },
+      spec: {
+        endpoints: dnsEndpoint.spec.endpoints as any,
+      },
+    }, () => true)
+    .otherwise(async () => {
+      await kc.performRequest({
+        method: "DELETE",
+        path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${dnsEndpoint.metadata.name}`,
+        expectJson: true,
+      });
+      await kc.performRequest({
+        method: "POST",
+        path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${dnsEndpoint.metadata.name}`,
+        bodyJson: dnsEndpoint,
+        expectJson: true,
+      });
+
+    });
+}
+
+export async function ensureCertManagerCertificate(
+  kc: KubeClient,
+  namespace: string,
+  certificate: CertManagerV1Certificate,
+): Promise<void> {
+  // Get the certificate and return null if it does not exist
+  const currentCertificate = await kc.CertManagerV1(namespace).getCertificate(certificate.metadata.name).catch(() => null);
+  await match(
+    currentCertificate,
+  )
+    // if certificate does not exist, create it
+    .with(null, () =>
+      kc.CertManagerV1(namespace).createCertificate(certificate)
+    )
+    // if certificate exists, and match values, do nothing,
+    .with({
+      metadata: {
+        name: certificate.metadata.name,
+        namespace: certificate.metadata.namespace,
+      },
+      spec: {
+        secretName: certificate.spec.secretName,
+        issuerRef: certificate.spec.issuerRef,
+        commonName: certificate.spec.commonName,
+        dnsNames: certificate.spec.dnsNames as any,
+      },
+    }, () => true)
+    .otherwise(async () => {
+      await kc.CertManagerV1(namespace).deleteCertificate(certificate.metadata.name);
+      await kc.CertManagerV1(namespace).createCertificate(certificate);
     });
 }

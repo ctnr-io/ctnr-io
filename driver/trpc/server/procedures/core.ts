@@ -3,6 +3,8 @@ import { trpc } from "../trpc.ts";
 import * as Run from "api/server/core/run.ts";
 import * as List from "api/server/core/list.ts";
 import * as Attach from "api/server/core/attach.ts";
+import * as Route from 'api/server/core/route.ts';
+import * as Logs from "api/server/core/logs.ts";
 
 export const run = trpc.procedure
   .meta(Run.Meta)
@@ -19,3 +21,12 @@ export const attach = trpc.procedure
   .input(Attach.Input)
   .mutation(Attach.default);
 
+export const route = trpc.procedure
+  .meta(Route.Meta)
+  .input(Route.Input)
+  .mutation(Route.default);
+
+export const logs = trpc.procedure
+  .meta(Logs.Meta)
+  .input(Logs.Input)
+  .mutation(Logs.default);

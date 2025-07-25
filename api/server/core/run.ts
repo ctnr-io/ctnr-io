@@ -1,19 +1,20 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
+import { Pod, Service } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
-import { Expose, gatewayListeners, Port } from "./common.ts";
+import { Publish } from "./_common.ts";
+import { ensureService } from "lib/kube-client.ts";
 
 export const Meta = {
   aliases: {
     options: {
       "interactive": "i",
       "terminal": "t",
+      "publish": "p",
     },
   },
 };
-
 
 export const Input = z.object({
   name: z.string()
@@ -33,18 +34,11 @@ export const Input = z.object({
   )
     .optional()
     .describe("Set environment variables"),
-  port: z.array(Port).optional().describe("Expose ports in the container"),
-  expose: z.array(Expose).optional().describe("Expose ports to the gateway"),
+  publish: z.array(Publish).optional().describe("Publish containers ports to the internal service"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
   detach: z.boolean().optional().default(false).describe("Detach from the container after starting"),
   force: z.boolean().optional().default(false).describe("Force recreate the container if it already exists"),
-  // scaleType: z.enum(["concurrency", "rps", "cpu", "memory"]).optional().describe("Type of scaling to apply"),
-  // scale: z.object({
-  //   min: z.number().optional(),
-  //   max: z.number().optional(),
-  //   target: z.number().optional(),
-  // }).optional().describe("Scaling configuration"),
   command: z.string()
     .max(1000, "Command length is limited for security reasons")
     .optional()
@@ -65,7 +59,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
     return;
   }
 
-  const { name, image, env = [], port, expose: exposePorts, interactive, terminal, detach, force, command } = input;
+  const { name, image, env = [], publish, interactive, terminal, detach, force, command } = input;
 
   const podResource: Pod = {
     apiVersion: "v1",
@@ -98,7 +92,11 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
             const [name, value] = e.split("=");
             return { name, value };
           }),
-          ports: port,
+          ports: publish?.map((p) => ({
+            name: p.name,
+            containerPort: Number(p.port),
+            protocol: p.protocol?.toUpperCase() as "TCP" | "UDP",
+          })),
           readinessProbe: {
             exec: {
               command: ["true"],
@@ -243,32 +241,38 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
     }
   });
 
-  stderrWriter.releaseLock();
-
-  if (exposePorts) {
-    for (const port of exposePorts) {
-      // Expose the port to the gateway
-      try {
-        await expose({
-          ctx,
-          input: {
-            name,
-            port: port.port,
-            listener: port.name,
-          },
-        });
-        console.debug(`Port ${port.port} exposed on listener ${port.name} for container ${name}.`);
-      } catch (error) {
-        console.error(`Failed to expose port ${port.port} on listener ${port.name} for container ${name}:`, error);
-      }
-    }
+  // Note: Service management is now handled by the route command
+  // The --publish flag only affects container port configuration
+  if (publish && publish.length > 0) {
+    stderrWriter.write(`Container ports ${publish.map((p) => p.port).join(", ")} are available for routing.\r\n`);
   }
 
+  stderrWriter.releaseLock();
+
+  // if (exposePorts) {
+  //   for (const exposePort of exposePorts) {
+  //     // Expose the port to the gateway
+  //     try {
+  //       await expose({
+  //         ctx,
+  //         input: {
+  //           name,
+  //           port: exposePort.port,
+  //           protocol: exposePort.protocol,
+  //         },
+  //       });
+  //       console.debug(`Port ${port.port} exposed on listener ${port.name} for container ${name}.`);
+  //     } catch (error) {
+  //       console.error(`Failed to expose port ${port.port} on listener ${port.name} for container ${name}:`, error);
+  //     }
+  //   }
+  // }
   if (detach) {
     // If detach is enabled, just return without attaching
     console.debug(`Container ${name} is running. Detached successfully.`);
     return;
   } else if (pod?.status?.phase === "Running") {
+    // Logs
     // Attach to the pod if interactive or terminal mode is enabled
     await attach({
       ctx,
@@ -305,34 +309,6 @@ async function waitPodEvent(ctx: ServerContext, name: string, eventType: WatchEv
     const pod = value?.object as Pod;
     if (value?.type === eventType && pod?.metadata?.name === name) {
       console.debug(`Pod ${name} event: ${eventType}`);
-      break;
-    }
-    if (done) {
-      return;
-    }
-  }
-}
-
-async function waitPodStatus(
-  ctx: ServerContext,
-  name: string,
-  status: "Initialized" | "Ready" | "ContainersReady" | "PodScheduled" | "PodCompleted" | "PodFailed" | "PodReady",
-): Promise<void> {
-  // TODO: Add timeout to prevent indefinite waiting
-  // TODO: Add maximum retry attempts with exponential backoff
-  // TODO: Implement circuit breaker pattern for failed pod status checks
-  // TODO: Add logging for security monitoring and audit trails
-
-  const podWatcher = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).watchPodList({
-    labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: ctx.signal,
-  });
-  const reader = podWatcher.getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    const pod = value?.object as Pod;
-    if (pod.metadata?.name === name && pod.status?.conditions?.find((c) => c.type === status)?.status === "True") {
-      console.debug(`Pod ${name} is in status: ${status}`);
       break;
     }
     if (done) {

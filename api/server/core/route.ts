@@ -66,7 +66,6 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
         `${port.name}-${input.name}-${userIdShort}.ctnr.io`,
         input.domain! && `${port.name}.${input.domain}`,
       ]),
-      input.domain!,
     ].flat().filter(Boolean);
 
     // TODO: ctnr domain add
@@ -119,6 +118,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       hostnames,
       name: input.name,
       userId: ctx.auth.user.id,
+      ports: routedPorts,
     });
 
     stderrWriter.write(

@@ -49,6 +49,14 @@ export async function getKubeClient() {
             bodyJson: body,
             expectJson: true,
           }),
+        patchGateway: (name: string, body: GatewayV1) =>
+          client.performRequest({
+            method: "PATCH",
+            path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
+            bodyJson: body,
+            contentType: "application/merge-patch+json",
+            expectJson: true,
+          }),
         deleteGateway: (name: string) =>
           client.performRequest({
             method: "DELETE",
@@ -85,6 +93,25 @@ export async function getKubeClient() {
           client.performRequest({
             method: "GET",
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
+            expectJson: true,
+          }),
+        getReferenceGrant: (name: string): Promise<GatewayV1Beta1ReferenceGrant> =>
+          client.performRequest({
+            method: "GET",
+            path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants/${name}`,
+            expectJson: true,
+          }) as Promise<GatewayV1Beta1ReferenceGrant>,
+        createReferenceGrant: (body: GatewayV1Beta1ReferenceGrant) =>
+          client.performRequest({
+            method: "POST",
+            path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants`,
+            bodyJson: body,
+            expectJson: true,
+          }),
+        deleteReferenceGrant: (name: string) =>
+          client.performRequest({
+            method: "DELETE",
+            path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants/${name}`,
             expectJson: true,
           }),
       };
@@ -318,6 +345,29 @@ type GatewayV1 = {
           kind: string;
         }>;
       };
+    }>;
+  };
+};
+
+type GatewayV1Beta1ReferenceGrant = {
+  apiVersion: "gateway.networking.k8s.io/v1beta1";
+  kind: "ReferenceGrant";
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    from: Array<{
+      group: string;
+      kind: string;
+      name: string;
+      namespace?: string;
+    }>;
+    to: Array<{
+      group: string;
+      kind: string;
+      name: string;
+      namespace?: string;
     }>;
   };
 };
@@ -602,8 +652,28 @@ async function ensureGateway(
     // if gateway exists, and match values, do nothing,
     .with(gateway as any, () => true)
     .otherwise(async () => {
-      await kc.GatewayNetworkingV1(namespace).deleteGateway(gateway.metadata.name);
-      await kc.GatewayNetworkingV1(namespace).createGateway(gateway);
+      await kc.GatewayNetworkingV1(namespace).patchGateway(gateway.metadata.name, gateway);
+    });
+}
+
+async function ensureReferenceGrant(
+  kc: KubeClient,
+  namespace: string,
+  referenceGrant: GatewayV1Beta1ReferenceGrant,
+): Promise<void> {
+  // Get the reference grant and return null if it does not exist
+  const currentReferenceGrant = await kc.GatewayNetworkingV1(namespace).getReferenceGrant(referenceGrant.metadata.name)
+    .catch(() => null);
+  await match(
+    currentReferenceGrant,
+  )
+    // if reference grant does not exist, create it
+    .with(null, () => kc.GatewayNetworkingV1(namespace).createReferenceGrant(referenceGrant))
+    // if reference grant exists, and match values, do nothing,
+    .with(referenceGrant as any, () => true)
+    .otherwise(async () => {
+      await kc.GatewayNetworkingV1(namespace).deleteReferenceGrant(referenceGrant.metadata.name);
+      await kc.GatewayNetworkingV1(namespace).createReferenceGrant(referenceGrant);
     });
 }
 
@@ -675,7 +745,7 @@ export const ensureUserNamespace = async (
 
   // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
 
-  await ensureUserGateway(kc, namespaceName, userId);
+  await ensureUserGateway(kc, namespaceName);
 
   return namespaceName;
 };
@@ -683,67 +753,39 @@ export const ensureUserNamespace = async (
 async function ensureUserGateway(
   kc: KubeClient,
   namespace: string,
-  userId: string,
 ): Promise<void> {
   const userCerts = await kc.CertManagerV1(namespace).getCertificatesList().catch(() => ({ items: [] }));
-  console.debug("User certificates:", userCerts); 
+  const gateway = await kc.GatewayNetworkingV1("kube-public").getGateway("public-gateway");
+  const gatewayCerts = gateway.spec.listeners.find((l) => l.name === "https")?.tls?.certificateRefs || [];
+  console.debug("User certificates:", userCerts);
   // get all certificates in user namespace
-  await ensureGateway(kc, namespace, {
+  await ensureGateway(kc, "kube-public", {
     apiVersion: "gateway.networking.k8s.io/v1",
     kind: "Gateway",
     metadata: {
-      name: "ctnr-user-gateway",
-      namespace: namespace,
-      labels: {
-        "ctnr.io/owner-id": userId,
-      },
+      name: "public-gateway",
+      namespace: "kube-public",
     },
     spec: {
       gatewayClassName: "cilium",
-      listeners: [
-        {
+      listeners: gateway.spec.listeners.map((listener) =>
+        listener.name !== "https" ? listener : ({
           name: "https",
           port: 443,
           protocol: "HTTPS",
           tls: {
             mode: "Terminate",
             certificateRefs: [
-              // Permit to use *.ctnr.io wildcard certificate
-              {
+              ...gatewayCerts.filter((c) => c.namespace !== namespace),
+              ...userCerts.items.filter((c) => c.metadata.namespace === namespace).map((c) => ({
+                name: c.metadata.name,
+                namespace: c.metadata.namespace,
                 kind: "Secret",
-                name: `ctnr-gateway-cert`,
-                namespace: "ctnr-system",
-              },
-              ...userCerts.items.map((cert) => ({
-                kind: "Secret",
-                name: cert.spec.secretName,
-                namespace: namespace,
               })),
             ],
           },
-        },
-        {
-          name: "http",
-          port: 80,
-          protocol: "HTTP",
-        },
-      ],
-    },
-  });
-  await ensureService(kc, namespace, {
-    metadata: {
-      name: "ctnr-user-gateway-service",
-      namespace: namespace,
-    },
-    spec: {
-      ports: [
-        { name: "http", port: 80, targetPort: 80, protocol: "TCP" },
-        { name: "https", port: 443, targetPort: 443, protocol: "TCP" },
-      ],
-      selector: {
-        "gateway.networking.k8s.io/gateway-name": "ctnr-user-gateway",
-        "ctnr.io/owner-id": userId,
-      },
+        })
+      ),
     },
   });
 }
@@ -755,9 +797,24 @@ export async function ensureUserRoute(
     userId: string;
     name: string;
     hostnames: string[];
+    ports: Array<{ name: string; port: number }>;
   },
 ): Promise<void> {
-  const { userId, name, hostnames } = options;
+  const { userId, name, hostnames, ports } = options;
+
+  await ensureService(kc, namespace, {
+    metadata: {
+      name: name,
+      namespace: namespace,
+    },
+    spec: {
+      ports,
+      selector: {
+        "ctnr.io/owner-id": userId,
+        "ctnr.io/name": name,
+      },
+    },
+  });
   await ensureHTTPRoute(kc, namespace, {
     apiVersion: "gateway.networking.k8s.io/v1",
     kind: "HTTPRoute",
@@ -772,49 +829,27 @@ export async function ensureUserRoute(
       hostnames: hostnames,
       parentRefs: [
         {
-          name: "ctnr-user-gateway",
-          namespace: namespace,
+          name: "public-gateway",
+          namespace: "kube-public",
           sectionName: "http",
         },
-      ],
-      rules: [{
-        matches: [{ path: { type: "PathPrefix", value: "/" } }],
-        backendRefs: [{
-          kind: "Service",
-          name: name,
-          port: 80,
-        }],
-      }],
-    },
-  });
-  await ensureTLSRoute(kc, namespace, {
-    apiVersion: "gateway.networking.k8s.io/v1alpha2",
-    kind: "TLSRoute",
-    metadata: {
-      name: name,
-      namespace: namespace,
-      labels: {
-        "ctnr.io/owner-id": userId,
-      },
-    },
-    spec: {
-      hostnames: hostnames,
-      parentRefs: [
         {
-          name: "ctnr-user-gateway",
-          namespace: namespace,
+          name: "public-gateway",
+          namespace: "kube-public",
           sectionName: "https",
         },
       ],
       rules: [{
-        backendRefs: [{
+        matches: [{ path: { type: "PathPrefix", value: "/" } }],
+        backendRefs: ports.map((port) => ({
           kind: "Service",
           name: name,
-          port: 443,
-        }],
+          port: port.port,
+        })),
       }],
     },
   });
+  const certHostnames = hostnames.filter((hostname) => !hostname.includes(".ctnr.io"));
   await ensureCertManagerCertificate(kc, namespace, {
     apiVersion: "cert-manager.io/v1",
     kind: "Certificate",
@@ -828,11 +863,34 @@ export async function ensureUserRoute(
         name: "letsencrypt",
         kind: "ClusterIssuer",
       },
-      commonName: hostnames[0],
-      dnsNames: hostnames,
+      commonName: certHostnames[0],
+      dnsNames: certHostnames
+    },
+  });
+
+  await ensureReferenceGrant(kc, namespace, {
+    apiVersion: "gateway.networking.k8s.io/v1beta1",
+    kind: "ReferenceGrant",
+    metadata: {
+      name: name,
+      namespace: namespace,
+    },
+    spec: {
+      from: [{
+        group: "gateway.networking.k8s.io",
+        kind: "Gateway",
+        name: "public-gateway",
+        namespace: "kube-public",
+      }],
+      to: [{
+        group: "",
+        kind: "Secret",
+        name: name,
+        namespace: namespace,
+      }],
     },
   });
 
   // Update Gateway certs
-  await ensureUserGateway(kc, namespace, userId);
+  await ensureUserGateway(kc, namespace);
 }

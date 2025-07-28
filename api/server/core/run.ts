@@ -5,6 +5,7 @@ import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
 import { ContainerName, Publish } from "./_common.ts";
 import * as Route from "./route.ts";
+import { stderr } from "node:process";
 
 export const Meta = {
   aliases: {
@@ -31,6 +32,8 @@ export const Input = z.object({
     .optional()
     .describe("Set environment variables"),
   publish: z.array(Publish).optional().describe("Publish containers ports to the internal service"),
+  route: z.union([z.boolean(), z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/)])
+    .optional().describe("Route the container's published ports to a domain"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
   detach: z.boolean().optional().default(false).describe("Detach from the container after starting"),
@@ -39,12 +42,14 @@ export const Input = z.object({
     .max(1000, "Command length is limited for security reasons")
     .optional()
     .describe("Command to run in the container"),
-})
+});
 
 export type Input = z.infer<typeof Input>;
 
 export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
-  const stderrWriter = ctx.stdio.stderr.getWriter();
+  // TODO: transform function to GeneratorFunction to display progress instead of using stderr directly
+  // This will allow us to use a more structured output and handle progress updates better
+  let stderrWriter = ctx.stdio.stderr.getWriter();
 
   if (!ctx.auth.session) {
     stderrWriter.write("ERROR: You must be authenticated to run containers.\r\n");
@@ -240,29 +245,35 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
   // Note: Service management is now handled by the route command
   // The --publish flag only affects container port configuration
   if (publish && publish.length > 0) {
-    stderrWriter.write(`Container ports ${publish.map((p) => p.port).join(", ")} are available for routing.\r\n`);
+    stderrWriter.write(
+      `Container ports ${
+        publish.map((p) => p.name ? `${p.name}:${p.port}` : p.port).join(", ")
+      } are available for routing.\r\n`,
+    );
+
+    if (input.route) {
+      stderrWriter.write(`Route container ports ${name}...\r\n`);
+      stderrWriter.releaseLock();
+      // Route the container's published ports to a domain
+      await Route.default({
+        ctx,
+        input: {
+          name,
+          port: publish.map((p) => p.name || p.port.toString()),
+          domain: typeof input.route === "string" ? input.route : undefined,
+        },
+      }).catch((err) => {
+        console.error(`Failed to route container ${name}:`, err);
+        stderrWriter = ctx.stdio.stderr.getWriter();
+        stderrWriter.write(`Failed to route container ${name}\r\n`);
+        stderrWriter.releaseLock();
+      });
+    } else {
+      // TODO: this thing start to be annoying
+      stderrWriter.releaseLock();
+    }
   }
 
-  stderrWriter.releaseLock();
-
-  // if (exposePorts) {
-  //   for (const exposePort of exposePorts) {
-  //     // Expose the port to the gateway
-  //     try {
-  //       await expose({
-  //         ctx,
-  //         input: {
-  //           name,
-  //           port: exposePort.port,
-  //           protocol: exposePort.protocol,
-  //         },
-  //       });
-  //       console.debug(`Port ${port.port} exposed on listener ${port.name} for container ${name}.`);
-  //     } catch (error) {
-  //       console.error(`Failed to expose port ${port.port} on listener ${port.name} for container ${name}:`, error);
-  //     }
-  //   }
-  // }
   if (detach) {
     // If detach is enabled, just return without attaching
     console.debug(`Container ${name} is running. Detached successfully.`);

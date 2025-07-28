@@ -9,6 +9,7 @@ import { RestClient } from "@cloudydeno/kubernetes-apis/common.ts";
 import { SpdyEnabledRestClient } from "./spdy-enabled-rest-client.ts";
 import { match, P } from "ts-pattern";
 import { yaml } from "@tmpl/core";
+import { hostname } from "node:os";
 
 const kubeconfig = Deno.env.get("KUBECONFIG") || Deno.env.get("HOME") + "/.kube/config";
 
@@ -34,9 +35,38 @@ export async function getKubeClient() {
     NetworkingV1NamespacedApi(namespace: string) {
       return new NetworkingV1NamespacedApi(client, namespace);
     },
+    TraefikV1Alpha1(namespace: string) {
+      return {
+        getIngressRoute: (name: string) =>
+          client.performRequest({
+            method: "GET",
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes/${name}`,
+            expectJson: true,
+          }) as Promise<TraefikV1Alpha1IngressRoute>,
+        createIngressRoute: (body: TraefikV1Alpha1IngressRoute) =>
+          client.performRequest({
+            method: "POST",
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes`,
+            bodyJson: body,
+            expectJson: true,
+          }),
+        deleteIngressRoute: (name: string) =>
+          client.performRequest({
+            method: "DELETE",
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes/${name}`,
+            expectJson: true,
+          }),
+        listIngressRoutes: () =>
+          client.performRequest({
+            method: "GET",
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes`,
+            expectJson: true,
+          }) as Promise<List<TraefikV1Alpha1IngressRoute>>,
+      };
+    },
     GatewayNetworkingV1(namespace: string) {
       return {
-        getGateway: (name: string): Promise<GatewayV1> =>
+        getGateway: (name: string) =>
           client.performRequest({
             method: "GET",
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
@@ -63,7 +93,7 @@ export async function getKubeClient() {
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
             expectJson: true,
           }),
-        getHTTPRoute: (name: string): Promise<HTTPRoute> =>
+        getHTTPRoute: (name: string) =>
           client.performRequest({
             method: "GET",
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
@@ -95,7 +125,7 @@ export async function getKubeClient() {
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
             expectJson: true,
           }),
-        getReferenceGrant: (name: string): Promise<GatewayV1Beta1ReferenceGrant> =>
+        getReferenceGrant: (name: string) =>
           client.performRequest({
             method: "GET",
             path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants/${name}`,
@@ -118,7 +148,7 @@ export async function getKubeClient() {
     },
     GatewayNetworkingV1Alpha2(namespace: string) {
       return {
-        getTLSRoute: (name: string): Promise<TLSRoute> =>
+        getTLSRoute: (name: string) =>
           client.performRequest({
             method: "GET",
             path: `/apis/gateway.networking.k8s.io/v1alpha2/namespaces/${namespace}/tlsroutes/${name}`,
@@ -207,6 +237,35 @@ export type List<T> = {
     selfLink: string;
   };
   items: T[];
+};
+
+export type TraefikV1Alpha1IngressRoute = {
+  apiVersion: "traefik.io/v1alpha1";
+  kind: "IngressRoute";
+  metadata: {
+    name: string;
+    namespace: string;
+    labels?: Record<string, string>;
+  };
+  spec: {
+    entryPoints: string[];
+    routes: Array<{
+      match: string;
+      kind: string;
+      services: Array<{
+        name: string;
+        port: number;
+      }>;
+    }>;
+    tls?: {
+      certResolver?: string;
+      domains?: Array<{
+        main: string;
+        sans: string[];
+      }>;
+      secretName?: string;
+    };
+  };
 };
 
 export type HTTPRoute = {
@@ -470,6 +529,39 @@ export async function ensureService(kc: KubeClient, namespace: string, service: 
     .otherwise(async () => {
       await kc.CoreV1.namespace(namespace).deleteService(service.metadata!.name!);
       return kc.CoreV1.namespace(namespace).createService(nextService);
+    });
+}
+
+export async function ensureIngressRoute(
+  kc: KubeClient,
+  namespace: string,
+  ingressRoute: TraefikV1Alpha1IngressRoute,
+): Promise<void> {
+  // Ensure the ingress route
+  const currentIngressRoute = await kc.TraefikV1Alpha1(namespace).getIngressRoute(ingressRoute.metadata.name).catch(
+    () => null,
+  );
+  const nextIngressRoute = ingressRoute;
+  await match(
+    currentIngressRoute,
+  )
+    // if ingress route does not exist, create it
+    .with(null, () => kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any))
+    // if ingress route exists, and match values, do nothing,
+    .with({
+      metadata: {
+        name: nextIngressRoute.metadata.name,
+        namespace: nextIngressRoute.metadata.namespace,
+      },
+      spec: {
+        entryPoints: nextIngressRoute.spec.entryPoints as any,
+        routes: nextIngressRoute.spec.routes as any,
+      },
+    }, () => true)
+    .otherwise(async () => {
+      // else if the ingress route doesn't have the same name, delete it and create a new one
+      await kc.TraefikV1Alpha1(namespace).deleteIngressRoute(currentIngressRoute!.metadata.name);
+      await kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any);
     });
 }
 
@@ -745,50 +837,8 @@ export const ensureUserNamespace = async (
 
   // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
 
-  await ensureUserGateway(kc, namespaceName);
-
   return namespaceName;
 };
-
-async function ensureUserGateway(
-  kc: KubeClient,
-  namespace: string,
-): Promise<void> {
-  const userCerts = await kc.CertManagerV1(namespace).getCertificatesList().catch(() => ({ items: [] }));
-  const gateway = await kc.GatewayNetworkingV1("kube-public").getGateway("public-gateway");
-  const gatewayCerts = gateway.spec.listeners.find((l) => l.name === "https")?.tls?.certificateRefs || [];
-  console.debug("User certificates:", userCerts);
-  // get all certificates in user namespace
-  await ensureGateway(kc, "kube-public", {
-    apiVersion: "gateway.networking.k8s.io/v1",
-    kind: "Gateway",
-    metadata: {
-      name: "public-gateway",
-      namespace: "kube-public",
-    },
-    spec: {
-      gatewayClassName: "cilium",
-      listeners: gateway.spec.listeners.map((listener) =>
-        listener.name !== "https" ? listener : ({
-          name: "https",
-          port: 443,
-          protocol: "HTTPS",
-          tls: {
-            mode: "Terminate",
-            certificateRefs: [
-              ...gatewayCerts.filter((c) => c.namespace !== namespace),
-              ...userCerts.items.filter((c) => c.metadata.namespace === namespace).map((c) => ({
-                name: c.metadata.name,
-                namespace: c.metadata.namespace,
-                kind: "Secret",
-              })),
-            ],
-          },
-        })
-      ),
-    },
-  });
-}
 
 export async function ensureUserRoute(
   kc: KubeClient,
@@ -815,6 +865,8 @@ export async function ensureUserRoute(
       },
     },
   });
+
+  // Create HTTPRoute for *-<user-id>.ctnr.io
   await ensureHTTPRoute(kc, namespace, {
     apiVersion: "gateway.networking.k8s.io/v1",
     kind: "HTTPRoute",
@@ -826,17 +878,17 @@ export async function ensureUserRoute(
       },
     },
     spec: {
-      hostnames: hostnames,
+      hostnames: hostnames.filter((h) => h.endsWith(".ctnr.io")),
       parentRefs: [
         {
           name: "public-gateway",
           namespace: "kube-public",
-          sectionName: "http",
+          sectionName: "web",
         },
         {
           name: "public-gateway",
           namespace: "kube-public",
-          sectionName: "https",
+          sectionName: "websecure",
         },
       ],
       rules: [{
@@ -849,48 +901,58 @@ export async function ensureUserRoute(
       }],
     },
   });
-  const certHostnames = hostnames.filter((hostname) => !hostname.includes(".ctnr.io"));
-  await ensureCertManagerCertificate(kc, namespace, {
-    apiVersion: "cert-manager.io/v1",
-    kind: "Certificate",
-    metadata: {
-      name: name,
-      namespace: namespace,
-    },
-    spec: {
-      secretName: name,
-      issuerRef: {
-        name: "letsencrypt",
-        kind: "ClusterIssuer",
-      },
-      commonName: certHostnames[0],
-      dnsNames: certHostnames
-    },
-  });
 
-  await ensureReferenceGrant(kc, namespace, {
-    apiVersion: "gateway.networking.k8s.io/v1beta1",
-    kind: "ReferenceGrant",
-    metadata: {
-      name: name,
-      namespace: namespace,
-    },
-    spec: {
-      from: [{
-        group: "gateway.networking.k8s.io",
-        kind: "Gateway",
-        name: "public-gateway",
-        namespace: "kube-public",
-      }],
-      to: [{
-        group: "",
-        kind: "Secret",
-        name: name,
+  // Create IngressRoute and Certificate for each custom domain
+  const tlds = hostnames
+    .filter((h) => !h.endsWith(".ctnr.io"))
+    .map((h) => h.split(".").slice(-2).join("."))
+    .filter((tld, index, self) => self.indexOf(tld) === index);
+  console.log("TLDs for user route:", tlds);
+
+  for (const tld of tlds) {
+    if (tld !== "ctnr.io") {
+      await ensureCertManagerCertificate(kc, namespace, {
+        apiVersion: "cert-manager.io/v1",
+        kind: "Certificate",
+        metadata: {
+          name: tld,
+          namespace: namespace,
+        },
+        spec: {
+          secretName: tld,
+          issuerRef: {
+            name: "letsencrypt",
+            kind: "ClusterIssuer",
+          },
+          commonName: hostnames[0],
+          dnsNames: hostnames.filter((h) => h.endsWith(`.${tld}`) || h === tld),
+        },
+      });
+    }
+    await ensureIngressRoute(kc, namespace, {
+      apiVersion: "traefik.io/v1alpha1",
+      kind: "IngressRoute",
+      metadata: {
+        name: tld,
         namespace: namespace,
-      }],
-    },
-  });
-
-  // Update Gateway certs
-  await ensureUserGateway(kc, namespace);
+        labels: {
+          "ctnr.io/owner-id": userId,
+        },
+      },
+      spec: {
+        entryPoints: ["web", "websecure"],
+        routes: hostnames.filter((h) => h.endsWith(`.${tld}`)).map((hostname) => ({
+          match: `Host("${hostname}")`,
+          kind: "Rule",
+          services: ports.map((port) => ({
+            name: name,
+            port: port.port,
+          })),
+        })),
+        tls: {
+          secretName: tld,
+        },
+      },
+    });
+  }
 }

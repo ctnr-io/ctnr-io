@@ -65,6 +65,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       container: name,
     });
 
+
     // if (terminal) {
     //   const signalChanAsyncGenerator = ctx.stdio.signalChan();
     //   defer.push(() => signalChanAsyncGenerator.return());

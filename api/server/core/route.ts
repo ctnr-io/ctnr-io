@@ -75,9 +75,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       // Check that the user owns the domain
       const txtRecordName = `ctnr-io-ownership-${userIdShort}.${domain}`;
       const txtRecordValue = hash("sha256", ctx.auth.user.created_at + domain);
-      console.log("txtRecordName", txtRecordName);
       const values = await resolveTxt(txtRecordName).catch(() => []);
-      console.log("TXT record values:", values);
       if (values.flat().includes(txtRecordValue)) {
         stderrWriter.write(`Domain ownership for ${domain} already verified.\n`);
       } else {
@@ -130,7 +128,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
     stderrWriter.releaseLock();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error from server";
-    console.error("Route creation failed:", errorMessage);
+    console.error("Route creation failed:", error);
 
     const stderrWriter = ctx.stdio.stderr.getWriter();
     stderrWriter.write(`Error creating route: ${errorMessage}\n`);

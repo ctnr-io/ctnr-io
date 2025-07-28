@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
 import { ContainerName, PortName } from "./_common.ts";
-import { ensureCertManagerCertificate, ensureHttpRoute, ensureService } from "lib/kube-client.ts";
+import { ensureUserRoute } from "lib/kube-client.ts";
 import { hash } from "node:crypto";
 import * as shortUUID from "@opensrc/short-uuid";
+import { resolveTxt } from "node:dns/promises";
 
 export const Meta = {
   aliases: {
@@ -15,8 +16,8 @@ export const Meta = {
 
 export const Input = z.object({
   name: ContainerName,
-  fqdn: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
-    "Fully qualified domain name for the route, defaults to '<port>-<name>-<user>.ctnr.io'",
+  domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
+    "Parent domain name for the routing",
   ),
   port: z.array(PortName).optional().describe(
     "Ports to expose, defaults to all ports of the container",
@@ -40,7 +41,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       throw new Error(`Container ${input.name} has no ports exposed`);
     }
 
-    // If no ports is not specified, use all ports, if ports length === 0, remove all ports 
+    // If no ports is not specified, use all ports, if ports length === 0, remove all ports
     const routedPorts = (
       input.port === undefined
         ? containerPorts
@@ -61,68 +62,23 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
 
     const userIdShort = shortUUIDtranslator.fromUUID(ctx.auth.user.id);
     const hostnames = [
-      ...routedPorts.map((port) => (
-        `${port.name}-${input.name}-${userIdShort}.ctnr.io`
-      )),
-      input.fqdn!,
-    ].filter(Boolean);
+      ...routedPorts.map((port) => [
+        `${port.name}-${input.name}-${userIdShort}.ctnr.io`,
+        input.domain! && `${port.name}.${input.domain}`,
+      ]),
+      input.domain!,
+    ].flat().filter(Boolean);
 
-    await ensureService(ctx.kube.client, ctx.kube.namespace, {
-      metadata: {
-        name: input.name,
-        namespace: ctx.kube.namespace,
-      },
-      spec: {
-        ports: routedPorts,
-        selector: {
-          "ctnr.io/owner-id": ctx.auth.user.id,
-          "ctnr.io/name": input.name,
-        },
-      },
-    });
-    await ensureHttpRoute(ctx.kube.client, ctx.kube.namespace, {
-      apiVersion: "gateway.networking.k8s.io/v1",
-      kind: "HTTPRoute",
-      metadata: {
-        name: input.name,
-        namespace: ctx.kube.namespace,
-      },
-      spec: {
-        hostnames,
-        parentRefs: [
-          {
-            name: "public-gateway",
-            namespace: "kube-public",
-            sectionName: "https",
-          },
-          {
-            name: "public-gateway",
-            namespace: "kube-public",
-            sectionName: "http",
-          },
-        ],
-        rules: [{
-          matches: [{ path: { type: "PathPrefix", value: "/" } }],
-          backendRefs: routedPorts.map((port) => ({
-            kind: "Service",
-            name: input.name,
-            port: port.port,
-          })),
-        }],
-      },
-    });
-    stderrWriter.write(
-      `Routes created successfully for container ${input.name}:\n` +
-        hostnames.map((hostname) => `- https://${hostname}`).join("\r\n") +
-        "\r\n",
-    );
     // TODO: ctnr domain add
-    if (input.fqdn) {
-      const domain = input.fqdn.split(".").slice(-2).join(".");
+    // Check for domain ownership, do this before adding HTTPRoute preventing user domain squatting
+    if (input.domain) {
+      const domain = input.domain.split(".").slice(-2).join(".");
       // Check that the user owns the domain
-      const txtRecordName = `ctnr-io_ownership_${userIdShort}.${domain}`;
+      const txtRecordName = `ctnr-io-ownership-${userIdShort}.${domain}`;
       const txtRecordValue = hash("sha256", ctx.auth.user.created_at + domain);
-      const values = await Deno.resolveDns(txtRecordName, "TXT").catch(() => []);
+      console.log("txtRecordName", txtRecordName);
+      const values = await resolveTxt(txtRecordName).catch(() => []);
+      console.log("TXT record values:", values);
       if (values.flat().includes(txtRecordValue)) {
         stderrWriter.write(`Domain ownership for ${domain} already verified.\n`);
       } else {
@@ -148,7 +104,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
               return;
             }
             stderrWriter.write(`Checking for TXT record...\n`);
-            const values = await Deno.resolveDns(txtRecordName, "TXT").catch(() => []);
+            const values = await resolveTxt(txtRecordName).catch(() => []);
             if (values.flat().includes(txtRecordValue)) {
               clearInterval(interval);
               stderrWriter.write(`TXT record verified successfully.\n`);
@@ -157,32 +113,19 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
           }, 5000);
         });
       }
-
-      // Generate certificate for the domain if it doesn't exist
-      await ensureCertManagerCertificate(ctx.kube.client, ctx.kube.namespace, {
-        apiVersion: "cert-manager.io/v1",
-        kind: "Certificate",
-        metadata: {
-          name: input.name,
-          namespace: ctx.kube.namespace,
-        },
-        spec: {
-          secretName: `${input.name}-tls`,
-          issuerRef: {
-            name: "letsencrypt",
-            kind: "ClusterIssuer",
-          },
-          commonName: input.fqdn,
-          dnsNames: hostnames,
-        },
-      });
-      stderrWriter.write(
-        [
-          `Certificate created successfully for domain ${input.fqdn}]\r\n`,
-          "Points your DNS to gateway.ctnr.io with a CNAME record.\r\n",
-        ].join(""),
-      );
     }
+
+    await ensureUserRoute(ctx.kube.client, ctx.kube.namespace, {
+      hostnames,
+      name: input.name,
+      userId: ctx.auth.user.id,
+    });
+
+    stderrWriter.write(
+      `Routes created successfully for container ${input.name}:\n` +
+        hostnames.map((hostname) => `- https://${hostname}`).join("\r\n") +
+        "\r\n",
+    );
 
     stderrWriter.releaseLock();
   } catch (error) {

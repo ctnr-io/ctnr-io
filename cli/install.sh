@@ -5,7 +5,7 @@ set -e
 # Usage: curl -fsSL https://get.ctnr.io | bash
 
 CLI_NAME="ctnr"
-REPO="ctnr-io/ctnr"
+REPO="ctnr-io/ctnr-io"
 INSTALL_DIR="/usr/local/bin"
 
 # Colors for output

@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient, SupportedStorage, User } from "@supabase/supabase-js";
+import { createClient, SupabaseClient, SupportedStorage } from "@supabase/supabase-js";
 
 export interface SupabaseConfig {
   url: string;

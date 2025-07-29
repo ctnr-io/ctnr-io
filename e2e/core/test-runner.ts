@@ -1,5 +1,3 @@
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-
 export interface TestResult {
   success: boolean;
   stdout: string;

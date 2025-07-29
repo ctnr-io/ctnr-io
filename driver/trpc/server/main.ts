@@ -4,6 +4,7 @@ import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import * as ws from "ws";
 import { router } from "./router.ts";
 import { createTrpcServerContext } from "./context.ts";
+import process from "node:process";
 // import { verifySupabaseToken } from "lib/supabase.ts";
 
 const wss = new ws.WebSocketServer({
@@ -34,6 +35,7 @@ wss.on("connection", (ws) => {
 });
 
 console.info("✅ WebSocket Server listening on ws://localhost:3000");
+
 process.on("SIGTERM", () => {
   console.info("SIGTERM");
   handler.broadcastReconnectNotification();

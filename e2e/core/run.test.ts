@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { runCliCommand, generateTestContainerName, cleanupContainer, waitForCondition } from "./test-runner.ts";
+import { runCliCommand, generateTestContainerName, cleanupContainer } from "./test-runner.ts";
 
 Deno.test("Core API - Run Command Tests", async (t) => {
   await t.step("should show help for run command", async () => {

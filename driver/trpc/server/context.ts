@@ -26,7 +26,9 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
                 handler(parsed.data);
                 return true;
               }
-            } catch {}
+            } catch {
+                // Ignore errors when trying to close the writer
+            }
           }
           return false;
         },
@@ -50,14 +52,16 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
                 handler(parsed.data);
                 return true;
               }
-            } catch {}
+            } catch {
+                // Ignore JSON parsing errors
+            }
           }
           return false;
         },
       );
     },
     () => ws.close(),
-    (eventType, signal) => signal as Signals,
+    (_eventType, signal) => signal as Signals,
   );
 
   const stdio = {
@@ -79,7 +83,9 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
                   controller.close();
                   return true;
                 }
-              } catch {}
+              } catch {
+                // Ignore JSON parsing errors
+              }
             }
             return false;
           },

@@ -7,9 +7,8 @@ import { ApiextensionsV1Api } from "@cloudydeno/kubernetes-apis/apiextensions.k8
 import * as YAML from "@std/yaml";
 import { RestClient } from "@cloudydeno/kubernetes-apis/common.ts";
 import { SpdyEnabledRestClient } from "./spdy-enabled-rest-client.ts";
-import { match, P } from "ts-pattern";
+import { match } from "ts-pattern";
 import { yaml } from "@tmpl/core";
-import { hostname } from "node:os";
 
 const kubeconfig = Deno.env.get("KUBECONFIG") || Deno.env.get("HOME") + "/.kube/config";
 
@@ -644,7 +643,7 @@ export async function ensureCertManagerCertificate(
     });
 }
 
-async function ensureGateway(
+async function _ensureGateway(
   kc: KubeClient,
   namespace: string,
   gateway: GatewayV1,
@@ -663,7 +662,7 @@ async function ensureGateway(
     });
 }
 
-async function ensureReferenceGrant(
+async function _ensureReferenceGrant(
   kc: KubeClient,
   namespace: string,
   referenceGrant: GatewayV1Beta1ReferenceGrant,

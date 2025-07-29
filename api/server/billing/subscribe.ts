@@ -12,5 +12,5 @@ export const Input = z.object({
 });
 export type Input = z.infer<typeof Input>;
 
-export default ({ ctx }: { ctx: ServerContext }) => {
+export default ({ ctx: _ctx }: { ctx: ServerContext }) => {
 };

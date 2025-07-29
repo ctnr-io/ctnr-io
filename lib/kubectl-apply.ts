@@ -1,4 +1,3 @@
-import { stdin } from "node:process";
 
 /**
  * Execute kubectl apply command and return an async iterable of output lines

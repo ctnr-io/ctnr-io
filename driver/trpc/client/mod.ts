@@ -16,7 +16,7 @@ export async function createTRPCWebSocketClient({
 
   const wsClient = createWSClient({
     url: Deno.env.get("CTNR_API_URL")!,
-    connectionParams: async () => {
+    connectionParams: () => {
       return {
         accessToken,
         refreshToken,

@@ -17,8 +17,7 @@ export function startCallbackServer(): {
 
   // Add a random path hash to prevent other processes from trying to exploit the callback URL
 
-  let server: Deno.HttpServer;
-  server = Deno.serve({ port: 0, hostname: "127.0.0.1" }, (request) => {
+  const server = Deno.serve({ port: 0, hostname: "127.0.0.1" }, (request) => {
     const url = new URL(request.url);
 
     if (url.pathname === `/callback`) {

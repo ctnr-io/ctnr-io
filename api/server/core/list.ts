@@ -7,7 +7,7 @@ export const Input = z.tuple([])
 
 export type Input = z.infer<typeof Input>
 
-export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
+export default async ({ ctx, input: _input }: { ctx: ServerContext; input: Input }) => {
 	// List pods with label ctnr.io/container
 	const pods = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPodList({
 		labelSelector: "ctnr.io/name",

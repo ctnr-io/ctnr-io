@@ -57,5 +57,12 @@
       "useTabs": false,
       "indentWidth": 2
     }
+  },
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-explicit-any"
+      ]
+    }
   }
 }

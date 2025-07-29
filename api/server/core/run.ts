@@ -5,7 +5,6 @@ import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
 import { ContainerName, Publish } from "./_common.ts";
 import * as Route from "./route.ts";
-import { stderr } from "node:process";
 
 export const Meta = {
   aliases: {

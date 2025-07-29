@@ -1,6 +1,6 @@
 import { SignalContext } from "../mod.ts";
 
-export async function createSignalServerContext(): Promise<SignalContext> {
+export function createSignalServerContext(): SignalContext {
 	const controller = new AbortController();
 	return {
 		signal: controller.signal 

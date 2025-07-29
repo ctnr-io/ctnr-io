@@ -91,7 +91,8 @@ export async function createTrpcClientTerminalContext(
                 opts.stdio.exit(parsed.code);
                 return true;
               }
-            } catch (e) {
+            } catch (_e) {
+                // Ignore JSON parsing errors
             }
             return false;
           },

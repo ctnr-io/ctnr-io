@@ -1,5 +1,5 @@
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { runCliCommand, generateTestContainerName, cleanupContainer, waitForCondition } from "./test-runner.ts";
+import { assert } from "@std/assert";
+import { runCliCommand, generateTestContainerName, cleanupContainer } from "./test-runner.ts";
 
 Deno.test("Core API - Integration Tests", async (t) => {
   await t.step("should run, list, and attach to container in sequence", async () => {

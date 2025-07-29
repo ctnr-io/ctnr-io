@@ -41,8 +41,8 @@ const stderr = new WritableStream({
 
 // TODO: login if no session found
 const supabaseClient = await getSupabaseClient({
-  storage: authStorage
-})
+  storage: authStorage,
+});
 const { data: { session } } = await supabaseClient.auth.getSession();
 if (!session) {
   throw new Error("No active session found. Please log in first.");
@@ -59,7 +59,7 @@ export const ctnr = createCli({
       stderr,
       exit: Deno.exit.bind(Deno),
       setRaw: Deno.stdin.setRaw.bind(Deno.stdin),
-      signalChan: function*() {
+      signalChan: function* () {
         // if (!Deno.stdin.isTerminal()) {
         //   return;
         // }

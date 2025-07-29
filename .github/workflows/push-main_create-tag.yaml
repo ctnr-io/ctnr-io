@@ -18,8 +18,8 @@ jobs:
 
       - name: Get version
         id: version
-        uses: ietf-tools/semver-action@v1.10.2 
-        with:  
+        uses: ietf-tools/semver-action@v1.10.2
+        with:
           token: ${{ github.token }}
           branch: ${{ github.ref }}
           noNewCommitBehavior: warn
@@ -36,17 +36,17 @@ jobs:
         run: |
           TAG="${{ steps.version.outputs.next }}"
           echo "Creating tag: $TAG"
-          
+
           # Delete existing tag if it exists (locally and remotely)
           git tag -d "$TAG" 2>/dev/null || true
           git push --delete origin "$TAG" 2>/dev/null || true
-          
+
           # Create and push new tag
           git tag -a "$TAG" -m "Release $TAG"
           git push origin "$TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
+
       - name: Trigger release cli
         if: ${{ steps.version.outputs.next != '' }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
@@ -55,20 +55,20 @@ jobs:
           repo: ${{ github.event.repository.name }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow_file_name: push-tag_release-cli.yaml
-          ref: ${{ github.ref }} 
+          ref: ${{ github.ref }}
           wait_interval: 10
           propagate_failure: true
           client_payload: |
             {
               "version": "${{ steps.version.outputs.next }}"
             }
-      
+
       - name: Remove tag if failure occured
         if: ${{ failure() && steps.version.outputs.next != '' }}
         run: |
           TAG="${{ steps.version.outputs.next }}"
           echo "Removing tag: $TAG due to failure"
-          
+
           # Delete the tag locally and remotely
           git tag -d "$TAG" 2>/dev/null || true
           git push --delete origin "$TAG" 2>/dev/null || true

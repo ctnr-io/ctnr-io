@@ -1,6 +1,7 @@
 # Contributing to Low-Cost Kubernetes Cluster
 
-Thank you for your interest in contributing to our Low-Cost Kubernetes Cluster project! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to our Low-Cost Kubernetes Cluster project! This document provides
+guidelines and instructions for contributing.
 
 ## Table of Contents
 
@@ -14,7 +15,8 @@ Thank you for your interest in contributing to our Low-Cost Kubernetes Cluster p
 
 ## Code of Conduct
 
-This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
+This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are
+expected to uphold this code. Please report unacceptable behavior to the project maintainers.
 
 ## Getting Started
 

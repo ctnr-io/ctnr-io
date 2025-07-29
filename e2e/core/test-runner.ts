@@ -12,7 +12,7 @@ export async function runCliCommand(args: string[], options?: {
 }): Promise<TestResult> {
   const timeout = options?.timeout ?? 10000;
   const env = { ...Deno.env.toObject(), ...options?.env };
-  
+
   const command = new Deno.Command("deno", {
     args: ["run", "-A", "--unstable-net", "cli/main.ts", ...args],
     stdin: "piped",
@@ -23,7 +23,7 @@ export async function runCliCommand(args: string[], options?: {
   });
 
   const process = command.spawn();
-  
+
   // Set up timeout
   const timeoutId = setTimeout(() => {
     process.kill("SIGTERM");
@@ -40,9 +40,9 @@ export async function runCliCommand(args: string[], options?: {
     }
 
     const { success, code, stdout, stderr } = await process.output();
-    
+
     clearTimeout(timeoutId);
-    
+
     return {
       success,
       code,
@@ -62,17 +62,17 @@ export function generateTestContainerName(): string {
 export async function waitForCondition(
   condition: () => Promise<boolean>,
   timeout = 30000,
-  interval = 1000
+  interval = 1000,
 ): Promise<void> {
   const start = Date.now();
-  
+
   while (Date.now() - start < timeout) {
     if (await condition()) {
       return;
     }
-    await new Promise(resolve => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
-  
+
   throw new Error(`Condition not met within ${timeout}ms`);
 }
 
@@ -80,7 +80,7 @@ export async function cleanupContainer(name: string): Promise<void> {
   try {
     // Try to remove the container if it exists
     const result = await runCliCommand(["run", "--name", name, "--force", "busybox:1.35", "echo", "cleanup"]);
-    console.log(`Cleanup attempt for ${name}: ${result.success ? 'success' : 'failed'}`);
+    console.log(`Cleanup attempt for ${name}: ${result.success ? "success" : "failed"}`);
   } catch (error) {
     console.log(`Cleanup error for ${name}:`, error);
   }

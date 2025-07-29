@@ -7,7 +7,6 @@
     "trpc:server:cli": "dotenvx run -- deno run -A --unstable-net driver/trpc/server/cli.ts",
     "trpc:client:cli": "dotenvx run -- deno run -A --unstable-net cli/main.ts",
     "env": "dotenvx run -- env"
-
   },
   "imports": {
     "@cloudydeno/kubernetes-apis": "jsr:@cloudydeno/kubernetes-apis@^0.5.2",

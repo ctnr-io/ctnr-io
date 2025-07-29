@@ -499,7 +499,7 @@ async function ensureCiliumNetworkPolicy(
 export async function ensureService(kc: KubeClient, namespace: string, service: Service): Promise<void> {
   // Get the service and return null if it does not exist
   const currentService = await kc.CoreV1.namespace(namespace).getService(service.metadata!.name!).catch(() => null);
-  const nextService = service
+  const nextService = service;
   await match(
     currentService,
   )
@@ -627,7 +627,9 @@ export async function ensureCertManagerCertificate(
   namespace: string,
   certificate: CertManagerV1Certificate,
 ): Promise<void> {
-  const currentCertificate = await kc.CertManagerV1(namespace).getCertificate(certificate.metadata.name).catch(() => null);
+  const currentCertificate = await kc.CertManagerV1(namespace).getCertificate(certificate.metadata.name).catch(() =>
+    null
+  );
   const nextCertificate = certificate;
   await match(
     currentCertificate,

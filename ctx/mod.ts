@@ -18,14 +18,14 @@ export type StdioContext = {
     setRaw: (value: boolean) => void;
     signalChan: () => AsyncGenerator<Signals, void, unknown>;
     terminalSizeChan: () => AsyncGenerator<{ columns: number; rows: number }, void, unknown>;
-  }
+  };
 };
 
 export type KubeContext = {
   kube: {
     client: KubeClient;
     namespace: string;
-  }
+  };
 };
 
 /**
@@ -33,10 +33,10 @@ export type KubeContext = {
  */
 export type AuthServerContext = {
   auth: {
-    client: SupabaseClient['auth'];
+    client: SupabaseClient["auth"];
     session: Session;
     user: User;
-  }
+  };
 };
 
 /**
@@ -45,10 +45,10 @@ export type AuthServerContext = {
  */
 export type AuthClientContext = AuthServerContext | {
   auth: {
-    client: SupabaseClient['auth'];
+    client: SupabaseClient["auth"];
     session: null;
     user: null;
-  }
+  };
 };
 
 export type ServerContext = SignalContext & StdioContext & KubeContext & AuthServerContext & { __type: "server" };

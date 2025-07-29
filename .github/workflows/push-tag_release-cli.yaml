@@ -3,11 +3,11 @@ name: Push Tag - Release CLI
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Tag version to release'
+        description: "Tag version to release"
         required: true
 
 permissions:
@@ -18,7 +18,7 @@ env:
   CLI_NAME: ctnr
   CTNR_API_URL: https://api.ctnr.io
   SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-  SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }} 
+  SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
   CTNR_VERSION: ${{ github.event.inputs.version }}
 
 jobs:
@@ -61,7 +61,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: latest 
+          deno-version: latest
 
       - name: Get Version
         id: version
@@ -76,7 +76,7 @@ jobs:
             if [[ -z "${{ github.event.inputs.version }}" ]]; then
               echo "No version input provided."
               exit 1
-            else 
+            else
               echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
               echo "Using version from input: ${{ github.event.inputs.version }}"
             fi
@@ -85,11 +85,11 @@ jobs:
       - name: Compile cli binary
         run: |
           mkdir -p dist
-          
+
           # Set environment variables for compilation
 
           curl -sfS https://dotenvx.sh/install.sh | sh
-          
+
           # Compile the CLI with embedded environment variables
           deno task compile \
             --target ${{ matrix.target }} \
@@ -138,7 +138,7 @@ jobs:
             if [[ -z "${{ github.event.inputs.version }}" ]]; then
               echo "No version input provided."
               exit 1
-            else 
+            else
               echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
               echo "Using version from input: ${{ github.event.inputs.version }}"
             fi

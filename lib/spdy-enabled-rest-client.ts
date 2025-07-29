@@ -3,9 +3,7 @@ import { Connection } from "https://deno.land/x/spdy_transport@v0.1/mod.ts";
 import type { JSONValue, KubernetesTunnel, RequestOptions } from "@cloudydeno/kubernetes-client/lib/contract.ts";
 import { KubeConfigRestClient } from "@cloudydeno/kubernetes-client/transports/via-kubeconfig.ts";
 
-
 export class SpdyEnabledRestClient extends KubeConfigRestClient {
-
   override performRequest(opts: RequestOptions & { expectTunnel: string[] }): Promise<KubernetesTunnel>;
   override performRequest(
     opts: RequestOptions & { expectStream: true; expectJson: true },

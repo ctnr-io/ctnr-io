@@ -7,7 +7,7 @@ export default async ({ ctx }: { ctx: AuthClientContext }): Promise<void> => {
     const { data: { session } } = await ctx.auth.client.getSession();
     if (session?.access_token && (session?.expires_at ?? 0) < Date.now()) {
       console.info(`🔑 Authenticated as ${session.user.email}.`);
-      return
+      return;
     }
     console.info("🔑 Starting OAuth flow...");
 

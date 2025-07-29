@@ -25,7 +25,6 @@ export function getSupabaseConfig(): SupabaseConfig {
   };
 }
 
-
 export function getSupabaseClient({ storage }: {
   storage?: SupportedStorage;
 }): SupabaseClient {
@@ -37,9 +36,9 @@ export function getSupabaseClient({ storage }: {
         flowType: "pkce",
         autoRefreshToken: true,
         persistSession: true,
-        storage
-      }
-    })
+        storage,
+      },
+    });
   }
   return supabaseClient;
 }

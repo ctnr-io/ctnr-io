@@ -1,6 +1,7 @@
 # CTNR CLI
 
-The official command-line interface for CTNR - a modern container platform for running and managing containers in the cloud.
+The official command-line interface for CTNR - a modern container platform for running and managing containers in the
+cloud.
 
 ## Installation
 
@@ -19,6 +20,7 @@ curl -fsSL https://get.ctnr.io | bash
 Download the latest release for your platform from the [releases page](https://github.com/ctnr-io/ctnr/releases).
 
 **Linux/macOS:**
+
 ```bash
 # Download and extract (replace with your platform)
 tar -xzf ctnr-v1.0.0-linux-x64.tar.gz
@@ -29,6 +31,7 @@ chmod +x /usr/local/bin/ctnr
 ```
 
 **Windows:**
+
 ```powershell
 # Download and extract the zip file
 # Move ctnr-windows-x64.exe to a directory in your PATH
@@ -116,12 +119,12 @@ ctnr rm <container-id>
 
 The CLI respects the following environment variables:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `CTNR_API_URL` | CTNR API endpoint | `https://api.ctnr.io` |
-| `CTNR_DEFAULT_CONTEXT` | Default context | `production` |
-| `CTNR_CONFIG_DIR` | Configuration directory | `~/.ctnr` |
-| `CTNR_TOKEN` | Authentication token | |
+| Variable               | Description             | Default               |
+| ---------------------- | ----------------------- | --------------------- |
+| `CTNR_API_URL`         | CTNR API endpoint       | `https://api.ctnr.io` |
+| `CTNR_DEFAULT_CONTEXT` | Default context         | `production`          |
+| `CTNR_CONFIG_DIR`      | Configuration directory | `~/.ctnr`             |
+| `CTNR_TOKEN`           | Authentication token    |                       |
 
 ## Development
 

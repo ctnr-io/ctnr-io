@@ -92,7 +92,7 @@ export async function createTrpcClientTerminalContext(
                 return true;
               }
             } catch (_e) {
-                // Ignore JSON parsing errors
+              // Ignore JSON parsing errors
             }
             return false;
           },
@@ -126,7 +126,7 @@ export async function createTrpcClientTerminalContext(
         });
       } catch (error) {
         console.error(error instanceof Error ? error.message : "An error occurred while executing command.");
-        Deno.exit(1)
+        Deno.exit(1);
       }
     },
   };

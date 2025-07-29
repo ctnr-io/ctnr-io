@@ -6,7 +6,7 @@ export async function createAuthClientContext(): Promise<AuthClientContext> {
   const supabase = getSupabaseClient({
     storage: authStorage,
   });
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession();
   const { data: { user } } = await supabase.auth.getUser();
   if (!session || !user) {
     return {
@@ -15,7 +15,7 @@ export async function createAuthClientContext(): Promise<AuthClientContext> {
         session: null,
         user: null,
       },
-    }
+    };
   }
   return {
     auth: {

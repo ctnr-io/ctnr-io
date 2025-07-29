@@ -20,18 +20,18 @@ export async function createTRPCWebSocketClient({
       return {
         accessToken,
         refreshToken,
-      }
+      };
     },
     WebSocket: globalThis.WebSocket,
     onOpen() {
       // Handle WebSocket open event
       console.debug("WebSocket connection established.");
-      resolve()
+      resolve();
     },
     onError(err) {
       // Handle WebSocket error event
       console.debug("WebSocket error:", err);
-     reject(new Error("Failed to connect to WebSocket server. Please check your connection or the server status."));
+      reject(new Error("Failed to connect to WebSocket server. Please check your connection or the server status."));
     },
     onClose(cause) {
       console.debug(`WebSocket connection closed with code ${cause?.code || "unknown"}`);

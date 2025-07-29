@@ -27,7 +27,7 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
                 return true;
               }
             } catch {
-                // Ignore errors when trying to close the writer
+              // Ignore errors when trying to close the writer
             }
           }
           return false;
@@ -53,7 +53,7 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
                 return true;
               }
             } catch {
-                // Ignore JSON parsing errors
+              // Ignore JSON parsing errors
             }
           }
           return false;
@@ -130,10 +130,10 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
     if (!session) {
       throw new Error("Session is required from connectionParams");
     }
-   return await createServerContext({
-    ...session,
-    stdio,
-   }) 
+    return await createServerContext({
+      ...session,
+      stdio,
+    });
   } catch (error) {
     console.error("Failed to verify Supabase token:", error);
     ws.close(1008, "Authentication failed");

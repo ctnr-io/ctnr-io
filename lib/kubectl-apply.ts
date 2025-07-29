@@ -1,4 +1,3 @@
-
 /**
  * Execute kubectl apply command and return an async iterable of output lines
  * @param yamlContent YAML content to apply

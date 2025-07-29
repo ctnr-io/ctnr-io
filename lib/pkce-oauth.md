@@ -26,6 +26,7 @@ PKCE (Proof Key for Code Exchange) OAuth implementation for secure CLI authentic
 ## Usage
 
 Authentication happens automatically:
+
 ```bash
 # First time - triggers OAuth flow
 ctnr run my-container
@@ -40,12 +41,14 @@ ctnr auth:logout
 ## Configuration
 
 Set environment variables:
+
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 ```
 
 In Supabase:
+
 - Enable GitHub OAuth provider
 - Add redirect URL: `http://localhost:8080/callback`
 
@@ -61,3 +64,4 @@ In Supabase:
 
 ```bash
 deno run -A --unstable-net test-auth.ts
+```

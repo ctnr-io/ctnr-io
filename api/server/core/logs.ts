@@ -18,6 +18,7 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>;
 
 export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
+  const { name } = input;
   const logs = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
     container: name,
     abortSignal: ctx.signal,

@@ -271,6 +271,8 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       // TODO: this thing start to be annoying
       stderrWriter.releaseLock();
     }
+  } else {
+    stderrWriter.releaseLock();
   }
 
   if (detach) {

@@ -500,35 +500,17 @@ async function ensureCiliumNetworkPolicy(
 export async function ensureService(kc: KubeClient, namespace: string, service: Service): Promise<void> {
   // Get the service and return null if it does not exist
   const currentService = await kc.CoreV1.namespace(namespace).getService(service.metadata!.name!).catch(() => null);
-  const nextService = {
-    ...service,
-    spec: {
-      ...service.spec,
-      // ports from the current service are added to the next service as they are dynamic and can change
-      ports: currentService?.spec?.ports || [],
-    },
-  } as const;
+  const nextService = service
   await match(
     currentService,
   )
     // if service does not exist, create it
     .with(null, () => kc.CoreV1.namespace(namespace).createService(service))
     // if service exists, and match values, do nothing,
-    .with({
-      metadata: {
-        name: nextService.metadata?.name,
-        namespace: nextService.metadata?.namespace,
-        labels: nextService.metadata?.labels,
-      },
-      spec: {
-        type: nextService.spec?.type,
-        selector: nextService.spec?.selector,
-        ports: nextService.spec?.ports as any,
-      },
-    }, () => true)
+    .with(nextService as any, () => true)
     .otherwise(async () => {
       await kc.CoreV1.namespace(namespace).deleteService(service.metadata!.name!);
-      return kc.CoreV1.namespace(namespace).createService(nextService);
+      return await kc.CoreV1.namespace(namespace).createService(nextService);
     });
 }
 
@@ -548,16 +530,7 @@ export async function ensureIngressRoute(
     // if ingress route does not exist, create it
     .with(null, () => kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any))
     // if ingress route exists, and match values, do nothing,
-    .with({
-      metadata: {
-        name: nextIngressRoute.metadata.name,
-        namespace: nextIngressRoute.metadata.namespace,
-      },
-      spec: {
-        entryPoints: nextIngressRoute.spec.entryPoints as any,
-        routes: nextIngressRoute.spec.routes as any,
-      },
-    }, () => true)
+    .with(nextIngressRoute as any, () => true)
     .otherwise(async () => {
       // else if the ingress route doesn't have the same name, delete it and create a new one
       await kc.TraefikV1Alpha1(namespace).deleteIngressRoute(currentIngressRoute!.metadata.name);
@@ -586,17 +559,7 @@ export async function ensureHTTPRoute(kc: KubeClient, namespace: string, httpRou
         bodyJson: nextHttpRoute as any,
         expectJson: true,
       }))
-    .with({
-      metadata: {
-        name: nextHttpRoute.metadata.name,
-        namespace: nextHttpRoute.metadata.namespace,
-      },
-      spec: {
-        hostnames: nextHttpRoute.spec.hostnames as any,
-        parentRefs: nextHttpRoute.spec.parentRefs as any,
-        rules: nextHttpRoute.spec.rules as any,
-      },
-    }, () => true)
+    .with(nextHttpRoute as any, () => true)
     .otherwise(async () => {
       // else if the httproute doesn't have the same name, delete it and create a new one
       await kc.performRequest({
@@ -629,17 +592,7 @@ export async function ensureTLSRoute(
   )
     // if tlsroute does not exist, create it
     .with(null, () => kc.GatewayNetworkingV1Alpha2(namespace).createTLSRoute(nextTLSRoute as any))
-    .with({
-      metadata: {
-        name: nextTLSRoute.metadata.name,
-        namespace: nextTLSRoute.metadata.namespace,
-      },
-      spec: {
-        hostnames: nextTLSRoute.spec.hostnames as any,
-        parentRefs: nextTLSRoute.spec.parentRefs as any,
-        rules: nextTLSRoute.spec.rules as any,
-      },
-    }, () => true)
+    .with(nextTLSRoute as any, () => true)
     .otherwise(async () => {
       // else if the tlsroute doesn't have the same name, delete it and create a new one
       await kc.GatewayNetworkingV1Alpha2(namespace).deleteTLSRoute(currentTLSRoute!.metadata.name);
@@ -652,47 +605,21 @@ export async function ensureDNSEndpoint(
   namespace: string,
   dnsEndpoint: DNSEndpoint,
 ): Promise<void> {
-  // Get the DNS endpoint and return null if it does not exist
-  const currentDnsEndpoint = await kc.performRequest({
-    method: "GET",
-    path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${dnsEndpoint.metadata.name}`,
-    expectJson: true,
-  })
-    .then((res) => res as DNSEndpoint)
-    .catch(() => null);
+  // Ensure the dnsendpoint
+  const currentDNSEndpoint = await kc.ExternalDNSV1alpha1(namespace).getDNSEndpoint(dnsEndpoint.metadata.name).catch(
+    () => null,
+  );
+  const nextDNSEndpoint = dnsEndpoint;
   await match(
-    currentDnsEndpoint,
+    currentDNSEndpoint,
   )
-    // if DNS endpoint does not exist, create it
-    .with(null, () =>
-      kc.performRequest({
-        method: "POST",
-        path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints`,
-        bodyJson: dnsEndpoint,
-        expectJson: true,
-      }))
-    // if DNS endpoint exists, and match values, do nothing,
-    .with({
-      metadata: {
-        name: dnsEndpoint.metadata.name,
-        namespace: dnsEndpoint.metadata.namespace,
-      },
-      spec: {
-        endpoints: dnsEndpoint.spec.endpoints as any,
-      },
-    }, () => true)
+    // if dnsendpoint does not exist, create it
+    .with(null, () => kc.ExternalDNSV1alpha1(namespace).createDNSEndpoint(nextDNSEndpoint as any))
+    .with(nextDNSEndpoint as any, () => true)
     .otherwise(async () => {
-      await kc.performRequest({
-        method: "DELETE",
-        path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${dnsEndpoint.metadata.name}`,
-        expectJson: true,
-      });
-      await kc.performRequest({
-        method: "POST",
-        path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${dnsEndpoint.metadata.name}`,
-        bodyJson: dnsEndpoint,
-        expectJson: true,
-      });
+      // else if the dnsendpoint doesn't have the same name, delete it and create a new one
+      await kc.ExternalDNSV1alpha1(namespace).deleteDNSEndpoint(currentDNSEndpoint!.metadata.name);
+      await kc.ExternalDNSV1alpha1(namespace).createDNSEndpoint(nextDNSEndpoint as any);
     });
 }
 
@@ -701,31 +628,19 @@ export async function ensureCertManagerCertificate(
   namespace: string,
   certificate: CertManagerV1Certificate,
 ): Promise<void> {
-  // Get the certificate and return null if it does not exist
-  const currentCertificate = await kc.CertManagerV1(namespace).getCertificate(certificate.metadata.name).catch(() =>
-    null
-  );
+  const currentCertificate = await kc.CertManagerV1(namespace).getCertificate(certificate.metadata.name).catch(() => null);
+  const nextCertificate = certificate;
   await match(
     currentCertificate,
   )
     // if certificate does not exist, create it
-    .with(null, () => kc.CertManagerV1(namespace).createCertificate(certificate))
+    .with(null, () => kc.CertManagerV1(namespace).createCertificate(nextCertificate as any))
     // if certificate exists, and match values, do nothing,
-    .with({
-      metadata: {
-        name: certificate.metadata.name,
-        namespace: certificate.metadata.namespace,
-      },
-      spec: {
-        secretName: certificate.spec.secretName,
-        issuerRef: certificate.spec.issuerRef,
-        commonName: certificate.spec.commonName,
-        dnsNames: certificate.spec.dnsNames as any,
-      },
-    }, () => true)
+    .with(nextCertificate as any, () => true)
     .otherwise(async () => {
-      await kc.CertManagerV1(namespace).deleteCertificate(certificate.metadata.name);
-      await kc.CertManagerV1(namespace).createCertificate(certificate);
+      // else if the certificate doesn't have the same name, delete it and create a new one
+      await kc.CertManagerV1(namespace).deleteCertificate(currentCertificate!.metadata.name);
+      await kc.CertManagerV1(namespace).createCertificate(nextCertificate as any);
     });
 }
 
@@ -802,10 +717,14 @@ export const ensureUserNamespace = async (
         - fromEndpoints:
             - matchLabels:
                 "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-        # Allow from same namespace
+        # Allow from ctnr-api
         - fromEndpoints:
             - matchLabels:
                 "k8s:io.kubernetes.pod.namespace": ctnr-system
+        # Allow from traefik
+        - fromEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": traefik
         # Allow from external/public (outside cluster)
         - fromEntities:
             - world
@@ -828,6 +747,10 @@ export const ensureUserNamespace = async (
               rules:
                 dns:
                   - matchPattern: "*"
+        # Allow to traefik
+        - toEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": traefik
         # Allow to external/public (outside cluster)
         - toEntities:
             - world
@@ -835,7 +758,7 @@ export const ensureUserNamespace = async (
 
   await ensureNamespace(kc, namespace);
 
-  // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
+  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
 
   return namespaceName;
 };
@@ -861,7 +784,6 @@ export async function ensureUserRoute(
       ports,
       selector: {
         "ctnr.io/owner-id": userId,
-        "ctnr.io/name": name,
       },
     },
   });
@@ -892,7 +814,7 @@ export async function ensureUserRoute(
         },
       ],
       rules: [{
-        matches: [{ path: { type: "PathPrefix", value: "/" } }],
+        // matches: [{ path: { type: "PathPrefix", value: "/" } }],
         backendRefs: ports.map((port) => ({
           kind: "Service",
           name: name,
@@ -907,28 +829,26 @@ export async function ensureUserRoute(
     .filter((h) => !h.endsWith(".ctnr.io"))
     .map((h) => h.split(".").slice(-2).join("."))
     .filter((tld, index, self) => self.indexOf(tld) === index);
-  console.log("TLDs for user route:", tlds);
 
   for (const tld of tlds) {
-    if (tld !== "ctnr.io") {
-      await ensureCertManagerCertificate(kc, namespace, {
-        apiVersion: "cert-manager.io/v1",
-        kind: "Certificate",
-        metadata: {
-          name: tld,
-          namespace: namespace,
+    const hostnamesForTLD = hostnames.filter((h) => h.endsWith(`.${tld}`));
+    await ensureCertManagerCertificate(kc, namespace, {
+      apiVersion: "cert-manager.io/v1",
+      kind: "Certificate",
+      metadata: {
+        name: tld,
+        namespace: namespace,
+      },
+      spec: {
+        secretName: tld,
+        issuerRef: {
+          name: "letsencrypt",
+          kind: "ClusterIssuer",
         },
-        spec: {
-          secretName: tld,
-          issuerRef: {
-            name: "letsencrypt",
-            kind: "ClusterIssuer",
-          },
-          commonName: hostnames[0],
-          dnsNames: hostnames.filter((h) => h.endsWith(`.${tld}`) || h === tld),
-        },
-      });
-    }
+        commonName: hostnamesForTLD[0],
+        dnsNames: hostnamesForTLD,
+      },
+    });
     await ensureIngressRoute(kc, namespace, {
       apiVersion: "traefik.io/v1alpha1",
       kind: "IngressRoute",
@@ -941,7 +861,7 @@ export async function ensureUserRoute(
       },
       spec: {
         entryPoints: ["web", "websecure"],
-        routes: hostnames.filter((h) => h.endsWith(`.${tld}`)).map((hostname) => ({
+        routes: hostnamesForTLD.map((hostname) => ({
           match: `Host("${hostname}")`,
           kind: "Rule",
           services: ports.map((port) => ({

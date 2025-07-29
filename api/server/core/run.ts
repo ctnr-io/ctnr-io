@@ -3,22 +3,22 @@ import { ServerContext } from "ctx/mod.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
+import { ContainerName, Publish } from "./_common.ts";
+import * as Route from "./route.ts";
+import { stderr } from "node:process";
 
 export const Meta = {
   aliases: {
     options: {
       "interactive": "i",
       "terminal": "t",
+      "publish": "p",
     },
   },
 };
 
 export const Input = z.object({
-  name: z.string()
-    .min(1, "Container name cannot be empty")
-    .max(63, "Container name cannot exceed 63 characters")
-    .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, "Container name must be valid DNS-1123 label")
-    .describe("Name of the container"),
+  name: ContainerName,
   image: z.string()
     .min(1, "Container image cannot be empty")
     // TODO: Add image tag validation when stricter security is needed
@@ -31,24 +31,13 @@ export const Input = z.object({
   )
     .optional()
     .describe("Set environment variables"),
-  port: z.array(
-    z.number()
-      // TODO: Add port restrictions when stricter security is needed
-      // .min(1024, "Only unprivileged ports (>= 1024) are allowed for security")
-      .max(65535, "Port number must be valid"),
-  )
-    .optional()
-    .describe("port to expose"),
+  publish: z.array(Publish).optional().describe("Publish containers ports to the internal service"),
+  route: z.union([z.boolean(), z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/)])
+    .optional().describe("Route the container's published ports to a domain"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
   detach: z.boolean().optional().default(false).describe("Detach from the container after starting"),
   force: z.boolean().optional().default(false).describe("Force recreate the container if it already exists"),
-  // scaleType: z.enum(["concurrency", "rps", "cpu", "memory"]).optional().describe("Type of scaling to apply"),
-  // scale: z.object({
-  //   min: z.number().optional(),
-  //   max: z.number().optional(),
-  //   target: z.number().optional(),
-  // }).optional().describe("Scaling configuration"),
   command: z.string()
     .max(1000, "Command length is limited for security reasons")
     .optional()
@@ -58,7 +47,9 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>;
 
 export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
-  const stderrWriter = ctx.stdio.stderr.getWriter();
+  // TODO: transform function to GeneratorFunction to display progress instead of using stderr directly
+  // This will allow us to use a more structured output and handle progress updates better
+  let stderrWriter = ctx.stdio.stderr.getWriter();
 
   if (!ctx.auth.session) {
     stderrWriter.write("ERROR: You must be authenticated to run containers.\r\n");
@@ -69,7 +60,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
     return;
   }
 
-  const { name, image, env = [], port = [], interactive, terminal, detach, force, command } = input;
+  const { name, image, env = [], publish, interactive, terminal, detach, force, command } = input;
 
   const podResource: Pod = {
     apiVersion: "v1",
@@ -78,13 +69,8 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       name,
       namespace: ctx.kube.namespace,
       labels: {
+        "ctnr.io/owner-id": ctx.auth.user.id,
         "ctnr.io/name": name,
-      },
-      annotations: {
-        // TODO: Add Pod Security Standards annotations when available
-        // "pod-security.ctx.kube.client.io/enforce": "restricted",
-        // "pod-security.ctx.kube.client.io/audit": "restricted",
-        // "pod-security.ctx.kube.client.io/warn": "restricted",
       },
     },
     spec: {
@@ -107,7 +93,11 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
             const [name, value] = e.split("=");
             return { name, value };
           }),
-          ports: port.length === 0 ? [] : port.map((p) => ({ containerPort: p })),
+          ports: publish?.map((p) => ({
+            name: p.name,
+            containerPort: Number(p.port),
+            protocol: p.protocol?.toUpperCase() as "TCP" | "UDP",
+          })),
           readinessProbe: {
             exec: {
               command: ["true"],
@@ -151,8 +141,8 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
           resources: {
             limits: {
               cpu: new Quantity(250, "m"), // 125 milliCPU (increased from 100m for better performance)
-              memory: new Quantity(512, "Mi"), // 256 MiB (increased from 256Mi)
-              "ephemeral-storage": new Quantity(1, "Gi"), // Limit ephemeral storage
+              memory: new Quantity(512, "M"), // 256 MiB (increased from 256Mi)
+              "ephemeral-storage": new Quantity(1, "G"), // Limit ephemeral storage
               // TODO: Add GPU limits when GPU resources are available
               // "nvidia.com/gpu": new Quantity(1, ""),
             },
@@ -252,13 +242,44 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
     }
   });
 
-  stderrWriter.releaseLock();
+  // Note: Service management is now handled by the route command
+  // The --publish flag only affects container port configuration
+  if (publish && publish.length > 0) {
+    stderrWriter.write(
+      `Container ports ${
+        publish.map((p) => p.name ? `${p.name}:${p.port}` : p.port).join(", ")
+      } are available for routing.\r\n`,
+    );
+
+    if (input.route) {
+      stderrWriter.write(`Route container ports ${name}...\r\n`);
+      stderrWriter.releaseLock();
+      // Route the container's published ports to a domain
+      await Route.default({
+        ctx,
+        input: {
+          name,
+          port: publish.map((p) => p.name || p.port.toString()),
+          domain: typeof input.route === "string" ? input.route : undefined,
+        },
+      }).catch((err) => {
+        console.error(`Failed to route container ${name}:`, err);
+        stderrWriter = ctx.stdio.stderr.getWriter();
+        stderrWriter.write(`Failed to route container ${name}\r\n`);
+        stderrWriter.releaseLock();
+      });
+    } else {
+      // TODO: this thing start to be annoying
+      stderrWriter.releaseLock();
+    }
+  }
 
   if (detach) {
     // If detach is enabled, just return without attaching
     console.debug(`Container ${name} is running. Detached successfully.`);
     return;
   } else if (pod?.status?.phase === "Running") {
+    // Logs
     // Attach to the pod if interactive or terminal mode is enabled
     await attach({
       ctx,
@@ -295,34 +316,6 @@ async function waitPodEvent(ctx: ServerContext, name: string, eventType: WatchEv
     const pod = value?.object as Pod;
     if (value?.type === eventType && pod?.metadata?.name === name) {
       console.debug(`Pod ${name} event: ${eventType}`);
-      break;
-    }
-    if (done) {
-      return;
-    }
-  }
-}
-
-async function waitPodStatus(
-  ctx: ServerContext,
-  name: string,
-  status: "Initialized" | "Ready" | "ContainersReady" | "PodScheduled" | "PodCompleted" | "PodFailed" | "PodReady",
-): Promise<void> {
-  // TODO: Add timeout to prevent indefinite waiting
-  // TODO: Add maximum retry attempts with exponential backoff
-  // TODO: Implement circuit breaker pattern for failed pod status checks
-  // TODO: Add logging for security monitoring and audit trails
-
-  const podWatcher = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).watchPodList({
-    labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: ctx.signal,
-  });
-  const reader = podWatcher.getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    const pod = value?.object as Pod;
-    if (pod.metadata?.name === name && pod.status?.conditions?.find((c) => c.type === status)?.status === "True") {
-      console.debug(`Pod ${name} is in status: ${status}`);
       break;
     }
     if (done) {

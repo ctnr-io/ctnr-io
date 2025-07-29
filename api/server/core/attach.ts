@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
+import { ContainerName } from "./_common.ts";
 
 export const Meta = {
   aliases: {
@@ -11,7 +12,7 @@ export const Meta = {
 };
 
 export const Input = z.object({
-  name: z.string().describe("Name of the container"),
+  name: ContainerName,
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
 });
@@ -63,6 +64,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       abortSignal: ctx.signal,
       container: name,
     });
+
 
     // if (terminal) {
     //   const signalChanAsyncGenerator = ctx.stdio.signalChan();

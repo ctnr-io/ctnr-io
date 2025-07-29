@@ -12,7 +12,7 @@ type ProcedureOptions = {
 };
 
 export type ClientTerminalContext = ClientContext & {
-  lazy: <R>(
+  connect: <R>(
     procedureOptions: ProcedureOptions,
     callback: ({ server }: {
       server: TRPCClient<ServerRouter>;
@@ -28,11 +28,13 @@ export async function createTrpcClientTerminalContext(
   const ctx = await createClientContext(opts);
   return {
     ...ctx,
-    // This function prevent to start websocket connection until the first call to `lazy`
+    // This function prevent to start websocket connection until the first call to `connect`
     // This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
-    lazy: async (procedureOptions, callback) => {
+    connect: async (procedureOptions, callback) => {
       try {
-        await loginPkce({ ctx })
+        if (procedureOptions.authenticate) {
+          await loginPkce({ ctx });
+        }
         const { data: { session } } = await ctx.auth.client.getSession();
         if (!session) {
           throw new Error("Failed to retrieve session. Please log in again.");
@@ -118,13 +120,12 @@ export async function createTrpcClientTerminalContext(
           }
         })();
 
-        return callback({
+        return await callback({
           server: client.trpc,
         });
       } catch (error) {
-        console.debug("Error in lazy callback:", error);
         console.error(error instanceof Error ? error.message : "An error occurred while executing command.");
-        Deno.exit(1);
+        Deno.exit(1)
       }
     },
   };

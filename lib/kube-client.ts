@@ -509,7 +509,7 @@ export async function ensureService(kc: KubeClient, namespace: string, service: 
     .with(nextService as any, () => true)
     .otherwise(async () => {
       await kc.CoreV1.namespace(namespace).deleteService(service.metadata!.name!);
-      return await kc.CoreV1.namespace(namespace).createService(nextService);
+      await kc.CoreV1.namespace(namespace).createService(nextService);
     });
 }
 
@@ -759,7 +759,7 @@ export const ensureUserNamespace = async (
 
   await ensureNamespace(kc, namespace);
 
-  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
+  // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
 
   return namespaceName;
 };

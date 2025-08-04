@@ -3,7 +3,7 @@ import { ServerContext } from "ctx/mod.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
-import { ContainerName, Publish } from "./_common.ts";
+import { ContainerName, Publish, ServerGenerator } from "./_common.ts";
 import * as Route from "./route.ts";
 
 export const Meta = {
@@ -45,20 +45,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
-export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
-  // TODO: transform function to GeneratorFunction to display progress instead of using stderr directly
-  // This will allow us to use a more structured output and handle progress updates better
-  let stderrWriter = ctx.stdio.stderr.getWriter();
-
-  if (!ctx.auth.session) {
-    stderrWriter.write("ERROR: You must be authenticated to run containers.\r\n");
-    return;
-  }
-  if (!ctx.auth.user) {
-    stderrWriter.write("ERROR: User is not available in the session.\r\n");
-    return;
-  }
-
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
   const { name, image, env = [], publish, interactive, terminal, detach, force, command } = input;
 
   const podResource: Pod = {
@@ -187,20 +174,23 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
-        stderrWriter.write(
-          `Container ${name} already exists and is ${pod.status.phase.toLowerCase()}. Forcing recreation...\r\n`,
-        );
+        yield ({ input: { name } }) => {
+          console.warn(`Container ${name} already exists. Forcing recreation...`);
+        };
       } else {
-        stderrWriter.write(
-          `Container ${name} already exists and is running. Use --force to recreate it.\r\n`,
-        );
-        stderrWriter.releaseLock();
+        yield ({ input: { name } }) => {
+          console.warn(`Container ${name} already exists and is running. Use --force to recreate it.`);
+        };
         return;
       }
     } else {
-      stderrWriter.write(`Container ${name} already exists but is not running. Recreating it...\r\n`);
+      yield ({ input: { name } }) => {
+        console.warn(`Container ${name} already exists but is not running. Recreating it...`);
+      };
+      yield ({ input: { name } }) => {
+        console.warn(`Waiting for container ${name} to be deleted...`);
+      };
     }
-    stderrWriter.write(`Waiting for container ${name} to be deleted...\r\n`);
     await Promise.all([
       waitPodEvent(ctx, name, "DELETED"),
       ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).deletePod(name, {
@@ -211,16 +201,15 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
   }
 
   // Create the pod
-  stderrWriter.write(
-    `Container ${name} created. Waiting for it to be ready...\r\n`,
-  );
+  yield ({ input: { name } }) => {
+    console.warn(`Container ${name} created. Waiting for it to be ready...`);
+  };
   ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).createPod(podResource, {
     abortSignal: ctx.signal,
   });
   pod = await waitForPod(ctx, name, (pod) => {
     switch (pod.status?.phase) {
       case "Succeeded": {
-        stderrWriter.write(`Container ${name} completed successfully.\r\n`);
         return true;
       }
       case "Running":
@@ -228,11 +217,6 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
           return true;
         }
         if (pod.status?.containerStatuses?.[0]?.state?.terminated) {
-          stderrWriter.write(
-            `Container ${name} terminated with exit code ${
-              pod.status.containerStatuses[0].state.terminated.exitCode
-            }.\r\n`,
-          );
           return true;
         }
         return false;
@@ -240,49 +224,61 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
         return false;
     }
   });
+  if (!pod) {
+    yield ({ input: { name } }) => console.warn(`Container ${name} failed to start.`);
+    return;
+  }
+  if (pod.status?.phase === "Running") {
+    yield ({ input: { name } }) => console.warn(`Container ${name} is running.`);
+  }
+  if (pod.status?.phase === "Succeeded") {
+    yield ({ input: { name } }) => console.warn(`Container ${name} completed successfully.`);
+    return;
+  }
+  if (pod.status?.containerStatuses?.[0]?.state?.terminated) {
+    yield ({ input: { name } }) => console.warn(`Container ${name} terminated.`);
+  }
 
   // Note: Service management is now handled by the route command
   // The --publish flag only affects container port configuration
   if (publish && publish.length > 0) {
-    stderrWriter.write(
-      `Container ports ${
-        publish.map((p) => p.name ? `${p.name}:${p.port}` : p.port).join(", ")
-      } are available for routing.\r\n`,
-    );
+    yield () => {
+      console.warn(`Container ports are available for routing.`);
+    };
 
     if (input.route) {
-      stderrWriter.write(`Route container ports ${name}...\r\n`);
-      stderrWriter.releaseLock();
+      yield ({ input: { name } }) => {
+        console.warn(`Route container ports ${name}...`);
+      };
       // Route the container's published ports to a domain
-      await Route.default({
-        ctx,
-        input: {
-          name,
-          port: publish.map((p) => p.name || p.port.toString()),
-          domain: typeof input.route === "string" ? input.route : undefined,
-        },
-      }).catch((err) => {
+      try {
+        yield* Route.default({
+          ctx,
+          input: {
+            name,
+            port: publish.map((p) => p.name || p.port.toString()),
+            domain: typeof input.route === "string" ? input.route : undefined,
+          },
+        });
+      } catch (err) {
         console.error(`Failed to route container ${name}:`, err);
-        stderrWriter = ctx.stdio.stderr.getWriter();
-        stderrWriter.write(`Failed to route container ${name}\r\n`);
-        stderrWriter.releaseLock();
-      });
-    } else {
-      // TODO: this thing start to be annoying
-      stderrWriter.releaseLock();
+        yield ({ input: { name } }) => {
+          console.warn(`Failed to route container ${name}`);
+        };
+      }
     }
-  } else {
-    stderrWriter.releaseLock();
   }
 
   if (detach) {
     // If detach is enabled, just return without attaching
-    console.debug(`Container ${name} is running. Detached successfully.`);
+    yield ({ input: { name } }) => {
+      console.warn(`Container ${name} is running. Detached successfully.`);
+    };
     return;
   } else if (pod?.status?.phase === "Running") {
     // Logs
     // Attach to the pod if interactive or terminal mode is enabled
-    await attach({
+    yield* attach({
       ctx,
       input: {
         name,
@@ -299,7 +295,7 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       signal: ctx.signal,
     });
   }
-};
+}
 
 async function waitPodEvent(ctx: ServerContext, name: string, eventType: WatchEvent<any, any>["type"]): Promise<void> {
   // TODO: Add timeout to prevent indefinite waiting and potential DoS

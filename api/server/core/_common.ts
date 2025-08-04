@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ClientContext } from "ctx/mod.ts";
+import { ts } from '@tmpl/core';
 
 export const gatewayListeners = [
   "http",
@@ -41,3 +43,9 @@ export const Publish = z.string().transform((value) => {
 }).refine(PublishSchema.parse).describe(
   `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
 );
+
+export type ServerGenerator<Input> = AsyncGenerator<
+  ReturnType<typeof ts> | ((args: { ctx: ClientContext, input: Input, signal?: AbortSignal }) => void),
+  void,
+  unknown
+>;

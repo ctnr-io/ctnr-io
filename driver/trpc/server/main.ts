@@ -18,9 +18,9 @@ const handler = applyWSSHandler({
   keepAlive: {
     enabled: true,
     // server ping message interval in milliseconds
-    pingMs: 30000,
+    pingMs: 1000,
     // connection is terminated if pong message is not received in this many milliseconds
-    pongWaitMs: 5000,
+    pongWaitMs: 1000,
   },
   onError: (err: any) => {
     console.error("WebSocket error:", err.message);

@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { ServerContext } from "ctx/mod.ts";
-import { ContainerName } from "./_common.ts";
+import { ClientContext, ServerContext } from "ctx/mod.ts";
+import { ContainerName, ServerGenerator } from "./_common.ts";
+import { Server } from "node:http";
 
 export const Meta = {
   aliases: {
@@ -51,7 +52,7 @@ const handleCtrlPCtrlQ = ({ interactive, terminal, stderr }: {
   };
 };
 
-export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
   const defer: Array<() => unknown> = [];
   try {
     const { name, interactive = false, terminal = false } = input;
@@ -101,10 +102,11 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       defer.push(() => ctx.stdio.setRaw(false));
     }
 
-    const stderrWriter = ctx.stdio.stderr.getWriter();
-    stderrWriter.write(`Container ${name} is running.\r\n`);
-    interactive && stderrWriter.write(`Press ENTER if you don't see a command prompt.\r\n`);
-    stderrWriter.releaseLock();
+    console.debug(`Attaching to container: ${name}`);
+    yield ({ input }) => {
+      console.warn(`Container ${input.name} is running.`);
+      input.interactive && console.warn(`Press ENTER if you don't see a command prompt.`);
+    };
 
     const stdioController = new AbortController();
     ctx.signal?.addEventListener("abort", () => {
@@ -169,4 +171,4 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       }
     }
   }
-};
+}

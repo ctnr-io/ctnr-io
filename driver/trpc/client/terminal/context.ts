@@ -12,6 +12,10 @@ type ProcedureOptions = {
 };
 
 export type ClientTerminalContext = ClientContext & {
+  /**
+   * This function prevent to start websocket connection until the first call to `connect`
+   * This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
+   */
   connect: <R>(
     procedureOptions: ProcedureOptions,
     callback: ({ server }: {
@@ -28,8 +32,6 @@ export async function createTrpcClientTerminalContext(
   const ctx = await createClientContext(opts);
   return {
     ...ctx,
-    // This function prevent to start websocket connection until the first call to `connect`
-    // This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
     connect: async (procedureOptions, callback) => {
       try {
         if (procedureOptions.authenticate) {

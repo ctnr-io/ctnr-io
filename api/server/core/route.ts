@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { ContainerName, PortName } from "./_common.ts";
+import { ContainerName, PortName, ServerGenerator } from "./_common.ts";
 import { ensureUserRoute } from "lib/kube-client.ts";
 import { hash } from "node:crypto";
 import * as shortUUID from "@opensrc/short-uuid";
 import { resolveTxt } from "node:dns/promises";
+import { ts } from "@tmpl/core";
 
 export const Meta = {
   aliases: {
@@ -28,8 +29,7 @@ export type Input = z.infer<typeof Input>;
 
 const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36);
 
-export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
-  const stderrWriter = ctx.stdio.stderr.getWriter();
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
   try {
     // Get all ports of the container
     const pod = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(input.name).catch(() => {
@@ -77,38 +77,43 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       const txtRecordValue = hash("sha256", ctx.auth.user.created_at + domain);
       const values = await resolveTxt(txtRecordName).catch(() => []);
       if (values.flat().includes(txtRecordValue)) {
-        stderrWriter.write(`Domain ownership for ${domain} already verified.\n`);
+        yield ts` 
+          console.warn('Domain ownership for ${domain} already verified.')
+        `;
       } else {
         // Check if the TXT record already exists
-        stderrWriter.write(
-          [
-            "",
-            `Verifying domain ownership for ${domain}...`,
-            "",
-            `Please create a TXT record with the following details:`,
-            `Name: ${txtRecordName}`,
-            `Value: ${txtRecordValue}`,
-            "",
-            "",
-          ].join("\r\n"),
-        );
+        yield ts`
+          console.warn(
+            [
+              "",
+              'Verifying domain ownership for ${domain}...',
+              "",
+              'Please create a TXT record with the following details:',
+              'Name: ${txtRecordName}',
+              'Value: ${txtRecordValue}',
+              "",
+              "",
+            ].join("\r\n")
+          )
+        `;
         // Wait for the user to create the TXT record
-        await new Promise<void>((resolve, reject) => {
-          const interval = setInterval(async () => {
-            if (ctx.signal?.aborted) {
-              clearInterval(interval);
-              reject();
-              return;
-            }
-            stderrWriter.write(`Checking for TXT record...\n`);
-            const values = await resolveTxt(txtRecordName).catch(() => []);
-            if (values.flat().includes(txtRecordValue)) {
-              clearInterval(interval);
-              stderrWriter.write(`TXT record verified successfully.\n`);
-              resolve();
-            }
-          }, 5000);
-        });
+        while (true) {
+          yield ts`
+            console.warn('Checking for TXT record...')
+          `;
+          if (ctx.signal?.aborted) {
+            throw new Error("Domain ownership verification aborted");
+          }
+          // Check the TXT record every 5 seconds
+          const values = await resolveTxt(txtRecordName).catch(() => []);
+          if (values.flat().includes(txtRecordValue)) {
+            yield ts`
+              console.warn('TXT record verified successfully.')
+            `;
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
       }
     }
 
@@ -119,21 +124,23 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
       ports: routedPorts,
     });
 
-    stderrWriter.write(
-      `Routes created successfully for container ${input.name}:\n` +
-        hostnames.map((hostname) => `- https://${hostname}`).join("\r\n") +
-        "\r\n",
-    );
-
-    stderrWriter.releaseLock();
+    yield ts`
+      const hostnames = ${JSON.stringify(hostnames)};
+      console.warn('Routes created successfully for container ${input.name}:')
+      for (const hostname of hostnames) {
+        console.warn(
+          '  - https://' + hostname
+        )
+      }
+    `;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error from server";
     console.error("Route creation failed:", error);
 
-    const stderrWriter = ctx.stdio.stderr.getWriter();
-    stderrWriter.write(`Error creating route: ${errorMessage}\n`);
-    stderrWriter.releaseLock();
+    yield ts`
+      console.warn('Error creating route: ${errorMessage}')
+    `;
 
     throw error;
   }
-};
+}

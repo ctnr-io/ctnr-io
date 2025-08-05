@@ -759,7 +759,7 @@ export const ensureUserNamespace = async (
 
   await ensureNamespace(kc, namespace);
 
-  // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
+  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
 
   return namespaceName;
 };

@@ -45,7 +45,7 @@ export const Publish = z.string().transform((value) => {
 );
 
 export type ServerGenerator<Input> = AsyncGenerator<
-  ReturnType<typeof ts> | ((args: { ctx: ClientContext, input: Input, signal?: AbortSignal }) => void),
+  string | ReturnType<typeof ts> | ((args: { ctx: ClientContext, input: Input, signal?: AbortSignal }) => void),
   void,
   unknown
 >;

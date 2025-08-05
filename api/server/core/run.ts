@@ -174,22 +174,14 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   if (pod) {
     if (pod.status?.phase === "Running" || pod.status?.phase === "Pending") {
       if (force) {
-        yield ({ input: { name } }) => {
-          console.warn(`Container ${name} already exists. Forcing recreation...`);
-        };
+        yield `Container ${name} already exists. Forcing recreation...`;
       } else {
-        yield ({ input: { name } }) => {
-          console.warn(`Container ${name} already exists and is running. Use --force to recreate it.`);
-        };
+        yield `Container ${name} already exists and is running. Use --force to recreate it.`;
         return;
       }
     } else {
-      yield ({ input: { name } }) => {
-        console.warn(`Container ${name} already exists but is not running. Recreating it...`);
-      };
-      yield ({ input: { name } }) => {
-        console.warn(`Waiting for container ${name} to be deleted...`);
-      };
+      yield `Container ${name} already exists but is not running. Recreating it...`;
+      yield `Waiting for container ${name} to be deleted...`;
     }
     await Promise.all([
       waitPodEvent(ctx, name, "DELETED"),
@@ -201,9 +193,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   }
 
   // Create the pod
-  yield ({ input: { name } }) => {
-    console.warn(`Container ${name} created. Waiting for it to be ready...`);
-  };
+  yield `Container ${name} created. Waiting for it to be ready...`;
   ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).createPod(podResource, {
     abortSignal: ctx.signal,
   });
@@ -242,14 +232,10 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   // Note: Service management is now handled by the route command
   // The --publish flag only affects container port configuration
   if (publish && publish.length > 0) {
-    yield () => {
-      console.warn(`Container ports are available for routing.`);
-    };
+    yield `Container ports are available for routing.`;
 
     if (input.route) {
-      yield ({ input: { name } }) => {
-        console.warn(`Route container ports ${name}...`);
-      };
+      yield `Route container ports ${name}...`;
       // Route the container's published ports to a domain
       try {
         yield* Route.default({
@@ -262,18 +248,14 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
         });
       } catch (err) {
         console.error(`Failed to route container ${name}:`, err);
-        yield ({ input: { name } }) => {
-          console.warn(`Failed to route container ${name}`);
-        };
+        yield `Failed to route container ${name}`;
       }
     }
   }
 
   if (detach) {
     // If detach is enabled, just return without attaching
-    yield ({ input: { name } }) => {
-      console.warn(`Container ${name} is running. Detached successfully.`);
-    };
+    yield `Container ${name} is running. Detached successfully.`;
     return;
   } else if (pod?.status?.phase === "Running") {
     // Logs

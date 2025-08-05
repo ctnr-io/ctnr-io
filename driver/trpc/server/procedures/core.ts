@@ -14,11 +14,14 @@ function transformSubscribeProcedure<Input, Opts>(procedure: (opts: Opts) => Ser
     for await (const value of generator) {
       if (typeof value === "function") {
         yield value.toString();
-      } else {
+      } else if (value.constructor.name === "TemplateClass") { 
         yield ts`
-          ({ ctx, input, signal }) => {
-            ${value}
-          };
+          ({ ctx, input, signal }) => {${value}};
+        `.toString()
+      } else {
+        // If string, print it directly
+        yield ts`
+          () => console.warn('${value.replace(/\'/g, "\\\'")}');
         `.toString()
       }
     }

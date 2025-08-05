@@ -103,10 +103,10 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     }
 
     console.debug(`Attaching to container: ${name}`);
-    yield ({ input }) => {
-      console.warn(`Container ${input.name} is running.`);
-      input.interactive && console.warn(`Press ENTER if you don't see a command prompt.`);
-    };
+    yield `Container ${input.name} is running.`;
+    if (interactive) {
+      yield `Press ENTER if you don't see a command prompt.`;
+    }
 
     const stdioController = new AbortController();
     ctx.signal?.addEventListener("abort", () => {

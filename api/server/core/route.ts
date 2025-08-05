@@ -5,7 +5,6 @@ import { ensureUserRoute } from "lib/kube-client.ts";
 import { hash } from "node:crypto";
 import * as shortUUID from "@opensrc/short-uuid";
 import { resolveTxt } from "node:dns/promises";
-import { ts } from "@tmpl/core";
 
 export const Meta = {
   aliases: {
@@ -77,39 +76,29 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       const txtRecordValue = hash("sha256", ctx.auth.user.created_at + domain);
       const values = await resolveTxt(txtRecordName).catch(() => []);
       if (values.flat().includes(txtRecordValue)) {
-        yield ts` 
-          console.warn('Domain ownership for ${domain} already verified.')
-        `;
+        yield `Domain ownership for ${domain} already verified.`;
       } else {
         // Check if the TXT record already exists
-        yield ts`
-          console.warn(
-            [
-              "",
-              'Verifying domain ownership for ${domain}...',
-              "",
-              'Please create a TXT record with the following details:',
-              'Name: ${txtRecordName}',
-              'Value: ${txtRecordValue}',
-              "",
-              "",
-            ].join("\r\n")
-          )
-        `;
+        yield [
+          "",
+          `Verifying domain ownership for ${domain}...`,
+          "",
+          "Please create a TXT record with the following details:",
+          `Name: ${txtRecordName}`,
+          `Value: ${txtRecordValue}`,
+          "",
+          "",
+        ].join("\r\n");
         // Wait for the user to create the TXT record
         while (true) {
-          yield ts`
-            console.warn('Checking for TXT record...')
-          `;
+          yield `Checking for TXT record...`;
           if (ctx.signal?.aborted) {
             throw new Error("Domain ownership verification aborted");
           }
           // Check the TXT record every 5 seconds
           const values = await resolveTxt(txtRecordName).catch(() => []);
           if (values.flat().includes(txtRecordValue)) {
-            yield ts`
-              console.warn('TXT record verified successfully.')
-            `;
+            yield "TXT record verified successfully.";
             break;
           }
           await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -124,23 +113,14 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       ports: routedPorts,
     });
 
-    yield ts`
-      const hostnames = ${JSON.stringify(hostnames)};
-      console.warn('Routes created successfully for container ${input.name}:')
-      for (const hostname of hostnames) {
-        console.warn(
-          '  - https://' + hostname
-        )
-      }
-    `;
+    yield `Routes created successfully for container ${input.name}:`;
+    for (const hostname of hostnames) {
+      yield `  - https://${hostname}`;
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error from server";
     console.error("Route creation failed:", error);
-
-    yield ts`
-      console.warn('Error creating route: ${errorMessage}')
-    `;
-
+    yield `Error creating route: ${errorMessage}`;
     throw error;
   }
 }

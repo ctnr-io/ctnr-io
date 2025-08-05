@@ -31,6 +31,7 @@
     "@types/ws": "npm:@types/ws@^8.2.0",
     "ip6addr": "npm:ip6addr@^0.2.5",
     "itertools-ts": "npm:itertools-ts@^2.2.0",
+    "superjson": "npm:superjson@^2.2.2",
     "trpc-cli": "npm:trpc-cli@^0.9.2",
     "ts-pattern": "npm:ts-pattern@^5.7.1",
     "ts-to-zod": "npm:ts-to-zod@^3.15.0",

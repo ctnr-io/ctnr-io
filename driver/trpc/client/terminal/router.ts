@@ -1,6 +1,7 @@
 import * as Run from "api/server/core/run.ts";
 import * as List from "api/server/core/list.ts";
 import * as Attach from "api/server/core/attach.ts";
+import * as Exec from "api/server/core/exec.ts";
 import * as Route from "api/server/core/route.ts";
 import * as Logs from "api/server/core/logs.ts";
 import { initTRPC } from "@trpc/server";
@@ -8,6 +9,8 @@ import { ClientTerminalContext } from "./context.ts";
 import login from "api/client/auth/login-pkce.ts";
 import logout from "api/client/auth/logout.ts";
 import { Unsubscribable } from "@trpc/server/observable";
+import { SubscribeProcedureOutput } from "../../server/procedures/core.ts";
+import { exec } from "node:child_process";
 
 export const trpc = initTRPC.context<ClientTerminalContext>().create();
 
@@ -19,7 +22,7 @@ function transformSubscribeResolver<
     onStarted?: () => void;
     onError?: (error: Error) => void;
     onComplete?: () => void;
-    onData?: (data: string) => void;
+    onData?: (data: SubscribeProcedureOutput) => void;
     onStopped?: () => void;
   }) => Unsubscribable,
   { ctx, input, signal }: { ctx: ClientTerminalContext; input: Input; signal?: AbortSignal },
@@ -29,9 +32,21 @@ function transformSubscribeResolver<
       signal,
       onError: reject,
       onComplete: resolve,
-      onData: (data: string) => {
-        if (data) {
-          eval(data)({ ctx, input, signal });
+      onData: (data: SubscribeProcedureOutput) => {
+        switch (data.type) {
+          case "function":
+            return eval(data.value)({ ctx, input, signal });
+          case "template":
+            return eval(data.value)({ ctx, input, signal });
+          case "message":
+            console.warn(data.value); 
+            return;
+          case "raw":
+            console.warn(data.value);
+            return;
+          default:
+            console.warn(data);
+            return;
         }
       },
     })
@@ -63,16 +78,19 @@ export const cliRouter = trpc.router({
   list: trpc.procedure.meta(List.Meta).input(List.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
       { authenticate: true },
-      ({ server }) =>
-        server.core.list.mutate(input, {
-          signal,
-        }),
+      ({ server }) => transformSubscribeResolver(server.core.list.subscribe, { input, signal, ctx }),
     )
   ),
   attach: trpc.procedure.meta(Attach.Meta).input(Attach.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
       { authenticate: true },
       ({ server }) => transformSubscribeResolver(server.core.attach.subscribe, { input, signal, ctx }),
+    )
+  ),
+  exec: trpc.procedure.meta(Exec.Meta).input(Exec.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      { authenticate: true },
+      ({ server }) => transformSubscribeResolver(server.core.exec.subscribe, { input, signal, ctx }),
     )
   ),
   route: trpc.procedure.meta(Route.Meta).input(Route.Input).mutation(({ input, signal, ctx }) =>

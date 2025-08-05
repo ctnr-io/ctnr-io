@@ -14,6 +14,11 @@ export const Meta = {
 
 export const Input = z.object({
   name: ContainerName,
+  command: z.string()
+    .max(1000, "Command length is limited for security reasons")
+    .optional()
+    .default("/bin/sh")
+    .describe("Command to execute in the container"),
   interactive: z.boolean().optional().default(false).describe("Run interactively"),
   terminal: z.boolean().optional().default(false).describe("Run in a terminal"),
 });
@@ -22,9 +27,22 @@ export type Input = z.infer<typeof Input>;
 
 export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
   yield* runWithCleanup(async function* (defer) {
-    const { name, interactive = false, terminal = false } = input;
+    const { name, command = "/bin/sh", interactive = false, terminal = false } = input;
 
-    const tunnel = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).tunnelPodAttach(name, {
+    // Check if the pod exists and is running
+    const podResource = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(name);
+    if (!podResource) {
+      yield `Container ${name} not found.`;
+      return;
+    }
+    
+    if (podResource.status?.phase !== "Running") {
+      yield `Container ${name} is not running (status: ${podResource.status?.phase}).`;
+      return;
+    }
+
+    const tunnel = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).tunnelPodExec(name, {
+      command: command === "/bin/sh" ? ["/bin/sh"] : ["sh", "-c", command],
       stdin: interactive,
       tty: terminal,
       stdout: true,
@@ -36,17 +54,15 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     setupSignalHandling(ctx, tunnel, terminal, interactive, defer);
     setupTerminalHandling(ctx, tunnel, terminal, interactive, defer);
 
-    console.debug(`Attaching to container: ${name}`);
-    yield `Container ${input.name} is running.`;
+    console.debug(`Executing command in container: ${name}`);
+    yield `Executing command in container ${input.name}.`;
     if (interactive) {
       yield `Press ENTER if you don't see a command prompt.`;
     }
 
     defer.push(async () => {
-      // Get pod resource
-      const podResource = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(name);
-      // Close the tunnel and clean up resources
-      ctx.stdio.exit(podResource.status?.containerStatuses?.[0]?.state?.terminated?.exitCode || 0);
+      // Exit with the command's exit code
+      ctx.stdio.exit(0);
     });
 
     await handleStreams(ctx, tunnel, interactive, terminal, defer);

@@ -1,11 +1,11 @@
 import { KubeConfig } from "@cloudydeno/kubernetes-apis/deps.ts";
-import { CoreV1Api, Namespace, Service } from "@cloudydeno/kubernetes-apis/core/v1";
+import { CoreV1Api, Namespace, ResourceQuota, Service } from "@cloudydeno/kubernetes-apis/core/v1";
 import { NetworkingV1NamespacedApi } from "@cloudydeno/kubernetes-apis/networking.k8s.io/v1";
 import { AppsV1Api } from "@cloudydeno/kubernetes-apis/apps/v1";
 import { RawKubeConfig } from "@cloudydeno/kubernetes-client/lib/kubeconfig.ts";
 import { ApiextensionsV1Api } from "@cloudydeno/kubernetes-apis/apiextensions.k8s.io/v1";
 import * as YAML from "@std/yaml";
-import { RestClient } from "@cloudydeno/kubernetes-apis/common.ts";
+import { Quantity, RestClient } from "@cloudydeno/kubernetes-apis/common.ts";
 import { SpdyEnabledRestClient } from "./spdy-enabled-rest-client.ts";
 import { match } from "ts-pattern";
 import { yaml } from "@tmpl/core";
@@ -452,6 +452,28 @@ async function ensureNamespace(kc: KubeClient, namespace: Namespace): Promise<vo
     );
 }
 
+async function ensureResourceQuota(
+  kc: KubeClient,
+  namespace: string,
+  resourceQuota: ResourceQuota,
+): Promise<void> {
+  const resourceQuotaName = resourceQuota.metadata?.name!;
+  await match(
+    // Get the resource quota and return null if it does not exist
+    await kc.CoreV1.namespace(namespace).getResourceQuota(resourceQuotaName).catch(() => null),
+  )
+    // if resource quota does not exist, create it
+    .with(null, () => kc.CoreV1.namespace(namespace).createResourceQuota(resourceQuota))
+    // if resource quota exists, and match values, do nothing, else, replace it to ensure it match
+    .with(resourceQuota as any, () => true)
+    .otherwise(async () => {
+      console.debug("Replacing existing ResourceQuota", resourceQuotaName);
+      // Delete the existing resource quota first
+      await kc.CoreV1.namespace(namespace).deleteResourceQuota(resourceQuotaName);
+      // Then create the new one
+      return kc.CoreV1.namespace(namespace).createResourceQuota(resourceQuota);
+    });
+}
 async function ensureCiliumNetworkPolicy(
   kc: KubeClient,
   namespace: string,
@@ -760,6 +782,27 @@ export const ensureUserNamespace = async (
   await ensureNamespace(kc, namespace);
 
   await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy);
+
+  await ensureResourceQuota(kc, namespaceName, {
+    metadata: {
+      name: "ctnr-user-quota",
+      namespace: namespaceName,
+      labels: {
+        "ctnr.io/owner-id": userId,
+      },
+    },
+    spec: {
+      hard: {
+        "limits.cpu": new Quantity(2, "m"),
+        "limits.memory": new Quantity(4, "G"),
+        "requests.cpu": new Quantity(1, "m"),
+        "requests.memory": new Quantity(2, "G"),
+        // "pods": new Quantity("10"),
+        // "services": new Quantity("10"),
+        // "persistentvolumeclaims": new Quantity("10"),
+      },
+    },
+  });
 
   return namespaceName;
 };

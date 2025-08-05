@@ -126,8 +126,9 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
           // Enhanced resource limits to prevent resource exhaustion attacks
           resources: {
             limits: {
-              cpu: new Quantity(250, "m"), // 125 milliCPU (increased from 100m for better performance)
-              memory: new Quantity(512, "M"), // 256 MiB (increased from 256Mi)
+              // CPU & Memory are namespaced scoped
+              // cpu: new Quantity(250, "m"), // 125 milliCPU (increased from 100m for better performance)
+              // memory: new Quantity(512, "M"), // 256 MiB (increased from 256Mi)
               "ephemeral-storage": new Quantity(1, "G"), // Limit ephemeral storage
               // TODO: Add GPU limits when GPU resources are available
               // "nvidia.com/gpu": new Quantity(1, ""),

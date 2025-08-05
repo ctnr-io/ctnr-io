@@ -9,7 +9,7 @@ try {
     router: cliRouter,
     name: "ctnr",
     version: Deno.env.get("CTNR_VERSION"),
-    description: "Ctnr Remote CLI",
+    description: "ctnr.io Remote CLI",
     context: await createTrpcClientTerminalContext({
       stdio: {
         stdin: Deno.stdin.readable,

@@ -28,6 +28,13 @@ export type KubeContext = {
   };
 };
 
+export type DeferServerContext = {
+  defer: {
+    (fn: () => any): number;
+    run(): Promise<void>;
+  };
+};
+
 /**
  * User should always be authenticated in server context.
  */
@@ -51,5 +58,7 @@ export type AuthClientContext = AuthServerContext | {
   };
 };
 
-export type ServerContext = SignalContext & StdioContext & KubeContext & AuthServerContext & { __type: "server" };
+export type ServerContext = SignalContext & StdioContext & KubeContext & AuthServerContext & DeferServerContext & {
+  __type: "server";
+};
 export type ClientContext = SignalContext & StdioContext & AuthClientContext & { __type: "client" };

@@ -3,7 +3,7 @@ import { ServerContext } from "ctx/mod.ts";
 import { Pod } from "@cloudydeno/kubernetes-apis/core/v1";
 import { Quantity, WatchEvent } from "@cloudydeno/kubernetes-apis/common.ts";
 import attach from "./attach.ts";
-import { ContainerName, Publish, ServerGenerator } from "./_common.ts";
+import { ContainerName, Publish, ServerResponse } from "./_common.ts";
 import * as Route from "./route.ts";
 
 export const Meta = {
@@ -45,7 +45,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
   const { name, image, env = [], publish, interactive, terminal, detach, force, command } = input;
 
   const podResource: Pod = {
@@ -127,8 +127,8 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
           resources: {
             limits: {
               // CPU & Memory are namespaced scoped
-              // cpu: new Quantity(250, "m"), // 125 milliCPU (increased from 100m for better performance)
-              // memory: new Quantity(512, "M"), // 256 MiB (increased from 256Mi)
+              cpu: new Quantity(250, "m"), // 125 milliCPU (increased from 100m for better performance)
+              memory: new Quantity(512, "M"), // 256 MiB (increased from 256Mi)
               "ephemeral-storage": new Quantity(1, "G"), // Limit ephemeral storage
               // TODO: Add GPU limits when GPU resources are available
               // "nvidia.com/gpu": new Quantity(1, ""),
@@ -216,18 +216,18 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     }
   });
   if (!pod) {
-    yield ({ input: { name } }) => console.warn(`Container ${name} failed to start.`);
+    yield `Container ${name} failed to start.`;
     return;
   }
   if (pod.status?.phase === "Running") {
-    yield ({ input: { name } }) => console.warn(`Container ${name} is running.`);
+    yield `Container ${name} is running.`;
   }
   if (pod.status?.phase === "Succeeded") {
-    yield ({ input: { name } }) => console.warn(`Container ${name} completed successfully.`);
+    yield `Container ${name} completed successfully.`;
     return;
   }
   if (pod.status?.containerStatuses?.[0]?.state?.terminated) {
-    yield ({ input: { name } }) => console.warn(`Container ${name} terminated.`);
+    yield `Container ${name} terminated.`;
   }
 
   // Note: Service management is now handled by the route command

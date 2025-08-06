@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { ContainerName, ServerGenerator } from "./_common.ts";
-import { setupSignalHandling, setupTerminalHandling, handleStreams, runWithCleanup } from "./_stream-utils.ts";
+import { ContainerName, ServerResponse } from "./_common.ts";
+import { setupSignalHandling, setupTerminalHandling, handleStreams } from "./_stream-utils.ts";
 
 export const Meta = {
   aliases: {
@@ -25,8 +25,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
-  yield* runWithCleanup(async function* (defer) {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
     const { name, command = "/bin/sh", interactive = false, terminal = false } = input;
 
     // Check if the pod exists and is running
@@ -51,20 +50,18 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       container: name,
     });
 
-    setupSignalHandling(ctx, tunnel, terminal, interactive, defer);
-    setupTerminalHandling(ctx, tunnel, terminal, interactive, defer);
+    setupSignalHandling(ctx, tunnel, terminal, interactive);
+    setupTerminalHandling(ctx, tunnel, terminal, interactive);
 
-    console.debug(`Executing command in container: ${name}`);
-    yield `Executing command in container ${input.name}.`;
     if (interactive) {
       yield `Press ENTER if you don't see a command prompt.`;
     }
 
-    defer.push(async () => {
+    ctx.defer(async () => {
       // Exit with the command's exit code
-      ctx.stdio.exit(0);
+      const status = await tunnel.status.then(status => status);
+      ctx.stdio.exit(status.exitCode || 0);
     });
 
-    await handleStreams(ctx, tunnel, interactive, terminal, defer);
-  }, ctx);
+    await handleStreams(ctx, tunnel, interactive, terminal);
 }

@@ -1,15 +1,16 @@
 import { openBrowser, startCallbackServer } from "driver/trpc/client/terminal/auth-callback-server.ts";
 import { AuthClientContext } from "ctx/mod.ts";
+import { ClientResponse } from "../../server/core/_common.ts";
 
-export default async ({ ctx }: { ctx: AuthClientContext }): Promise<void> => {
+export default async function* ({ ctx }: { ctx: AuthClientContext }): ClientResponse {
   try {
     // Check if user is already authenticated
     const { data: { session } } = await ctx.auth.client.getSession();
     if (session?.access_token && (session?.expires_at ?? 0) < Date.now()) {
-      console.info(`🔑 Authenticated as ${session.user.email}.`);
+      yield `🔑 Authenticated as ${session.user.email}.`;
       return;
     }
-    console.info("🔑 Starting OAuth flow...");
+    yield "🔑 Starting OAuth flow...";
 
     // Generate PKCE parameters
     const { server, promise, url } = startCallbackServer();
@@ -28,23 +29,23 @@ export default async ({ ctx }: { ctx: AuthClientContext }): Promise<void> => {
     }
 
     if (Deno.stdin.isTerminal()) {
-      console.info(`📱 Opening browser for authentication...`);
+      yield `📱 Opening browser for authentication...`;
 
       // Open browser
       try {
         await openBrowser(oauth.data.url);
       } catch (error) {
         console.warn("Failed to open browser automatically:", error);
-        console.info(`Please manually open: ${oauth.data.url}`);
+        yield `Please manually open: ${oauth.data.url}`;
       }
     } else {
-      console.info("📱 Running in non-interactive mode, please open the following URL in your browser:");
-      console.info(`  ${oauth.data.url}`);
-      console.info("After authenticating, return to this terminal to continue.");
+      yield "📱 Running in non-interactive mode, please open the following URL in your browser:";
+      yield `  ${oauth.data.url}`;
+      yield "After authenticating, return to this terminal to continue.";
     }
 
     // Wait for callback
-    console.info("⏳ Waiting for authentication callback...");
+    yield "⏳ Waiting for authentication callback...";
     const { code } = await promise;
 
     // Exchange code for tokens  exchangeCodeForTokens,
@@ -68,7 +69,7 @@ export default async ({ ctx }: { ctx: AuthClientContext }): Promise<void> => {
     // Shutdown server
     server.shutdown();
 
-    console.info("✅ Authentication successful!");
+    yield "✅ Authentication successful!";
   } catch (error) {
     throw new Error(`OAuth flow failed: ${error instanceof Error ? error.message : String(error)}`);
   }

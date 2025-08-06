@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { ServerGenerator } from "./_common.ts";
+import { ServerResponse } from "./_common.ts";
 
 export const Meta = {
   aliases: {
@@ -16,7 +16,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
   const { output = "wide" } = input;
 
   // List pods with label ctnr.io/name
@@ -37,7 +37,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       name: pod.metadata?.name || "",
       image: pod.spec?.containers[0]?.image || "",
       status: mapPodStatusToContainerStatus(pod.status?.phase?.toString(), containerStatus),
-      created: formatAge(
+      age: formatAge(
         pod.metadata?.creationTimestamp?.toString(),
       ),
       ports: extractPorts(pod.spec?.containers[0]?.ports || undefined),
@@ -58,7 +58,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
         yield `- name: ${container.name}`;
         yield `  image: ${container.image}`;
         yield `  status: ${container.status}`;
-        yield `  created: ${container.created}`;
+        yield `  age: ${container.age}`;
         if (container.ports) {
           yield `  ports: ${container.ports}`;
         } else {
@@ -79,18 +79,18 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       yield "NAME".padEnd(26) +
         "IMAGE".padEnd(25) +
         "STATUS".padEnd(15) +
-        "CREATED".padEnd(12) +
+        "AGE".padEnd(12) +
         "PORTS".padEnd(20);
 
       // Container rows
       for (const container of containers) {
-        const name = container.name.padEnd(26);
+        const name = container.name.padEnd(20);
         const image = container.image.padEnd(25);
         const status = container.status.padEnd(15);
-        const created = container.created.padEnd(12);
+        const age = container.age.padEnd(12);
         const ports = (container.ports.join(", ") || "").padEnd(20);
 
-        yield name + image + status + created + ports;
+        yield name + image + status + age + ports;
       }
       break;
   }
@@ -123,9 +123,9 @@ function extractPorts(ports?: any[]): string[] {
 function formatAge(creationTimestamp?: string): string {
   if (!creationTimestamp) return "<unknown>";
 
-  const created = new Date(creationTimestamp);
+  const age = new Date(creationTimestamp);
   const now = new Date();
-  const diffMs = now.getTime() - created.getTime();
+  const diffMs = now.getTime() - age.getTime();
 
   const seconds = Math.floor(diffMs / 1000);
   const minutes = Math.floor(seconds / 60);

@@ -9,8 +9,8 @@ import { ClientTerminalContext } from "./context.ts";
 import login from "api/client/auth/login-pkce.ts";
 import logout from "api/client/auth/logout.ts";
 import { Unsubscribable } from "@trpc/server/observable";
-import { SubscribeProcedureOutput } from "../../server/procedures/core.ts";
-import { exec } from "node:child_process";
+import { ClientContext } from "ctx/mod.ts";
+import { SubscribeProcedureOutput } from "driver/trpc/server/procedures/core.ts";
 
 export const trpc = initTRPC.context<ClientTerminalContext>().create();
 
@@ -22,7 +22,9 @@ function transformSubscribeResolver<
     onStarted?: () => void;
     onError?: (error: Error) => void;
     onComplete?: () => void;
-    onData?: (data: SubscribeProcedureOutput) => void;
+    onData?: (data: SubscribeProcedureOutput
+      
+    ) => void;
     onStopped?: () => void;
   }) => Unsubscribable,
   { ctx, input, signal }: { ctx: ClientTerminalContext; input: Input; signal?: AbortSignal },
@@ -39,7 +41,7 @@ function transformSubscribeResolver<
           case "template":
             return eval(data.value)({ ctx, input, signal });
           case "message":
-            console.warn(data.value); 
+            console.warn(data.value);
             return;
           case "raw":
             console.warn(data.value);
@@ -53,9 +55,17 @@ function transformSubscribeResolver<
   );
 }
 
+function transformGeneratorToMutation<Input, Opts extends { ctx: ClientContext, input: Input }>(procedure: (opts: Opts) => any) {
+  return async function (opts: Opts) {
+    for await (const value of procedure(opts)) {
+      console.warn(value);
+    }
+  };
+}
+
 export const cliRouter = trpc.router({
   // Client authentication procedures
-  login: trpc.procedure.mutation(login),
+  login: trpc.procedure.mutation(transformGeneratorToMutation(login)),
   logout: trpc.procedure.mutation(logout),
 
   // Core procedures

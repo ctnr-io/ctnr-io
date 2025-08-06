@@ -28,13 +28,17 @@ export async function createTRPCWebSocketClient({
       console.debug("WebSocket connection established.");
       resolve();
     },
-    onError(err) {
-      // Handle WebSocket error event
-      console.debug("WebSocket error:", err);
-      reject(new Error("Failed to connect to WebSocket server. Please check your connection or the server status."));
-    },
-    onClose(cause) {
-      console.debug(`WebSocket connection closed with code ${cause?.code || "unknown"}`);
+    onClose(cause = { code: 1000 }) {
+      const { reason, code } = cause as { reason?: string, code: number };
+      // Never retry connection on close
+      if (code !== 1000) { // 1000 is normal closure
+        console.error(reason || "Unexpected error")
+        reject(new Error(reason))
+        Deno.exit(code)
+      } else {
+        resolve();
+        Deno.exit(0);
+      }
     },
   });
 
@@ -45,7 +49,6 @@ export async function createTRPCWebSocketClient({
       client: wsClient,
     })],
   }) as TRPCClient<ServerRouter>;
-
   return {
     websocket: wsClient,
     trpc: trpcClient,

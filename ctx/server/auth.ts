@@ -3,25 +3,33 @@ import { createClient } from "@supabase/supabase-js";
 import { AuthServerContext } from "../mod.ts";
 
 export async function createAuthServerContext(
-  opts: { accessToken: string; refreshToken: string },
+  opts: { accessToken: string | undefined; refreshToken: string | undefined },
 ): Promise<AuthServerContext> {
   const config = getSupabaseConfig();
   const supabase = createClient(config.url, config.anonKey);
-  const { data: { session, user } } = await supabase.auth.setSession({
-    access_token: opts.accessToken,
-    refresh_token: opts.refreshToken,
-  });
-  if (!session) {
-    throw new Error("Failed to set session with provided tokens");
+  if (!opts.accessToken || !opts.refreshToken) {
+    throw new Error("Access token and refresh token are required for authentication context");
   }
-  if (!user) {
-    throw new Error("Failed to retrieve user from session");
+  try {
+    const { data: { session, user } } = await supabase.auth.setSession({
+      access_token: opts.accessToken,
+      refresh_token: opts.refreshToken,
+    });
+    if (!session) {
+      throw new Error("Failed to set session with provided tokens");
+    }
+    if (!user) {
+      throw new Error("Failed to retrieve user from session");
+    }
+    return {
+      auth: {
+        client: supabase.auth,
+        session: session,
+        user: user,
+      },
+    };
+  } catch (error) {
+    console.error("Error setting session:", error);
+    throw new Error("Please log in again to continue.");
   }
-  return {
-    auth: {
-      client: supabase.auth,
-      session: session,
-      user: user,
-    },
-  };
 }

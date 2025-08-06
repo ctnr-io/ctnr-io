@@ -793,9 +793,9 @@ export const ensureUserNamespace = async (
     },
     spec: {
       hard: {
-        "limits.cpu": new Quantity(2, "m"),
+        "limits.cpu": new Quantity(2000, "m"),
         "limits.memory": new Quantity(4, "G"),
-        "requests.cpu": new Quantity(1, "m"),
+        "requests.cpu": new Quantity(1000, "m"),
         "requests.memory": new Quantity(2, "G"),
         // "pods": new Quantity("10"),
         // "services": new Quantity("10"),

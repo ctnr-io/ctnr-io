@@ -10,7 +10,6 @@ import login from "api/client/auth/login-pkce.ts";
 import logout from "api/client/auth/logout.ts";
 import { Unsubscribable } from "@trpc/server/observable";
 import { SubscribeProcedureOutput } from "../../server/procedures/core.ts";
-import { exec } from "node:child_process";
 
 export const trpc = initTRPC.context<ClientTerminalContext>().create();
 
@@ -39,7 +38,7 @@ function transformSubscribeResolver<
           case "template":
             return eval(data.value)({ ctx, input, signal });
           case "message":
-            console.warn(data.value); 
+            console.warn(data.value);
             return;
           case "raw":
             console.warn(data.value);

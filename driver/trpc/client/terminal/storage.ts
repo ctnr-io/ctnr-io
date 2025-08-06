@@ -15,7 +15,9 @@ if (!fs.exists(storageFile)) {
     const storageData = Deno.readTextFileSync(storageFile);
     JSON.parse(storageData);
   } catch (error) {
-    console.warn("Invalid auth storage file, resetting:", error);
+    if (error instanceof Error) {
+      console.warn("Invalid auth storage file, resetting:", error.message);
+    }
     Deno.writeTextFileSync(storageFile, JSON.stringify({}));
   }
 }

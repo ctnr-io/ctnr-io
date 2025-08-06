@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { ContainerName, ServerGenerator } from "./_common.ts";
-import { setupSignalHandling, setupTerminalHandling, handleStreams, runWithCleanup } from "./_stream-utils.ts";
+import { ContainerName, ServerResponse } from "./_common.ts";
+import { handleStreams, setupSignalHandling, setupTerminalHandling } from "./_stream-utils.ts";
 
 export const Meta = {
   aliases: {
@@ -20,35 +20,30 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>;
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
-  yield* runWithCleanup(async function* (defer) {
-    const { name, interactive = false, terminal = false } = input;
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
+  const { name, interactive = false, terminal = false } = input;
 
-    const tunnel = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).tunnelPodAttach(name, {
-      stdin: interactive,
-      tty: terminal,
-      stdout: true,
-      stderr: true,
-      abortSignal: ctx.signal,
-      container: name,
-    });
+  const tunnel = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).tunnelPodAttach(name, {
+    stdin: interactive,
+    tty: terminal,
+    stdout: true,
+    stderr: true,
+    abortSignal: ctx.signal,
+    container: name,
+  });
 
-    setupSignalHandling(ctx, tunnel, terminal, interactive, defer);
-    setupTerminalHandling(ctx, tunnel, terminal, interactive, defer);
+  setupSignalHandling(ctx, tunnel, terminal, interactive);
+  setupTerminalHandling(ctx, tunnel, terminal, interactive);
 
-    console.debug(`Attaching to container: ${name}`);
-    yield `Container ${input.name} is running.`;
-    if (interactive) {
-      yield `Press ENTER if you don't see a command prompt.`;
-    }
+  if (interactive) {
+    yield `Press ENTER if you don't see a command prompt.`;
+  }
 
-    defer.push(async () => {
-      // Get pod resource
-      const podResource = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(name);
-      // Close the tunnel and clean up resources
-      ctx.stdio.exit(podResource.status?.containerStatuses?.[0]?.state?.terminated?.exitCode || 0);
-    });
+  ctx.defer(async () => {
+    // Exit with the command's exit code
+    const status = await tunnel.status.then(status => status);
+    ctx.stdio.exit(status.exitCode || 0);
+  });
 
-    await handleStreams(ctx, tunnel, interactive, terminal, defer);
-  }, ctx);
+  await handleStreams(ctx, tunnel, interactive, terminal);
 }

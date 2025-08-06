@@ -6,8 +6,8 @@ import * as Attach from "api/server/core/attach.ts";
 import * as Exec from "api/server/core/exec.ts";
 import * as Route from "api/server/core/route.ts";
 import * as Logs from "api/server/core/logs.ts";
-import { ServerGenerator } from "api/server/core/_common.ts";
-import { ts } from "@tmpl/core";
+import { ServerResponse } from "api/server/core/_common.ts";
+import { ServerContext } from "ctx/mod.ts";
 
 export type SubscribeProcedureOutput = {
   type: "function";
@@ -21,23 +21,23 @@ export type SubscribeProcedureOutput = {
 } | {
   type: "raw";
   value: object;
-}
+};
 
-function transformSubscribeProcedure<Input, Opts>(procedure: (opts: Opts) => ServerGenerator<Input>) {
-  return async function * (opts: Opts): AsyncGenerator<SubscribeProcedureOutput, void, unknown> {
-    const generator = await procedure(opts);
-    for await (const value of generator) {
+function transformSubscribeProcedure<Input, Opts extends { ctx: ServerContext, input: Input }>(procedure: (opts: Opts) => ServerResponse<Input>) {
+  return async function* (opts: Opts): AsyncGenerator<SubscribeProcedureOutput, void, unknown> {
+    for await (const value of procedure(opts)) {
       if (typeof value === "function") {
-        yield { type: "function", value: value.toString() }
+        yield { type: "function", value: value.toString() };
       } else if (value.constructor.name === "TemplateClass") {
-        yield { type: "template", value: value.toString() }
+        yield { type: "template", value: value.toString() };
       } else if (typeof value === "string") {
-        yield { type: "message", value: value }
+        yield { type: "message", value: value };
       } else {
-        yield { type: "raw", value: value }
-      } 
+        yield { type: "raw", value: value };
+      }
     }
-  }
+    await opts.ctx.defer.run()
+  };
 }
 
 export const run = trpc.procedure

@@ -44,7 +44,7 @@ export const Publish = z.string().transform((value) => {
   `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
 );
 
-export type ServerGenerator<Input> = AsyncGenerator<
+export type ServerResponse<Input> = AsyncGenerator<
   string | object | ReturnType<typeof ts> | ((args: { ctx: ClientContext, input: Input, signal?: AbortSignal }) => void),
   void,
   unknown

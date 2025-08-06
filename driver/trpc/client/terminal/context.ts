@@ -56,7 +56,6 @@ export async function createTrpcClientTerminalContext(
               }));
             },
             close() {
-              console.log("Stdin stream closed, sending EOF to server.");
               // Send a message to the WebSocket to indicate that stdin has reached EOF (Ctrl+D)
               // Instead of closing the connection, we send a special message
               client.websocket.connection?.ws.send(JSON.stringify({

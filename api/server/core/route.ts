@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "ctx/mod.ts";
-import { ContainerName, PortName, ServerGenerator } from "./_common.ts";
+import { ContainerName, PortName, ServerResponse } from "./_common.ts";
 import { ensureUserRoute } from "lib/kube-client.ts";
 import { hash } from "node:crypto";
 import * as shortUUID from "@opensrc/short-uuid";
@@ -28,7 +28,7 @@ export type Input = z.infer<typeof Input>;
 
 const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36);
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerGenerator<Input> {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
   try {
     // Get all ports of the container
     const pod = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(input.name).catch(() => {
@@ -118,9 +118,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       yield `  - https://${hostname}`;
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error from server";
-    console.error("Route creation failed:", error);
-    yield `Error creating route: ${errorMessage}`;
-    throw error;
+    yield `Error creating route`;
+    console.error(error);
   }
 }

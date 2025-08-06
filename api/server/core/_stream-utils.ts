@@ -44,11 +44,10 @@ export const setupSignalHandling = (
   tunnel: { ttyWriteSignal?: (signal: "INTR" | "QUIT" | "SUSP") => Promise<void> },
   terminal: boolean,
   interactive: boolean,
-  defer: Array<() => unknown>
 ) => {
   if (terminal) {
     const signalChanAsyncGenerator = ctx.stdio.signalChan();
-    defer.push(() => signalChanAsyncGenerator.return());
+    ctx.defer(() => signalChanAsyncGenerator.return());
     (async () => {
       for await (const signal of signalChanAsyncGenerator) {
         switch (signal) {
@@ -73,11 +72,10 @@ export const setupTerminalHandling = (
   tunnel: StreamTunnel,
   terminal: boolean,
   interactive: boolean,
-  defer: Array<() => unknown>
 ) => {
   if (terminal) {
     const terminalSizeAsyncGenerator = ctx.stdio.terminalSizeChan();
-    defer.push(() => terminalSizeAsyncGenerator.return());
+    ctx.defer(() => terminalSizeAsyncGenerator.return());
     (async () => {
       for await (const terminalSize of terminalSizeAsyncGenerator) {
         tunnel.ttySetSize?.(terminalSize);
@@ -87,7 +85,7 @@ export const setupTerminalHandling = (
 
   if (terminal && interactive) {
     ctx.stdio.setRaw(true);
-    defer.push(() => ctx.stdio.setRaw(false));
+    ctx.defer(() => ctx.stdio.setRaw(false));
   }
 };
 
@@ -96,13 +94,12 @@ export const handleStreams = async (
   tunnel: StreamTunnel,
   interactive: boolean,
   terminal: boolean,
-  defer: Array<() => unknown>
 ): Promise<void> => {
   const stdioController = new AbortController();
   ctx.signal?.addEventListener("abort", () => {
     stdioController.abort();
   });
-  defer.push(() => {
+  ctx.defer(() => {
     ctx.signal?.removeEventListener("abort", stdioController.abort);
   });
 
@@ -138,28 +135,6 @@ export const handleStreams = async (
 
   // Wait for any stream to complete
   const result = await Promise.any(streamPromises);
+
   console.debug(`Stream processing completed with result:`, result);
 };
-
-export async function* runWithCleanup(
-  operation: (defer: Array<() => unknown>) => AsyncGenerator<string | object | ((args: any) => void), void, unknown>,
-  ctx: ServerContext
-): AsyncGenerator<string | object | ((args: any) => void), void, unknown> {
-  const defer: Array<() => unknown> = [];
-  try {
-    yield* operation(defer);
-  } catch (error) {
-    console.debug(`Error in stream processing:`, error);
-    ctx.stdio.exit(1);
-  } finally {
-    console.debug(`Cleaning up resources...`);
-    // Run cleanup functions in reverse order
-    for (const deferFn of defer.toReversed()) {
-      try {
-        await deferFn();
-      } catch (error) {
-        console.debug(`Error in cleanup:`, error);
-      }
-    }
-  }
-}

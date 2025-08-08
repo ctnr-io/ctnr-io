@@ -1,26 +1,50 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * ctnr.io brand colors and theme configuration
  */
 
-const tintColorLight = '#0a7ea4'
-const tintColorDark = '#fff'
+export const CtnrColors = {
+  primary: '#f8b500',    // Orange
+  secondary: '#393e46',  // Dark Gray
+  white: '#ffffff',      // White
+  background: '#f5f5f5', // Light background
+  text: '#393e46',       // Text color
+  textLight: '#666666',  // Light text
+  border: '#e0e0e0',     // Border color
+  success: '#4caf50',    // Success green
+  error: '#f44336',      // Error red
+  warning: '#ff9800',    // Warning orange
+} as const
+
+const tintColorLight = CtnrColors.primary
+const tintColorDark = CtnrColors.white
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: CtnrColors.text,
+    background: CtnrColors.white,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: CtnrColors.textLight,
+    tabIconDefault: CtnrColors.textLight,
     tabIconSelected: tintColorLight,
+    primary: CtnrColors.primary,
+    secondary: CtnrColors.secondary,
+    border: CtnrColors.border,
+    success: CtnrColors.success,
+    error: CtnrColors.error,
+    warning: CtnrColors.warning,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: CtnrColors.white,
+    background: CtnrColors.secondary,
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    primary: CtnrColors.primary,
+    secondary: CtnrColors.secondary,
+    border: '#555555',
+    success: CtnrColors.success,
+    error: CtnrColors.error,
+    warning: CtnrColors.warning,
   },
 }

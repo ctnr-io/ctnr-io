@@ -12,10 +12,10 @@ import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 
 // Set the animation options. This is optional.
-SplashScreen.setOptions({
-  duration: 1000,
-  fade: true,
-})
+// SplashScreen.setOptions({
+//   duration: 1000,
+//   fade: true,
+// })
 
 SplashScreen.preventAutoHideAsync()
 
@@ -40,7 +40,17 @@ export default function RootLayout() {
     <TamaguiProvider config={config}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
-          <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+          <Stack.Screen name='index' options={{ headerShown: false }} />
+          <Stack.Screen name='containers' options={{ headerShown: false }} />
+          <Stack.Screen name='volumes' options={{ headerShown: false }} />
+          <Stack.Screen name='domains' options={{ headerShown: false }} />
+          <Stack.Screen name='routes' options={{ headerShown: false }} />
+          <Stack.Screen name='resources' options={{ headerShown: false }} />
+          <Stack.Screen name='monitoring' options={{ headerShown: false }} />
+          <Stack.Screen name='billing' options={{ headerShown: false }} />
+          <Stack.Screen name='notifications' options={{ headerShown: false }} />
+          <Stack.Screen name='builds' options={{ headerShown: false }} />
+          <Stack.Screen name='deployments' options={{ headerShown: false }} />
           <Stack.Screen name='+not-found' />
         </Stack>
         <StatusBar style='auto' />

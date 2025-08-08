@@ -1,5 +1,4 @@
-import { config } from 'app/tamagui.config.ts'
-import { TamaguiProvider } from 'tamagui'
+import 'app/global.css'
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
@@ -37,14 +36,12 @@ export default function RootLayout() {
   }
 
   return (
-    <TamaguiProvider config={config}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-          <Stack.Screen name='+not-found' />
-        </Stack>
-        <StatusBar style='auto' />
-      </ThemeProvider>
-    </TamaguiProvider>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+        <Stack.Screen name='+not-found' />
+      </Stack>
+      <StatusBar style='auto' />
+    </ThemeProvider>
   )
 }

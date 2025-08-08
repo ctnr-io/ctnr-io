@@ -1,32 +1,32 @@
-import { html } from "@tmpl/core";
+import { html } from '@tmpl/core'
 
 /**
  * Start local HTTP server to handle OAuth callback
  */
 export function startCallbackServer(): {
-  url: string;
-  server: Deno.HttpServer;
-  promise: Promise<{ code: string }>;
+  url: string
+  server: Deno.HttpServer
+  promise: Promise<{ code: string }>
 } {
   // Find available port starting from 8080
-  const { resolve, reject, promise } = Promise.withResolvers<{ code: string }>();
+  const { resolve, reject, promise } = Promise.withResolvers<{ code: string }>()
 
   const timeout = setTimeout(() => {
-    reject(new Error("OAuth callback timeout (5 minutes)"));
-  }, 5 * 60 * 1000); // 5 minute timeout
+    reject(new Error('OAuth callback timeout (5 minutes)'))
+  }, 5 * 60 * 1000) // 5 minute timeout
 
   // Add a random path hash to prevent other processes from trying to exploit the callback URL
 
-  const server = Deno.serve({ port: 0, hostname: "127.0.0.1" }, (request) => {
-    const url = new URL(request.url);
+  const server = Deno.serve({ port: 0, hostname: '127.0.0.1' }, (request) => {
+    const url = new URL(request.url)
 
     if (url.pathname === `/callback`) {
-      const code = url.searchParams.get("code");
-      const error = url.searchParams.get("error");
+      const code = url.searchParams.get('code')
+      const error = url.searchParams.get('error')
 
       if (error) {
-        clearTimeout(timeout);
-        reject(new Error(`OAuth error: ${error}`));
+        clearTimeout(timeout)
+        reject(new Error(`OAuth error: ${error}`))
         return new Response(
           html`
             <html>
@@ -37,13 +37,13 @@ export function startCallbackServer(): {
               </body>
             </html>
           `,
-          { headers: { "content-type": "text/html" } },
-        );
+          { headers: { 'content-type': 'text/html' } },
+        )
       }
 
       if (code) {
-        clearTimeout(timeout);
-        resolve({ code });
+        clearTimeout(timeout)
+        resolve({ code })
         return new Response(
           html`
             <html>
@@ -56,8 +56,8 @@ export function startCallbackServer(): {
               </body>
             </html>
           `,
-          { headers: { "content-type": "text/html" } },
-        );
+          { headers: { 'content-type': 'text/html' } },
+        )
       }
     }
 
@@ -70,21 +70,21 @@ export function startCallbackServer(): {
           </body>
         </html>
       `,
-      { headers: { "content-type": "text/html" } },
-    );
-  });
+      { headers: { 'content-type': 'text/html' } },
+    )
+  })
 
-  let port: number;
-  if (server.addr.transport === "tcp") {
-    port = server.addr.port;
+  let port: number
+  if (server.addr.transport === 'tcp') {
+    port = server.addr.port
   } else {
-    throw new Error("Unexpected server transport: " + server.addr.transport);
+    throw new Error('Unexpected server transport: ' + server.addr.transport)
   }
 
-  const url = `http://localhost:${port}/callback`;
-  console.debug(`OAuth callback URL: ${url}`);
+  const url = `http://localhost:${port}/callback`
+  console.debug(`OAuth callback URL: ${url}`)
 
-  return { url, server, promise };
+  return { url, server, promise }
 }
 
 /**
@@ -92,25 +92,25 @@ export function startCallbackServer(): {
  */
 export async function openBrowser(url: string): Promise<void> {
   const commands = {
-    darwin: ["open"],
-    linux: ["xdg-open"],
-    windows: ["cmd", "/c", "start"],
-  };
+    darwin: ['open'],
+    linux: ['xdg-open'],
+    windows: ['cmd', '/c', 'start'],
+  }
 
-  const command = commands[Deno.build.os as keyof typeof commands];
+  const command = commands[Deno.build.os as keyof typeof commands]
   if (!command) {
-    throw new Error(`Unsupported platform: ${Deno.build.os}`);
+    throw new Error(`Unsupported platform: ${Deno.build.os}`)
   }
 
   try {
     const process = new Deno.Command(command[0], {
       args: command.length > 1 ? [...command.slice(1), url] : [url],
-      stdout: "null",
-      stderr: "null",
-    });
+      stdout: 'null',
+      stderr: 'null',
+    })
 
-    await process.output();
+    await process.output()
   } catch (error) {
-    throw new Error(`Failed to open browser: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to open browser: ${error instanceof Error ? error.message : String(error)}`)
   }
 }

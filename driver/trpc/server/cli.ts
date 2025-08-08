@@ -1,51 +1,51 @@
-import "lib/utils.ts";
-import { createAsyncGeneratorListener } from "lib/async-generator.ts";
-import { router } from "./router.ts";
-import { createCli } from "trpc-cli";
-import { createServerContext } from "ctx/server/mod.ts";
-import { getSupabaseClient } from "lib/supabase.ts";
-import { authStorage } from "../client/terminal/storage.ts";
+import 'lib/utils.ts'
+import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
+import { router } from './router.ts'
+import { createCli } from 'trpc-cli'
+import { createServerContext } from 'ctx/server/mod.ts'
+import { getSupabaseClient } from 'lib/supabase.ts'
+import { authStorage } from '../client/terminal/storage.ts'
 
 // Override Deno Streams to permit to send string directly to stdout and stderr
 const stdout = new WritableStream({
   write(chunk) {
-    if (typeof chunk === "string") {
-      chunk = new TextEncoder().encode(chunk);
+    if (typeof chunk === 'string') {
+      chunk = new TextEncoder().encode(chunk)
     }
-    Deno.stdout.write(chunk);
+    Deno.stdout.write(chunk)
   },
   close() {
-    Deno.stdout.close();
+    Deno.stdout.close()
   },
   abort(reason) {
-    console.error("Stdout stream aborted:", reason);
-    Deno.stdout.close();
+    console.error('Stdout stream aborted:', reason)
+    Deno.stdout.close()
   },
-});
+})
 
 const stderr = new WritableStream({
   write(chunk) {
-    if (typeof chunk === "string") {
-      chunk = new TextEncoder().encode(chunk);
+    if (typeof chunk === 'string') {
+      chunk = new TextEncoder().encode(chunk)
     }
-    Deno.stderr.write(chunk);
+    Deno.stderr.write(chunk)
   },
   close() {
-    Deno.stderr.close();
+    Deno.stderr.close()
   },
   abort(reason) {
-    console.error("Stderr stream aborted:", reason);
-    Deno.stderr.close();
+    console.error('Stderr stream aborted:', reason)
+    Deno.stderr.close()
   },
-});
+})
 
 // TODO: login if no session found
 const supabaseClient = await getSupabaseClient({
   storage: authStorage,
-});
-const { data: { session } } = await supabaseClient.auth.getSession();
+})
+const { data: { session } } = await supabaseClient.auth.getSession()
 if (!session) {
-  throw new Error("No active session found. Please log in first.");
+  throw new Error('No active session found. Please log in first.')
 }
 
 export const ctnr = createCli({
@@ -78,20 +78,20 @@ export const ctnr = createCli({
       } as any,
       terminalSizeChan: async function* () {
         if (!Deno.stdin.isTerminal()) {
-          return;
+          return
         }
         // Send the initial terminal size
-        yield Deno.consoleSize();
+        yield Deno.consoleSize()
         // Send terminal size updates
         yield* createAsyncGeneratorListener(
-          ["SIGWINCH"],
+          ['SIGWINCH'],
           Deno.addSignalListener,
           Deno.removeSignalListener,
           Deno.consoleSize,
-        );
+        )
       },
     },
   }),
-});
+})
 
-ctnr.run();
+ctnr.run()

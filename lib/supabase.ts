@@ -1,57 +1,57 @@
-import { createClient, SupabaseClient, SupportedStorage } from "@supabase/supabase-js";
+import { createClient, SupabaseClient, SupportedStorage } from '@supabase/supabase-js'
 
 export interface SupabaseConfig {
-  url: string;
-  anonKey: string;
-  serviceRoleKey?: string;
+  url: string
+  anonKey: string
+  serviceRoleKey?: string
 }
 
-let supabaseClient: SupabaseClient | null = null;
-let supabaseServiceClient: SupabaseClient | null = null;
+let supabaseClient: SupabaseClient | null = null
+let supabaseServiceClient: SupabaseClient | null = null
 
 export function getSupabaseConfig(): SupabaseConfig {
-  const url = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = Deno.env.get('SUPABASE_URL')
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!url || !anonKey) {
-    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required");
+    throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required')
   }
 
   return {
     url,
     anonKey,
     serviceRoleKey,
-  };
+  }
 }
 
 export function getSupabaseClient({ storage }: {
-  storage?: SupportedStorage;
+  storage?: SupportedStorage
 }): SupabaseClient {
   if (!supabaseClient) {
-    const config = getSupabaseConfig();
+    const config = getSupabaseConfig()
     supabaseClient = createClient(config.url, config.anonKey, {
       auth: {
         detectSessionInUrl: true,
-        flowType: "pkce",
+        flowType: 'pkce',
         autoRefreshToken: true,
         persistSession: true,
         storage,
       },
-    });
+    })
   }
-  return supabaseClient;
+  return supabaseClient
 }
 
 export function getSupabaseServiceClient(): SupabaseClient {
   if (!supabaseServiceClient) {
-    const config = getSupabaseConfig();
+    const config = getSupabaseConfig()
     if (!config.serviceRoleKey) {
-      throw new Error("SUPABASE_SERVICE_ROLE_KEY environment variable is required for service client");
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for service client')
     }
-    supabaseServiceClient = createClient(config.url, config.serviceRoleKey);
+    supabaseServiceClient = createClient(config.url, config.serviceRoleKey)
   }
-  return supabaseServiceClient;
+  return supabaseServiceClient
 }
 
 // export async function verifySupabaseToken(token: string): Promise<User | null> {

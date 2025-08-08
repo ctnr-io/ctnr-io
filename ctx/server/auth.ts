@@ -1,25 +1,25 @@
-import { getSupabaseConfig } from "lib/supabase.ts";
-import { createClient } from "@supabase/supabase-js";
-import { AuthServerContext } from "../mod.ts";
+import { getSupabaseConfig } from 'lib/supabase.ts'
+import { createClient } from '@supabase/supabase-js'
+import { AuthServerContext } from '../mod.ts'
 
 export async function createAuthServerContext(
   opts: { accessToken: string | undefined; refreshToken: string | undefined },
 ): Promise<AuthServerContext> {
-  const config = getSupabaseConfig();
-  const supabase = createClient(config.url, config.anonKey);
+  const config = getSupabaseConfig()
+  const supabase = createClient(config.url, config.anonKey)
   if (!opts.accessToken || !opts.refreshToken) {
-    throw new Error("Access token and refresh token are required for authentication context");
+    throw new Error('Access token and refresh token are required for authentication context')
   }
   try {
     const { data: { session, user } } = await supabase.auth.setSession({
       access_token: opts.accessToken,
       refresh_token: opts.refreshToken,
-    });
+    })
     if (!session) {
-      throw new Error("Failed to set session with provided tokens");
+      throw new Error('Failed to set session with provided tokens')
     }
     if (!user) {
-      throw new Error("Failed to retrieve user from session");
+      throw new Error('Failed to retrieve user from session')
     }
     return {
       auth: {
@@ -27,9 +27,9 @@ export async function createAuthServerContext(
         session: session,
         user: user,
       },
-    };
+    }
   } catch (error) {
-    console.error("Error setting session:", error);
-    throw new Error("Please log in again to continue.");
+    console.error('Error setting session:', error)
+    throw new Error('Please log in again to continue.')
   }
 }

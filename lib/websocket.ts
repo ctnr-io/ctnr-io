@@ -1,4 +1,4 @@
-import * as ws from "ws";
+import * as ws from 'ws'
 
 /**
  * Bypass the default `onmessage` handler to allow custom handling of messages
@@ -10,13 +10,13 @@ export function bypassWebSocketMessageHandler<T>(
   ws: WebSocket,
   handler: (event: MessageEvent) => boolean,
 ) {
-  const originalOnMessage = ws.onmessage;
+  const originalOnMessage = ws.onmessage
   ws.onmessage = (event: MessageEvent) => {
     if (!handler(event)) {
-      return originalOnMessage?.call(ws, event);
+      return originalOnMessage?.call(ws, event)
     }
-  };
-  return ws;
+  }
+  return ws
 }
 
 /**
@@ -31,15 +31,15 @@ export function bypassWsWebSocketMessageHandler(
 ): void {
   // Bypass trpc websocket message handler, before it tries to parse event for procedures
   // 1. First prevent trpc handling message by removing all existing trpc handlers from WS connection
-  const originalMessageHandlers = ws.listeners("message").map((messageHandler) => {
-    ws.removeListener("message", messageHandler as (data: ws.RawData, isBinary: boolean) => void);
-    return messageHandler;
-  });
+  const originalMessageHandlers = ws.listeners('message').map((messageHandler) => {
+    ws.removeListener('message', messageHandler as (data: ws.RawData, isBinary: boolean) => void)
+    return messageHandler
+  })
   // 2. Then add a new message handler that handles stdin messages first
-  ws.addListener("message", (event) => {
+  ws.addListener('message', (event) => {
     if (!upgrader(event)) {
       // 3. If the message is not handled, fall back to the default handlers
-      originalMessageHandlers.forEach((messageHandler) => messageHandler(event));
+      originalMessageHandlers.forEach((messageHandler) => messageHandler(event))
     }
-  });
+  })
 }

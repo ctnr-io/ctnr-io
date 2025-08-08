@@ -1,15 +1,15 @@
-import "lib/utils.ts";
-import { createCli } from "trpc-cli";
-import { createTrpcClientTerminalContext } from "./context.ts";
-import { cliRouter } from "./router.ts";
-import { createAsyncGeneratorListener } from "lib/async-generator.ts";
+import 'lib/utils.ts'
+import { createCli } from 'trpc-cli'
+import { createTrpcClientTerminalContext } from './context.ts'
+import { cliRouter } from './router.ts'
+import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
 
 try {
   const clientCli = createCli({
     router: cliRouter,
-    name: "ctnr",
-    version: Deno.env.get("CTNR_VERSION"),
-    description: "ctnr.io Remote CLI",
+    name: 'ctnr',
+    version: Deno.env.get('CTNR_VERSION'),
+    description: 'ctnr.io Remote CLI',
     context: await createTrpcClientTerminalContext({
       stdio: {
         stdin: Deno.stdin.readable,
@@ -32,25 +32,25 @@ try {
         } as any,
         terminalSizeChan: async function* () {
           if (!Deno.stdin.isTerminal()) {
-            return;
+            return
           }
           // Send the initial terminal size
-          yield Deno.consoleSize();
+          yield Deno.consoleSize()
           // Send terminal size updates
           yield* createAsyncGeneratorListener(
-            ["SIGWINCH"],
+            ['SIGWINCH'],
             Deno.addSignalListener,
             Deno.removeSignalListener,
             Deno.consoleSize,
-          );
+          )
         },
       },
     }),
-  });
+  })
 
-  await clientCli.run();
+  await clientCli.run()
 } catch (error) {
-  console.debug(error);
-  console.error("An error occurred while executing command.");
-  Deno.exit(1);
+  console.debug(error)
+  console.error('An error occurred while executing command.')
+  Deno.exit(1)
 }

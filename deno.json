@@ -55,7 +55,10 @@
     "options": {
       "lineWidth": 120,
       "useTabs": false,
-      "indentWidth": 2
+      "indentWidth": 2,
+      "semiColons": false,
+      "singleQuote": true,
+      "proseWrap": "always"
     }
   },
   "lint": {

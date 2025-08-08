@@ -1,0 +1,26 @@
+{
+  "imports": {
+    "app/": "./"
+  },
+  "compilerOptions": {
+    "jsx": "react-native"
+  },
+  "fmt": {
+    "options": {
+      "lineWidth": 120,
+      "useTabs": false,
+      "indentWidth": 2,
+      "semiColons": false,
+      "singleQuote": true,
+      "proseWrap": "always"
+    }
+  },
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-explicit-any",
+        "no-sloppy-imports"
+      ]
+    }
+  }
+}

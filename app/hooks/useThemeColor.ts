@@ -3,19 +3,19 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from "app/constants/Colors.ts";
-import { useColorScheme } from "app/hooks/useColorScheme.ts";
+import { Colors } from 'app/constants/Colors.ts'
+import { useColorScheme } from 'app/hooks/useColorScheme.ts'
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark,
 ) {
-  const theme = useColorScheme() ?? "light";
-  const colorFromProps = props[theme];
+  const theme = useColorScheme() ?? 'light'
+  const colorFromProps = props[theme]
 
   if (colorFromProps) {
-    return colorFromProps;
+    return colorFromProps
   } else {
-    return Colors[theme][colorName];
+    return Colors[theme][colorName]
   }
 }

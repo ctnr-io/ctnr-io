@@ -16,7 +16,13 @@ import { NavMain } from 'app/components/shadcn/nav-main.tsx'
 import { NavProjects } from 'app/components/shadcn/nav-projects.tsx'
 import { NavUser } from 'app/components/shadcn/nav-user.tsx'
 import { TeamSwitcher } from 'app/components/shadcn/team-switcher.tsx'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from 'app/components/shadcn/ui/sidebar.tsx'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+} from 'app/components/shadcn/ui/sidebar.tsx'
 
 // This is sample data.
 const data = {

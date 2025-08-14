@@ -3,6 +3,9 @@
     "app/": "./"
   },
   "compilerOptions": {
+    "lib": [
+      "dom"
+    ],
     "jsx": "react-native"
   },
   "fmt": {

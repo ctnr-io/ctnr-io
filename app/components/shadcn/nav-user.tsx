@@ -2,17 +2,17 @@
 
 import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from 'lucide-react'
 
-import { Avatar, AvatarFallback, AvatarImage } from 'app/components/ui/avatar.tsx'
+import { Avatar, AvatarFallback, AvatarImage } from 'app/components/shadcn/ui/avatar.tsx'
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from 'app/components/ui/dropdown-menu.tsx'
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from 'app/components/ui/sidebar.tsx'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from 'app/components/shadcn/ui/dropdown-menu.tsx'
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from 'app/components/shadcn/ui/sidebar.tsx'
 
 export function NavUser({
   user,

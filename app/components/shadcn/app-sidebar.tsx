@@ -12,11 +12,11 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 
-import { NavMain } from 'app/components/nav-main.tsx'
-import { NavProjects } from 'app/components/nav-projects.tsx'
-import { NavUser } from 'app/components/nav-user.tsx'
-import { TeamSwitcher } from 'app/components/team-switcher.tsx'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from 'app/components/ui/sidebar.tsx'
+import { NavMain } from 'app/components/shadcn/nav-main.tsx'
+import { NavProjects } from 'app/components/shadcn/nav-projects.tsx'
+import { NavUser } from 'app/components/shadcn/nav-user.tsx'
+import { TeamSwitcher } from 'app/components/shadcn/team-switcher.tsx'
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from 'app/components/shadcn/ui/sidebar.tsx'
 
 // This is sample data.
 const data = {

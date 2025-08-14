@@ -2,15 +2,15 @@ import { ChevronsUpDown, Plus } from 'lucide-react'
 import * as React from 'react'
 
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuTrigger,
-} from 'app/components/ui/dropdown-menu.tsx'
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from 'app/components/ui/sidebar.tsx'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from 'app/components/shadcn/ui/dropdown-menu.tsx'
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from 'app/components/shadcn/ui/sidebar.tsx'
 
 export function TeamSwitcher({
   teams,

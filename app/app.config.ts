@@ -26,6 +26,9 @@ const config: ExpoConfig = {
     bundler: 'metro',
     output: 'static',
     favicon: './assets/images/ctnr-io/icons/browser.png',
+    shortName: 'ctnr.io',
+    name: 'ctnr.io',
+    description: 'ctnr.io - Cloud made simple.',
   },
   plugins: [
     'expo-router',

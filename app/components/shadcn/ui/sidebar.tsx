@@ -5,14 +5,14 @@ import { cva, VariantProps } from 'class-variance-authority'
 import { PanelLeft } from 'lucide-react'
 import * as React from 'react'
 
-import { Button } from 'app/components/ui/button.tsx'
-import { Input } from 'app/components/ui/input.tsx'
-import { Separator } from 'app/components/ui/separator.tsx'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from 'app/components/ui/sheet.tsx'
-import { Skeleton } from 'app/components/ui/skeleton.tsx'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'app/components/ui/tooltip.tsx'
-import { useIsMobile } from 'app/hooks/use-mobile'
-import { cn } from 'app/lib/utils'
+import { Button } from 'app/components/shadcn/ui/button.tsx'
+import { Input } from 'app/components/shadcn/ui/input.tsx'
+import { Separator } from 'app/components/shadcn/ui/separator.tsx'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from 'app/components/shadcn/ui/sheet.tsx'
+import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'app/components/shadcn/ui/tooltip.tsx'
+import { useIsMobile } from 'app/hooks/shadcn/use-mobile'
+import { cn } from 'app/lib/shadcn/utils'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -101,8 +101,8 @@ const SidebarProvider = React.forwardRef<
         }
       }
 
-      globalThis.addEventListener('keydown', handleKeyDown)
-      return () => globalThis.removeEventListener('keydown', handleKeyDown)
+      window.addEventListener('keydown', handleKeyDown)
+      return () => window.removeEventListener('keydown', handleKeyDown)
     }, [toggleSidebar])
 
     // We add a state so that we can do data-state="expanded" or "collapsed".
@@ -727,29 +727,29 @@ const SidebarMenuSubButton = React.forwardRef<
 SidebarMenuSubButton.displayName = 'SidebarMenuSubButton'
 
 export {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupAction,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarInput,
-    SidebarInset,
-    SidebarMenu,
-    SidebarMenuAction,
-    SidebarMenuBadge,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarMenuSkeleton,
-    SidebarMenuSub,
-    SidebarMenuSubButton,
-    SidebarMenuSubItem,
-    SidebarProvider,
-    SidebarRail,
-    SidebarSeparator,
-    SidebarTrigger,
-    useSidebar
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInput,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar
 }
 

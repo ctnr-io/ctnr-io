@@ -1,9 +1,9 @@
 import { PropsWithChildren, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
-import { ThemedText } from 'app/components/ThemedText.tsx'
-import { ThemedView } from 'app/components/ThemedView.tsx'
-import { IconSymbol } from 'app/components/ui/IconSymbol.tsx'
+import { ThemedText } from 'app/components/expo/ThemedText.tsx'
+import { ThemedView } from 'app/components/expo/ThemedView.tsx'
+import { IconSymbol } from 'app/components/expo/ui/IconSymbol.tsx'
 import { Colors } from 'app/constants/Colors.ts'
 import { useColorScheme } from 'app/hooks/useColorScheme.ts'
 

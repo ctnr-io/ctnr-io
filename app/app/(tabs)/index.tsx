@@ -1,10 +1,10 @@
 import { Image } from 'expo-image'
 import { Platform, StyleSheet } from 'react-native'
 
-import { HelloWave } from 'app/components/HelloWave.tsx'
-import ParallaxScrollView from 'app/components/ParallaxScrollView.tsx'
-import { ThemedText } from 'app/components/ThemedText.tsx'
-import { ThemedView } from 'app/components/ThemedView.tsx'
+import { HelloWave } from 'app/components/expo/HelloWave.tsx'
+import ParallaxScrollView from 'app/components/expo/ParallaxScrollView.tsx'
+import { ThemedText } from 'app/components/expo/ThemedText.tsx'
+import { ThemedView } from 'app/components/expo/ThemedView.tsx'
 
 export default function HomeScreen() {
   return (

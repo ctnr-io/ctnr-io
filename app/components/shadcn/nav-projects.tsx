@@ -1,21 +1,21 @@
 import { Folder, Forward, type LucideIcon, MoreHorizontal, Trash2 } from 'lucide-react'
 
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from 'app/components/ui/dropdown-menu.tsx'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from 'app/components/shadcn/ui/dropdown-menu.tsx'
 import {
-    SidebarGroup,
-    SidebarGroupLabel,
-    SidebarMenu,
-    SidebarMenuAction,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar,
-} from 'app/components/ui/sidebar.tsx'
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from 'app/components/shadcn/ui/sidebar.tsx'
 
 export function NavProjects({
   projects,

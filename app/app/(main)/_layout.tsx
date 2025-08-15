@@ -1,6 +1,6 @@
 'use dom'
 
-import { AppSidebar } from 'app/components/shadcn/app-sidebar.tsx'
+import { AppSidebar } from 'app/components/ctnr-io/app-sidebar.tsx'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,8 +11,9 @@ import {
 } from 'app/components/shadcn/ui/breadcrumb.tsx'
 import { Separator } from 'app/components/shadcn/ui/separator.tsx'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from 'app/components/shadcn/ui/sidebar.tsx'
+import { Slot } from 'expo-router'
 
-export default function Page() {
+export default function MainLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -28,26 +29,20 @@ export default function Page() {
               <BreadcrumbList>
                 <BreadcrumbItem className='hidden md:block'>
                   <BreadcrumbLink href='#'>
-                    Building Your Application
+                    My Project
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className='hidden md:block' />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                  <BreadcrumbPage>Containers</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
-        <div className='flex flex-1 flex-col gap-4 p-4 pt-0'>
-          <div className='grid auto-rows-min gap-4 md:grid-cols-3'>
-            <div className='bg-muted/50 aspect-video rounded-xl' />
-            <div className='bg-muted/50 aspect-video rounded-xl' />
-            <div className='bg-muted/50 aspect-video rounded-xl' />
-          </div>
-          <div className='bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min' />
+        <div className='flex flex-1 flex-col'>
+          <Slot />
         </div>
-        {/* <Stack /> */}
       </SidebarInset>
     </SidebarProvider>
   )

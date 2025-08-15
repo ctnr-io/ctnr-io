@@ -49,9 +49,6 @@
     "strictNullChecks": true,
     "strictFunctionTypes": true
   },
-  "unstable": [
-    "sloppy-imports"
-  ],
   "fmt": {
     "options": {
       "lineWidth": 120,
@@ -63,10 +60,10 @@
     }
   },
   "lint": {
+    "tags": ["recommended"],
     "rules": {
       "exclude": [
-        "no-explicit-any",
-        "no-sloppy-imports"
+        "no-explicit-any"
       ]
     }
   }

@@ -3,8 +3,9 @@
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
-import { LucideIcon, Search } from 'lucide-react'
+import { Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
 import { ReactNode, useMemo, useState } from 'react'
+import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 
 export interface TableColumn<T = any> {
   key: string
@@ -54,10 +55,18 @@ export interface DataTableScreenProps<T = any> {
   mobileCardSubtitle?: (item: T) => string
   mobileCardStatus?: (item: T) => { label: string; className: string }
 
+  // Row/Card click functionality
+  onRowClick?: (item: T) => void
+  rowClickable?: boolean
+
   // Search functionality
   searchable?: boolean
   searchPlaceholder?: string
   searchKeys?: (keyof T)[] // Keys to search in
+
+  // Column filtering
+  columnFilterable?: boolean
+  defaultVisibleColumns?: string[] // Column keys that should be visible by default
 
   // Loading and empty states
   loading?: boolean
@@ -78,13 +87,25 @@ export function DataTableScreen<T = any>({
   mobileCardTitle,
   mobileCardSubtitle,
   mobileCardStatus,
+  onRowClick,
+  rowClickable = false,
   searchable = false,
   searchPlaceholder = 'Search...',
   searchKeys,
+  columnFilterable = false,
+  defaultVisibleColumns,
   loading = false,
   emptyMessage = 'No data available',
 }: DataTableScreenProps<T>) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [showColumnFilter, setShowColumnFilter] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(() => {
+    if (defaultVisibleColumns) {
+      return new Set(defaultVisibleColumns)
+    }
+    // By default, show all columns
+    return new Set(columns.map((col) => col.key))
+  })
 
   // Filter data based on search query
   const filteredData = useMemo(() => {
@@ -119,24 +140,35 @@ export function DataTableScreen<T = any>({
     const status = mobileCardStatus?.(item)
 
     return (
-      <div key={index} className='border-b last:border-b-0 p-4'>
-        <div className='flex items-center justify-between mb-3'>
-          <div className='flex items-center gap-2'>
-            <Icon className='h-4 w-4 text-muted-foreground' />
-            <span className='font-medium text-sm'>{mobileCardTitle(item)}</span>
+      <div 
+        key={index} 
+        className={`border-b last:border-b-0 p-5 ${
+          rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : ''
+        }`}
+        onClick={() => rowClickable && onRowClick && onRowClick(item)}
+      >
+        <div className='flex items-start justify-between mb-4'>
+          <div className='flex items-center gap-3 flex-1 min-w-0'>
+            <div className='flex-shrink-0 p-2 bg-primary/10 rounded-lg'>
+              <Icon className='h-4 w-4 text-primary' />
+            </div>
+            <div className='flex-1 min-w-0'>
+              <h3 className='font-semibold text-base text-foreground truncate'>{mobileCardTitle(item)}</h3>
+              {mobileCardSubtitle && (
+                <p className='text-sm text-muted-foreground mt-1 leading-relaxed'>{mobileCardSubtitle(item)}</p>
+              )}
+            </div>
           </div>
           {status && (
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.className}`}>
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0 ml-3`}>
               {status.label}
             </span>
           )}
         </div>
 
-        {mobileCardSubtitle && <p className='text-xs text-muted-foreground mb-3'>{mobileCardSubtitle(item)}</p>}
-
-        <div className='space-y-2 text-xs text-muted-foreground mb-3'>
+        <div className='space-y-3 mb-4'>
           {columns
-            .filter((col) => !col.hiddenOnMobile)
+            .filter((col) => !col.hiddenOnMobile && visibleColumns.has(col.key))
             .map((column) => {
               const value = item[column.key as keyof T]
               const displayValue = column.render ? column.render(value, item) : String(value || '')
@@ -144,16 +176,16 @@ export function DataTableScreen<T = any>({
               if (!displayValue || displayValue === '-') return null
 
               return (
-                <div key={column.key} className='flex justify-between'>
-                  <span>{column.mobileLabel || column.label}:</span>
-                  <span className={column.className}>{displayValue}</span>
+                <div key={column.key} className='flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg border'>
+                  <span className='text-sm font-medium text-muted-foreground'>{column.mobileLabel || column.label}</span>
+                  <span className={`text-sm font-medium text-foreground ${column.className || ''}`}>{displayValue}</span>
                 </div>
               )
             })}
         </div>
 
         {actions.length > 0 && (
-          <div className='flex items-center justify-center gap-1'>
+          <div className='flex items-center justify-center gap-2 pt-2 border-t border-muted/30'>
             {actions
               .filter((action) => !action.condition || action.condition(item))
               .map((action, actionIndex) => (
@@ -161,8 +193,11 @@ export function DataTableScreen<T = any>({
                   key={actionIndex}
                   variant={action.variant || 'ghost'}
                   size='sm'
-                  onClick={() => action.onClick(item)}
-                  className={action.className}
+                  onClick={(e) => {
+                    e.stopPropagation() // Prevent card click when clicking action buttons
+                    action.onClick(item)
+                  }}
+                  className={`${action.className} shadow-sm hover:shadow-md transition-shadow`}
                   title={action.label}
                 >
                   <action.icon className='h-4 w-4' />
@@ -174,58 +209,69 @@ export function DataTableScreen<T = any>({
     )
   }
 
-  const renderDesktopTable = () => (
-    <div className='hidden md:block overflow-x-auto'>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((column) => (
-              <TableHead key={column.key} className={column.className}>
-                {column.label}
-              </TableHead>
-            ))}
-            {actions.length > 0 && <TableHead className='text-right'>Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredData.map((item, index) => (
-            <TableRow key={index}>
-              {columns.map((column) => {
-                const value = item[column.key as keyof T]
-                const displayValue = column.render ? column.render(value, item) : String(value || '')
+  const renderDesktopTable = () => {
+    const visibleColumnsArray = columns.filter((col) => visibleColumns.has(col.key))
 
-                return (
-                  <TableCell key={column.key} className={column.className}>
-                    {displayValue}
-                  </TableCell>
-                )
-              })}
-              {actions.length > 0 && (
-                <TableCell className='text-right'>
-                  <div className='flex items-center justify-end gap-1'>
-                    {actions
-                      .filter((action) => !action.condition || action.condition(item))
-                      .map((action, actionIndex) => (
-                        <Button
-                          key={actionIndex}
-                          variant={action.variant || 'ghost'}
-                          size='sm'
-                          onClick={() => action.onClick(item)}
-                          className={action.className}
-                          title={action.label}
-                        >
-                          <action.icon className='h-4 w-4' />
-                        </Button>
-                      ))}
-                  </div>
-                </TableCell>
-              )}
+    return (
+      <div className='hidden md:block overflow-x-auto'>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {visibleColumnsArray.map((column) => (
+                <TableHead key={column.key} className={column.className}>
+                  {column.label}
+                </TableHead>
+              ))}
+              {actions.length > 0 && <TableHead className='text-right'>Actions</TableHead>}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
+          </TableHeader>
+          <TableBody>
+            {filteredData.map((item, index) => (
+              <TableRow 
+                key={index}
+                className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                onClick={() => rowClickable && onRowClick && onRowClick(item)}
+              >
+                {visibleColumnsArray.map((column) => {
+                  const value = item[column.key as keyof T]
+                  const displayValue = column.render ? column.render(value, item) : String(value || '')
+
+                  return (
+                    <TableCell key={column.key} className={column.className}>
+                      {displayValue}
+                    </TableCell>
+                  )
+                })}
+                {actions.length > 0 && (
+                  <TableCell className='text-right'>
+                    <div className='flex items-center justify-end gap-1'>
+                      {actions
+                        .filter((action) => !action.condition || action.condition(item))
+                        .map((action, actionIndex) => (
+                          <Button
+                            key={actionIndex}
+                            variant={action.variant || 'ghost'}
+                            size='sm'
+                            onClick={(e) => {
+                              e.stopPropagation() // Prevent row click when clicking action buttons
+                              action.onClick(item)
+                            }}
+                            className={action.className}
+                            title={action.label}
+                          >
+                            <action.icon className='h-4 w-4' />
+                          </Button>
+                        ))}
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -281,17 +327,88 @@ export function DataTableScreen<T = any>({
           )}
         </div>
 
-        {/* Desktop Search Bar */}
-        {searchable && (
+        {/* Desktop Search and Filter Bar */}
+        {(searchable || columnFilterable) && (
           <div className='hidden md:block p-3 md:p-4 border-b'>
-            <div className='relative max-w-sm'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-              <Input
-                placeholder={searchPlaceholder}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className='pl-9'
-              />
+            <div className='flex items-center gap-4'>
+              {searchable && (
+                <div className='relative min-w-sm'>
+                  <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+                  <Input
+                    placeholder={searchPlaceholder}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className='pl-9'
+                  />
+                </div>
+              )}
+
+              {columnFilterable && (
+                <div className='relative'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setShowColumnFilter(!showColumnFilter)}
+                    className='flex items-center gap-2'
+                  >
+                    <Settings2 className='h-4 w-4' />
+                    Columns
+                  </Button>
+
+                  {showColumnFilter && (
+                    <div className='absolute top-full mt-2 -left-1/2 bg-white border rounded-lg shadow-lg p-3 min-w-64 z-10'>
+                      <div className='space-y-3'>
+                        <div className='grid grid-cols-2 gap-1'>
+                          {columns.map((column) => (
+                            <label key={column.key} className='flex items-center gap-3 text-sm cursor-pointer'>
+                              <Checkbox
+                                key={column.key}
+                                checked={visibleColumns.has(column.key)}
+                                onCheckedChange={(checked) => {
+                                  const newVisibleColumns = new Set(visibleColumns)
+                                  if (checked) {
+                                    newVisibleColumns.add(column.key)
+                                  } else {
+                                    newVisibleColumns.delete(column.key)
+                                  }
+                                  setVisibleColumns(newVisibleColumns)
+                                }}
+                                className='rounded'
+                                title={column.label}
+                              />
+                              <span className='flex items-center gap-2 text-sm'>
+                                {visibleColumns.has(column.key)
+                                  ? <Eye className='h-3 w-3 text-green-600' />
+                                  : <EyeOff className='h-3 w-3 text-gray-400' />}
+                                {column.mobileLabel || column.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+
+                        <div className='pt-2 mt-2 flex gap-2'>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => setVisibleColumns(new Set(columns.map((col) => col.key)))}
+                            className='text-xs flex-1'
+                          >
+                            Show All
+                          </Button>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => setVisibleColumns(new Set())}
+                            className='text-xs flex-1'
+                          >
+                            Hide All
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -313,22 +430,92 @@ export function DataTableScreen<T = any>({
               {renderDesktopTable()}
             </>
           )}
-
-        {/* Mobile Search Bar - Bottom positioned for better UX */}
-        {searchable && (
-          <div className='absolute bottom-0 left-0 right-0 bg-white block md:hidden border-t p-3'>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-              <Input
-                placeholder={searchPlaceholder}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className='pl-9 w-full'
-              />
-            </div>
-          </div>
-        )}
       </div>
+      {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}
+      {(searchable || columnFilterable) && (
+        <div className='sticky bottom-0 left-0 right-0 bg-white md:hidden border-t py-3'>
+          <div className='space-y-3'>
+            {searchable && (
+              <div className='relative'>
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+                <Input
+                  placeholder={searchPlaceholder}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className='pl-9 w-full'
+                />
+              </div>
+            )}
+
+            {columnFilterable && (
+              <div className='relative'>
+                <Button
+                  variant={!showColumnFilter ? 'outline' : 'secondary'}
+                  size='sm'
+                  onClick={() => setShowColumnFilter(!showColumnFilter)}
+                  className='flex items-center gap-2 w-full justify-center'
+                >
+                  <Settings2 className='h-4 w-4' />
+                  Manage Columns
+                </Button>
+
+                {showColumnFilter && (
+                  <div className='bottom-full left-0 right-0 bg-white p-3 z-10'>
+                    <div className='space-y-3'>
+                      <div className='grid grid-cols-2 gap-1'>
+                        {columns.map((column) => (
+                          <label key={column.key} className='flex items-center gap-3 text-sm cursor-pointer'>
+                            <Checkbox
+                              key={column.key}
+                              checked={visibleColumns.has(column.key)}
+                              onCheckedChange={(checked) => {
+                                const newVisibleColumns = new Set(visibleColumns)
+                                if (checked) {
+                                  newVisibleColumns.add(column.key)
+                                } else {
+                                  newVisibleColumns.delete(column.key)
+                                }
+                                setVisibleColumns(newVisibleColumns)
+                              }}
+                              className='rounded'
+                              title={column.label}
+                            />
+                            <span className='flex items-center gap-2 text-sm'>
+                              {visibleColumns.has(column.key)
+                                ? <Eye className='h-3 w-3 text-green-600' />
+                                : <EyeOff className='h-3 w-3 text-gray-400' />}
+                              {column.mobileLabel || column.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+
+                      <div className='pt-2 mt-2 flex gap-2'>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() => setVisibleColumns(new Set(columns.map((col) => col.key)))}
+                          className='text-xs flex-1'
+                        >
+                          Show All
+                        </Button>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() => setVisibleColumns(new Set())}
+                          className='text-xs flex-1'
+                        >
+                          Hide All
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

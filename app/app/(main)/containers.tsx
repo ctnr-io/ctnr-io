@@ -1,6 +1,7 @@
 'use dom'
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
+import { useRouter } from 'expo-router'
 import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 
 // Container type definition
@@ -93,6 +94,12 @@ function formatDate(dateString: string) {
 }
 
 export default function ContainersScreen() {
+  const router = useRouter()
+
+  const handleRowClick = (container: ContainerData) => {
+    router.push(`/containers/${container.id}`)
+  }
+
   // Define table columns
   const columns: TableColumn<ContainerData>[] = [
     {
@@ -101,7 +108,7 @@ export default function ContainersScreen() {
       render: (value, _item) => (
         <div className='flex items-center gap-2'>
           <Container className='h-4 w-4 text-muted-foreground' />
-          {value}
+          <span className='font-medium'>{value}</span>
         </div>
       ),
       className: 'font-medium',
@@ -207,9 +214,13 @@ export default function ContainersScreen() {
         label: item.status,
         className: getStatusColor(item.status),
       })}
+      onRowClick={handleRowClick}
+      rowClickable={true}
       searchable
       searchPlaceholder='Search containers by name, image, or status...'
       searchKeys={['name', 'image', 'status']}
+      columnFilterable
+      defaultVisibleColumns={['name', 'image', 'status', 'ports', 'cpu', 'memory']}
       emptyMessage='No containers found. Create your first container to get started.'
     />
   )

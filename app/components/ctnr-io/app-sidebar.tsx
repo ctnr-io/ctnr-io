@@ -20,13 +20,13 @@ const data = {
     email: 'dev@ctnr.io',
     avatar: '/avatars/user.jpg',
   },
-  projects: [
-    {
-      name: 'My Project',
-      url: '#',
-      icon: Frame,
-    },
-  ],
+  // projects: [
+  //   {
+  //     name: 'My Project',
+  //     url: '#',
+  //     icon: Frame,
+  //   },
+  // ],
   navMain: [
     {
       title: 'Containers',
@@ -44,149 +44,149 @@ const data = {
         },
       ],
     },
-    {
-      title: 'Volumes',
-      url: '/volumes',
-      icon: HardDrive,
-      items: [
-        {
-          title: 'List',
-          url: '/volumes',
-        },
-        {
-          title: 'Create',
-          url: '/volumes/create',
-        },
-      ],
-    },
-    {
-      title: 'Domains',
-      url: '/domains',
-      icon: Globe,
-      items: [
-        {
-          title: 'List',
-          url: '/domains',
-        },
-        {
-          title: 'Add Domain',
-          url: '/domains/add',
-        },
-      ],
-    },
-    {
-      title: 'Routes',
-      url: '/routes',
-      icon: Route,
-      items: [
-        {
-          title: 'HTTPS Routes',
-          url: '/routes/https',
-        },
-        {
-          title: 'Create Route',
-          url: '/routes/create',
-        },
-      ],
-    },
-    {
-      title: 'Resources',
-      url: '/resources',
-      icon: Gauge,
-      items: [
-        {
-          title: 'Quotas',
-          url: '/resources/quotas',
-        },
-        {
-          title: 'Usage',
-          url: '/resources/usage',
-        },
-      ],
-    },
-    {
-      title: 'Monitoring',
-      url: '/monitoring',
-      icon: Gauge,
-      items: [
-        {
-          title: 'Dashboard',
-          url: '/monitoring',
-        },
-        {
-          title: 'Rules',
-          url: '/monitoring/rules',
-        },
-        {
-          title: 'Alerts',
-          url: '/monitoring/alerts',
-        },
-      ],
-    },
-    {
-      title: 'Builds',
-      url: '/builds',
-      icon: Hammer,
-      items: [
-        {
-          title: 'List',
-          url: '/builds',
-        },
-        {
-          title: 'History',
-          url: '/builds/history',
-        },
-      ],
-    },
-    {
-      title: 'Deployments',
-      url: '/deployments',
-      icon: Rocket,
-      items: [
-        {
-          title: 'List',
-          url: '/deployments',
-        },
-        {
-          title: 'GitHub App',
-          url: '/deployments/github',
-        },
-      ],
-    },
-    {
-      title: 'Billing',
-      url: '/billing',
-      icon: CreditCard,
-      items: [
-        {
-          title: 'Overview',
-          url: '/billing',
-        },
-        {
-          title: 'Invoices',
-          url: '/billing/invoices',
-        },
-        {
-          title: 'Payment Methods',
-          url: '/billing/payment',
-        },
-      ],
-    },
-    {
-      title: 'Notifications',
-      url: '/notifications',
-      icon: Bell,
-      items: [
-        {
-          title: 'List',
-          url: '/notifications',
-        },
-        {
-          title: 'Settings',
-          url: '/notifications/settings',
-        },
-      ],
-    },
+    // {
+    //   title: 'Volumes',
+    //   url: '/volumes',
+    //   icon: HardDrive,
+    //   items: [
+    //     {
+    //       title: 'List',
+    //       url: '/volumes',
+    //     },
+    //     {
+    //       title: 'Create',
+    //       url: '/volumes/create',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Domains',
+    //   url: '/domains',
+    //   icon: Globe,
+    //   items: [
+    //     {
+    //       title: 'List',
+    //       url: '/domains',
+    //     },
+    //     {
+    //       title: 'Add Domain',
+    //       url: '/domains/add',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Routes',
+    //   url: '/routes',
+    //   icon: Route,
+    //   items: [
+    //     {
+    //       title: 'HTTPS Routes',
+    //       url: '/routes/https',
+    //     },
+    //     {
+    //       title: 'Create Route',
+    //       url: '/routes/create',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Resources',
+    //   url: '/resources',
+    //   icon: Gauge,
+    //   items: [
+    //     {
+    //       title: 'Quotas',
+    //       url: '/resources/quotas',
+    //     },
+    //     {
+    //       title: 'Usage',
+    //       url: '/resources/usage',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Monitoring',
+    //   url: '/monitoring',
+    //   icon: Gauge,
+    //   items: [
+    //     {
+    //       title: 'Dashboard',
+    //       url: '/monitoring',
+    //     },
+    //     {
+    //       title: 'Rules',
+    //       url: '/monitoring/rules',
+    //     },
+    //     {
+    //       title: 'Alerts',
+    //       url: '/monitoring/alerts',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Builds',
+    //   url: '/builds',
+    //   icon: Hammer,
+    //   items: [
+    //     {
+    //       title: 'List',
+    //       url: '/builds',
+    //     },
+    //     {
+    //       title: 'History',
+    //       url: '/builds/history',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Deployments',
+    //   url: '/deployments',
+    //   icon: Rocket,
+    //   items: [
+    //     {
+    //       title: 'List',
+    //       url: '/deployments',
+    //     },
+    //     {
+    //       title: 'GitHub App',
+    //       url: '/deployments/github',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Billing',
+    //   url: '/billing',
+    //   icon: CreditCard,
+    //   items: [
+    //     {
+    //       title: 'Overview',
+    //       url: '/billing',
+    //     },
+    //     {
+    //       title: 'Invoices',
+    //       url: '/billing/invoices',
+    //     },
+    //     {
+    //       title: 'Payment Methods',
+    //       url: '/billing/payment',
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: 'Notifications',
+    //   url: '/notifications',
+    //   icon: Bell,
+    //   items: [
+    //     {
+    //       title: 'List',
+    //       url: '/notifications',
+    //     },
+    //     {
+    //       title: 'Settings',
+    //       url: '/notifications/settings',
+    //     },
+    //   ],
+    // },
   ],
 }
 
@@ -194,10 +194,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>
-        <AppLogo height={30} />
+        <AppLogo />
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects projects={data.projects} />
+        {/* <NavProjects projects={data.projects} /> */}
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>

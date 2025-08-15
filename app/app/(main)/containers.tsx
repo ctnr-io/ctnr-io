@@ -14,6 +14,12 @@ interface ContainerData {
   ports: string[]
   cpu: string
   memory: string
+  replicas: {
+    desired: number
+    current: number
+    ready: number
+    available: number
+  }
 }
 
 // Mock data for containers
@@ -27,6 +33,12 @@ const containers: ContainerData[] = [
     ports: ['80:3000', '443:3001'],
     cpu: '0.5%',
     memory: '128MB',
+    replicas: {
+      desired: 3,
+      current: 3,
+      ready: 2,
+      available: 2,
+    },
   },
   {
     id: 'cont_5e6f7g8h',
@@ -37,6 +49,12 @@ const containers: ContainerData[] = [
     ports: ['8080:8080'],
     cpu: '2.1%',
     memory: '256MB',
+    replicas: {
+      desired: 2,
+      current: 2,
+      ready: 2,
+      available: 2,
+    },
   },
   {
     id: 'cont_9i0j1k2l',
@@ -47,6 +65,12 @@ const containers: ContainerData[] = [
     ports: ['5432:5432'],
     cpu: '0%',
     memory: '0MB',
+    replicas: {
+      desired: 1,
+      current: 0,
+      ready: 0,
+      available: 0,
+    },
   },
   {
     id: 'cont_3m4n5o6p',
@@ -57,6 +81,12 @@ const containers: ContainerData[] = [
     ports: ['6379:6379'],
     cpu: '0.8%',
     memory: '64MB',
+    replicas: {
+      desired: 1,
+      current: 1,
+      ready: 1,
+      available: 1,
+    },
   },
   {
     id: 'cont_7q8r9s0t',
@@ -67,6 +97,12 @@ const containers: ContainerData[] = [
     ports: [],
     cpu: '1.2%',
     memory: '192MB',
+    replicas: {
+      desired: 4,
+      current: 3,
+      ready: 1,
+      available: 1,
+    },
   },
 ]
 
@@ -127,6 +163,27 @@ export default function ContainersScreen() {
         >
           {value}
         </span>
+      ),
+    },
+    {
+      key: 'replicas',
+      label: 'Replicas',
+      render: (value, item) => (
+        <div className='flex items-center gap-2'>
+          <span className='text-sm font-medium'>
+            {item.replicas.ready}/{item.replicas.desired}
+          </span>
+          <div className='flex items-center gap-1'>
+            <div className={`w-2 h-2 rounded-full ${
+              item.replicas.ready === item.replicas.desired ? 'bg-green-500' :
+              item.replicas.ready > 0 ? 'bg-yellow-500' :
+              'bg-red-500'
+            }`}></div>
+            <span className='text-xs text-muted-foreground'>
+              {item.replicas.current} current
+            </span>
+          </div>
+        </div>
       ),
     },
     {
@@ -220,7 +277,7 @@ export default function ContainersScreen() {
       searchPlaceholder='Search containers by name, image, or status...'
       searchKeys={['name', 'image', 'status']}
       columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'ports', 'cpu', 'memory']}
+      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'ports', 'cpu', 'memory']}
       emptyMessage='No containers found. Create your first container to get started.'
     />
   )

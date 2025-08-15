@@ -142,12 +142,12 @@ export function DataTableScreen<T = any>({
     return (
       <div 
         key={index} 
-        className={`border-b last:border-b-0 p-5 ${
+        className={`border-b last:border-b-0 p-2 ${
           rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : ''
         }`}
         onClick={() => rowClickable && onRowClick && onRowClick(item)}
       >
-        <div className='flex items-start justify-between mb-4'>
+        <div className='flex items-start justify-between'>
           <div className='flex items-center gap-3 flex-1 min-w-0'>
             <div className='flex-shrink-0 p-2 bg-primary/10 rounded-lg'>
               <Icon className='h-4 w-4 text-primary' />
@@ -165,7 +165,7 @@ export function DataTableScreen<T = any>({
             </span>
           )}
         </div>
-
+{/* 
         <div className='space-y-3 mb-4'>
           {columns
             .filter((col) => !col.hiddenOnMobile && visibleColumns.has(col.key))
@@ -182,9 +182,9 @@ export function DataTableScreen<T = any>({
                 </div>
               )
             })}
-        </div>
+        </div> */}
 
-        {actions.length > 0 && (
+        {/* {actions.length > 0 && (
           <div className='flex items-center justify-center gap-2 pt-2 border-t border-muted/30'>
             {actions
               .filter((action) => !action.condition || action.condition(item))
@@ -204,7 +204,7 @@ export function DataTableScreen<T = any>({
                 </Button>
               ))}
           </div>
-        )}
+        )} */}
       </div>
     )
   }
@@ -284,6 +284,7 @@ export function DataTableScreen<T = any>({
   }
 
   return (
+    <div className='flex flex-col justify-between h-full md:h-auto'>
     <div className='flex flex-col gap-4 p-4 md:gap-6 md:p-6'>
       {/* Header Section */}
       <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
@@ -431,9 +432,10 @@ export function DataTableScreen<T = any>({
             </>
           )}
       </div>
+      </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}
       {(searchable || columnFilterable) && (
-        <div className='sticky bottom-0 left-0 right-0 bg-white md:hidden border-t py-3'>
+        <div className='sticky bottom-0 left-0 right-0 bg-white md:hidden border-t p-3'>
           <div className='space-y-3'>
             {searchable && (
               <div className='relative'>
@@ -447,7 +449,7 @@ export function DataTableScreen<T = any>({
               </div>
             )}
 
-            {columnFilterable && (
+            {/* {columnFilterable && (
               <div className='relative'>
                 <Button
                   variant={!showColumnFilter ? 'outline' : 'secondary'}
@@ -512,7 +514,7 @@ export function DataTableScreen<T = any>({
                   </div>
                 )}
               </div>
-            )}
+            )} */}
           </div>
         </div>
       )}

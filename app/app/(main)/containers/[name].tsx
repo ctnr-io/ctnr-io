@@ -1,7 +1,9 @@
 'use dom'
 
-import { DataItemScreen, ItemAction, ItemSection } from 'app/components/ctnr-io/data-item-screen.tsx'
-import { Container, Edit, Eye, Play, RotateCcw, Settings, Square, Terminal, Trash2 } from 'lucide-react'
+import { DataItemScreen, ItemAction, ItemSection, ItemTab } from 'app/components/ctnr-io/data-item-screen.tsx'
+import { ContainerLogs } from 'app/components/ctnr-io/container-logs.tsx'
+import { ContainerExec } from 'app/components/ctnr-io/container-exec.tsx'
+import { Container, Edit, Eye, Play, RotateCcw, Settings, Square, Terminal, Trash2, Info, FileText, Copy, Users } from 'lucide-react'
 
 // Example container detail data
 const containerData = {
@@ -16,6 +18,41 @@ const containerData = {
   restartPolicy: 'unless-stopped',
   command: 'nginx -g "daemon off;"',
   workingDir: '/usr/share/nginx/html',
+  replicas: {
+    desired: 3,
+    current: 3,
+    ready: 2,
+    available: 2,
+    instances: [
+      {
+        id: 'cont_1a2b3c4d-1',
+        name: 'web-app-frontend-1',
+        status: 'running',
+        node: 'node-01',
+        created: '2024-01-15T10:30:00Z',
+        cpu: '0.2%',
+        memory: '42MB',
+      },
+      {
+        id: 'cont_1a2b3c4d-2',
+        name: 'web-app-frontend-2',
+        status: 'running',
+        node: 'node-02',
+        created: '2024-01-15T10:30:05Z',
+        cpu: '0.1%',
+        memory: '38MB',
+      },
+      {
+        id: 'cont_1a2b3c4d-3',
+        name: 'web-app-frontend-3',
+        status: 'starting',
+        node: 'node-03',
+        created: '2024-01-15T10:30:10Z',
+        cpu: '0.2%',
+        memory: '48MB',
+      },
+    ]
+  },
   environment: {
     NODE_ENV: 'production',
     API_URL: 'https://api.example.com',
@@ -56,6 +93,96 @@ function formatDate(dateString: string) {
 }
 
 export default function ContainerDetailScreen() {
+  // Helper function to render section content
+  const renderSectionContent = (section: ItemSection) => (
+    <div className='bg-card border rounded-xl overflow-hidden'>
+      <div className='bg-gradient-to-r from-muted/30 to-muted/10 p-6 border-b'>
+        <h2 className='text-xl font-semibold text-foreground'>{section.title}</h2>
+        {section.description && (
+          <p className='text-sm text-muted-foreground mt-2 leading-relaxed'>
+            {section.description}
+          </p>
+        )}
+      </div>
+
+      <div className='p-6'>
+        {/* Desktop Layout */}
+        <div className='hidden md:block'>
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            {section.fields.map((field, fieldIndex) => (
+              <div key={fieldIndex} className='space-y-2'>
+                <label className='text-sm font-semibold text-muted-foreground uppercase tracking-wide'>
+                  {field.label}
+                </label>
+                <div className={`flex items-start gap-3 bg-muted/20 rounded-lg border ${field.className || ''}`}>
+                  <div className='flex-1 min-w-0 p-3'>
+                    <div className='text-sm font-medium text-foreground break-words'>
+                      {field.render ? field.render(field.value) : (
+                        field.value === null || field.value === undefined ? (
+                          <span className="text-muted-foreground">-</span>
+                        ) : Array.isArray(field.value) ? (
+                          field.value.length > 0 ? field.value.join(', ') : '-'
+                        ) : String(field.value)
+                      )}
+                    </div>
+                  </div>
+                  {field.copyable && field.value && (
+                    <button
+                      onClick={() => navigator.clipboard.writeText(String(field.value))}
+                      className='h-8 w-8 mt-1.5 mx-2 hover:bg-primary/10 flex-shrink-0 rounded flex items-center justify-center'
+                      title='Copy to clipboard'
+                    >
+                      <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className='block md:hidden space-y-4'>
+          {section.fields
+            .filter(field => !field.hiddenOnMobile)
+            .map((field, fieldIndex) => (
+              <div key={fieldIndex} className='space-y-2'>
+                <div className='flex items-center justify-between'>
+                  <label className='text-sm font-semibold text-muted-foreground uppercase tracking-wide'>
+                    {field.label}
+                  </label>
+                  {field.copyable && field.value && (
+                    <button
+                      onClick={() => navigator.clipboard.writeText(String(field.value))}
+                      className='h-8 w-8 p-0 hover:bg-primary/10 rounded flex items-center justify-center'
+                      title='Copy to clipboard'
+                    >
+                      <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <div className={`p-3 bg-muted/20 rounded-lg border ${field.className || ''}`}>
+                  <div className='text-sm font-medium text-foreground break-words'>
+                    {field.render ? field.render(field.value) : (
+                      field.value === null || field.value === undefined ? (
+                        <span className="text-muted-foreground">-</span>
+                      ) : Array.isArray(field.value) ? (
+                        field.value.length > 0 ? field.value.join(', ') : '-'
+                      ) : String(field.value)
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  )
+
   // Define sections
   const sections: ItemSection[] = [
     {
@@ -105,6 +232,27 @@ export default function ContainerDetailScreen() {
       title: 'Runtime Information',
       description: 'Current resource usage and runtime details',
       fields: [
+        {
+          key: 'replicas',
+          label: 'Replicas',
+          value: `${containerData.replicas.ready}/${containerData.replicas.desired} ready`,
+          render: () => (
+            <div className='flex items-center gap-2'>
+              <div className='flex items-center gap-1'>
+                <span className='text-sm font-medium'>
+                  {containerData.replicas.ready}/{containerData.replicas.desired}
+                </span>
+                <span className='text-xs text-muted-foreground'>ready</span>
+              </div>
+              <div className='flex items-center gap-1'>
+                <div className='w-2 h-2 rounded-full bg-green-500'></div>
+                <span className='text-xs text-muted-foreground'>
+                  {containerData.replicas.current} current
+                </span>
+              </div>
+            </div>
+          ),
+        },
         {
           key: 'cpu',
           label: 'CPU Usage',
@@ -200,17 +348,176 @@ export default function ContainerDetailScreen() {
     },
   ]
 
+  // Define tabs
+  const tabs: ItemTab[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      icon: Info,
+      content: (
+        <div className='space-y-6'>
+          {sections.slice(0, 2).map((section, index) => (
+            <div key={index}>
+              {renderSectionContent(section)}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'replicas',
+      label: 'Replicas',
+      icon: Users,
+      content: (
+        <div className='space-y-6'>
+          {/* Replica Summary */}
+          <div className='bg-card border rounded-xl overflow-hidden'>
+            <div className='bg-gradient-to-r from-muted/30 to-muted/10 p-6 border-b'>
+              <h2 className='text-xl font-semibold text-foreground'>Replica Status</h2>
+              <p className='text-sm text-muted-foreground mt-2 leading-relaxed'>
+                Overview of all container replicas and their current status
+              </p>
+            </div>
+            <div className='p-6'>
+              <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-6'>
+                <div className='text-center p-4 bg-muted/20 rounded-lg'>
+                  <div className='text-2xl font-bold text-foreground'>{containerData.replicas.desired}</div>
+                  <div className='text-sm text-muted-foreground'>Desired</div>
+                </div>
+                <div className='text-center p-4 bg-muted/20 rounded-lg'>
+                  <div className='text-2xl font-bold text-foreground'>{containerData.replicas.current}</div>
+                  <div className='text-sm text-muted-foreground'>Current</div>
+                </div>
+                <div className='text-center p-4 bg-green-50 rounded-lg'>
+                  <div className='text-2xl font-bold text-green-600'>{containerData.replicas.ready}</div>
+                  <div className='text-sm text-green-600'>Ready</div>
+                </div>
+                <div className='text-center p-4 bg-blue-50 rounded-lg'>
+                  <div className='text-2xl font-bold text-blue-600'>{containerData.replicas.available}</div>
+                  <div className='text-sm text-blue-600'>Available</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Replica Instances */}
+          <div className='bg-card border rounded-xl overflow-hidden'>
+            <div className='bg-gradient-to-r from-muted/30 to-muted/10 p-6 border-b'>
+              <h2 className='text-xl font-semibold text-foreground'>Replica Instances</h2>
+              <p className='text-sm text-muted-foreground mt-2 leading-relaxed'>
+                Detailed information about each container replica instance
+              </p>
+            </div>
+            <div className='p-6'>
+              <div className='space-y-4'>
+                {containerData.replicas.instances.map((instance, index) => (
+                  <div key={instance.id} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
+                    <div className='flex items-center justify-between mb-3'>
+                      <div className='flex items-center gap-3'>
+                        <div className='flex items-center gap-2'>
+                          <div className={`w-3 h-3 rounded-full ${
+                            instance.status === 'running' ? 'bg-green-500' :
+                            instance.status === 'starting' ? 'bg-yellow-500' :
+                            'bg-red-500'
+                          }`}></div>
+                          <span className='font-medium'>{instance.name}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(instance.status)}`}>
+                          {instance.status}
+                        </span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(instance.id)}
+                          className='p-1 hover:bg-muted rounded'
+                          title='Copy instance ID'
+                        >
+                          <Copy className='h-4 w-4' />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
+                      <div>
+                        <div className='text-muted-foreground'>Instance ID</div>
+                        <div className='font-mono text-xs'>{instance.id}</div>
+                      </div>
+                      <div>
+                        <div className='text-muted-foreground'>Node</div>
+                        <div className='font-medium'>{instance.node}</div>
+                      </div>
+                      <div>
+                        <div className='text-muted-foreground'>CPU</div>
+                        <div className='font-mono'>{instance.cpu}</div>
+                      </div>
+                      <div>
+                        <div className='text-muted-foreground'>Memory</div>
+                        <div className='font-mono'>{instance.memory}</div>
+                      </div>
+                    </div>
+                    
+                    <div className='mt-3 text-xs text-muted-foreground'>
+                      Created: {formatDate(instance.created)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'config',
+      label: 'Configuration',
+      icon: Settings,
+      content: (
+        <div className='space-y-6'>
+          {sections.slice(2).map((section, index) => (
+            <div key={index}>
+              {renderSectionContent(section)}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'logs',
+      label: 'Logs',
+      icon: FileText,
+      content: (
+        <ContainerLogs
+          containerId={containerData.id}
+          containerName={containerData.name}
+          replicas={containerData.replicas.instances}
+        />
+      ),
+    },
+    {
+      id: 'exec',
+      label: 'Exec',
+      icon: Terminal,
+      content: (
+        <ContainerExec
+          containerId={containerData.id}
+          containerName={containerData.name}
+          replicas={containerData.replicas.instances}
+        />
+      ),
+    },
+  ]
+
   // Define actions
   const secondaryActions: ItemAction[] = [
-		{
+    {
       icon: Play,
       label: 'Start',
-      onClick: () => 'Start',
+      onClick: () => console.log('Start'),
       variant: containerData.status !== 'running' ? 'outline' : 'secondary',
-		},
+    },
     {
       icon: Square,
-      label:'Stop',
+      label: 'Stop',
       onClick: () => console.log('Stop'),
       variant: containerData.status !== 'stopped' ? 'outline' : 'secondary',
     },
@@ -218,18 +525,6 @@ export default function ContainerDetailScreen() {
       icon: RotateCcw,
       label: 'Restart',
       onClick: () => console.log('Restart container'),
-      variant: 'outline',
-    },
-    {
-      icon: Terminal,
-      label: 'Exec',
-      onClick: () => console.log('Execute command in container'),
-      variant: 'outline',
-    },
-    {
-      icon: Eye,
-      label: 'Logs',
-      onClick: () => console.log('View logs'),
       variant: 'outline',
     },
     {
@@ -250,23 +545,15 @@ export default function ContainerDetailScreen() {
         label: containerData.status,
         className: getStatusColor(containerData.status),
       }}
-      // primaryAction={primaryAction}
       secondaryActions={secondaryActions}
-      sections={sections}
+      tabs={tabs}
+      defaultTab='overview'
       breadcrumb={{
         items: [
           { label: 'Containers', href: '/containers' },
           { label: containerData.name },
         ],
       }}
-    >
-      {/* Additional custom content can go here */}
-      <div className='p-4'>
-        <h3 className='font-semibold mb-2'>Quick Actions</h3>
-        <p className='text-sm text-muted-foreground'>
-          Use the action buttons above to manage this container, or explore the detailed information in each section.
-        </p>
-      </div>
-    </DataItemScreen>
+    />
   )
 }

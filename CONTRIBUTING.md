@@ -28,7 +28,7 @@ expected to uphold this code. Please report unacceptable behavior to the project
    ```
 3. **Add the upstream repository** as a remote
    ```bash
-   git remote add upstream https://github.com/ctnr.io/cluster.git
+   git remote add upstream https://github.com/cluster.ctnr.io.git
    ```
 4. **Create a new branch** for your feature or bugfix
    ```bash

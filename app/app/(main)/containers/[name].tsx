@@ -1,6 +1,7 @@
 'use dom'
 
 import { ContainerExec } from 'app/components/ctnr-io/container-exec.tsx'
+import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { ContainerLogs } from 'app/components/ctnr-io/container-logs.tsx'
 import { DataItemScreen, ItemAction, ItemSection, ItemTab } from 'app/components/ctnr-io/data-item-screen.tsx'
 import { Container, Copy, FileText, Info, Play, RotateCcw, Settings, Square, Terminal, Trash2 } from 'lucide-react'
@@ -585,7 +586,7 @@ export default function ContainerDetailScreen() {
     <DataItemScreen
       title={containerData.name}
       description={`Container running ${containerData.image}`}
-      icon={Container}
+      icon={({ className, ref }) => <ContainerImageIcon ref={ref} image={containerData.image} className={className} />}
       status={{
         label: containerData.status,
         className: getStatusColor(containerData.status),

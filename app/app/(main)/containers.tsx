@@ -1,6 +1,7 @@
 'use dom'
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
+import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { useRouter } from 'expo-router'
 import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 
@@ -141,9 +142,9 @@ export default function ContainersScreen() {
     {
       key: 'name',
       label: 'Name',
-      render: (value, _item) => (
+      render: (value, item) => (
         <div className='flex items-center gap-2'>
-          <Container className='h-4 w-4 text-muted-foreground' />
+          <ContainerImageIcon image={item.image} className='h-4 w-4' />
           <span className='font-medium'>{value}</span>
         </div>
       ),
@@ -318,13 +319,14 @@ export default function ContainersScreen() {
         label: item.status,
         className: getStatusColor(item.status),
       })}
+      mobileCardIcon={(item) => <ContainerImageIcon image={item.image} className='h-4 w-4' />}
       onRowClick={handleRowClick}
       rowClickable
       searchable
       searchPlaceholder='Search containers by name, image, or status...'
       searchKeys={['name', 'image', 'status']}
       columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'routes', 'ports', 'cpu', 'memory']}
+      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'ports', 'cpu', 'memory']}
       emptyMessage='No containers found. Create your first container to get started.'
     />
   )

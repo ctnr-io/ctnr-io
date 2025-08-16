@@ -4,6 +4,7 @@ import { useSidebar } from '../shadcn/ui/sidebar.tsx'
 export function AppLogo(props: SvgProps) {
   const { open } = useSidebar()
   return (
+    // @ts-expect-error
     <Svg
       xmlns='http://www.w3.org/2000/svg'
       viewBox={[0, 0, open ? 3162.175 : 1000, 958.19]}
@@ -12,6 +13,7 @@ export function AppLogo(props: SvgProps) {
       {...props}
     >
       <Path
+        // @ts-expect-error
         xmlns='http://www.w3.org/2000/svg'
         fill='#f8b500'
         fillRule='evenodd'

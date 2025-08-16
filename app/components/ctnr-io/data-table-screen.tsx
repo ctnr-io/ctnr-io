@@ -54,6 +54,7 @@ export interface DataTableScreenProps<T = any> {
   mobileCardTitle: (item: T) => string
   mobileCardSubtitle?: (item: T) => string
   mobileCardStatus?: (item: T) => { label: string; className: string }
+  mobileCardIcon?: (item: T) => ReactNode // Custom icon renderer for mobile cards
 
   // Row/Card click functionality
   onRowClick?: (item: T) => void
@@ -87,6 +88,7 @@ export function DataTableScreen<T = any>({
   mobileCardTitle,
   mobileCardSubtitle,
   mobileCardStatus,
+  mobileCardIcon,
   onRowClick,
   rowClickable = false,
   searchable = false,
@@ -150,7 +152,7 @@ export function DataTableScreen<T = any>({
         <div className='flex items-start justify-between'>
           <div className='flex items-center gap-3 flex-1 min-w-0'>
             <div className='flex-shrink-0 p-2 bg-primary/10 rounded-lg'>
-              <Icon className='h-4 w-4 text-primary' />
+              {mobileCardIcon ? mobileCardIcon(item) : <Icon className='h-4 w-4 text-primary' />}
             </div>
             <div className='flex-1 min-w-0'>
               <h3 className='font-semibold text-base text-foreground truncate'>{mobileCardTitle(item)}</h3>

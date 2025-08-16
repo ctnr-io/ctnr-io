@@ -60,7 +60,6 @@
     }
   },
   "lint": {
-    "tags": ["recommended"],
     "rules": {
       "exclude": [
         "no-explicit-any"

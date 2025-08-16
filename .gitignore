@@ -4,3 +4,6 @@
 # Generated files
 *.gen.*
 !*.gen.*.ts
+
+# Compiled files
+static_main

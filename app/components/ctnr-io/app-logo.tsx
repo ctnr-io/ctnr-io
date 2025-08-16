@@ -1,6 +1,5 @@
 import Svg, { Path, SvgProps } from 'react-native-svg'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
-import { cn } from 'app/lib/shadcn/utils.ts'
 
 export function AppLogo(props: SvgProps) {
   const { open } = useSidebar()
@@ -9,7 +8,7 @@ export function AppLogo(props: SvgProps) {
       xmlns='http://www.w3.org/2000/svg'
       viewBox={[0, 0, open ? 3162.175 : 1000, 958.19]}
       height={32}
-      className={open ? 'mt-2' : ''}  
+      className={open ? 'mt-2' : ''}
       {...props}
     >
       <Path

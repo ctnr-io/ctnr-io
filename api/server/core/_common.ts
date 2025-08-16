@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ClientContext } from 'ctx/mod.ts'
+import { ClientContext, ServerContext } from 'ctx/mod.ts'
 import { ts } from '@tmpl/core'
 
 export const gatewayListeners = [
@@ -44,6 +44,8 @@ export const Publish = z.string().transform((value) => {
   `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
 )
 
+export type ServerRequest<Input> = { ctx: ServerContext; input: Input }
+
 export type ServerResponse<Input> = AsyncGenerator<
   | string
   | object
@@ -52,6 +54,8 @@ export type ServerResponse<Input> = AsyncGenerator<
   void,
   unknown
 >
+
+export type ClientRequest<Input> = { ctx: ClientContext; input: Input }
 
 export type ClientResponse = AsyncGenerator<
   string | object,

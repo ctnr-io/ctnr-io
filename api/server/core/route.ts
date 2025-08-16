@@ -30,12 +30,24 @@ const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid2
 
 export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
   try {
-    // Get all ports of the container
-    const pod = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(input.name).catch(() => {
-      throw new Error(`Container ${input.name} not found`)
-    })
+    // First, try to find the deployment
+    const deployment = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(() =>
+      null
+    )
 
-    const containerPorts = pod.spec?.containers?.[0]?.ports || []
+    let containerPorts: any[] = []
+
+    if (deployment) {
+      // Get ports from deployment template
+      containerPorts = deployment.spec?.template?.spec?.containers?.[0]?.ports || []
+    } else {
+      // Fallback: try to find the pod directly (for backward compatibility)
+      const pod = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(input.name).catch(() => {
+        throw new Error(`Container ${input.name} not found`)
+      })
+      containerPorts = pod.spec?.containers?.[0]?.ports || []
+    }
+
     if (containerPorts.length === 0) {
       throw new Error(`Container ${input.name} has no ports exposed`)
     }

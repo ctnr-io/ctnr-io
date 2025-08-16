@@ -1,9 +1,9 @@
 'use dom'
 
-import { DataItemScreen, ItemAction, ItemSection, ItemTab } from 'app/components/ctnr-io/data-item-screen.tsx'
-import { ContainerLogs } from 'app/components/ctnr-io/container-logs.tsx'
 import { ContainerExec } from 'app/components/ctnr-io/container-exec.tsx'
-import { Container, Edit, Eye, Play, RotateCcw, Settings, Square, Terminal, Trash2, Info, FileText, Copy, Users } from 'lucide-react'
+import { ContainerLogs } from 'app/components/ctnr-io/container-logs.tsx'
+import { DataItemScreen, ItemAction, ItemSection, ItemTab } from 'app/components/ctnr-io/data-item-screen.tsx'
+import { Container, Copy, FileText, Info, Play, RotateCcw, Settings, Square, Terminal, Trash2 } from 'lucide-react'
 
 // Example container detail data
 const containerData = {
@@ -12,17 +12,21 @@ const containerData = {
   image: 'nginx:alpine',
   status: 'running',
   created: '2024-01-15T10:30:00Z',
-  ports: ['80:3000', '443:3001'],
+  ports: ['web:80/tcp', 'https:443/tcp'],
   cpu: '0.5%',
   memory: '128MB',
   restartPolicy: 'unless-stopped',
   command: 'nginx -g "daemon off;"',
   workingDir: '/usr/share/nginx/html',
+  routes: [
+    'https://web-app-frontend-user123.ctnr.io',
+    'https://myapp.example.com',
+    'https://staging.myapp.com',
+  ],
   replicas: {
-    desired: 3,
+    max: 5,
+    min: 2,
     current: 3,
-    ready: 2,
-    available: 2,
     instances: [
       {
         id: 'cont_1a2b3c4d-1',
@@ -51,7 +55,7 @@ const containerData = {
         cpu: '0.2%',
         memory: '48MB',
       },
-    ]
+    ],
   },
   environment: {
     NODE_ENV: 'production',
@@ -118,22 +122,30 @@ export default function ContainerDetailScreen() {
                   <div className='flex-1 min-w-0 p-3'>
                     <div className='text-sm font-medium text-foreground break-words'>
                       {field.render ? field.render(field.value) : (
-                        field.value === null || field.value === undefined ? (
-                          <span className="text-muted-foreground">-</span>
-                        ) : Array.isArray(field.value) ? (
-                          field.value.length > 0 ? field.value.join(', ') : '-'
-                        ) : String(field.value)
+                        field.value === null || field.value === undefined
+                          ? <span className='text-muted-foreground'>-</span>
+                          : Array.isArray(field.value)
+                          ? (
+                            field.value.length > 0 ? field.value.join(', ') : '-'
+                          )
+                          : String(field.value)
                       )}
                     </div>
                   </div>
                   {field.copyable && field.value && (
                     <button
+                      type='button'
                       onClick={() => navigator.clipboard.writeText(String(field.value))}
                       className='h-8 w-8 mt-1.5 mx-2 hover:bg-primary/10 flex-shrink-0 rounded flex items-center justify-center'
                       title='Copy to clipboard'
                     >
                       <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' />
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z'
+                        />
                       </svg>
                     </button>
                   )}
@@ -146,7 +158,7 @@ export default function ContainerDetailScreen() {
         {/* Mobile Layout */}
         <div className='block md:hidden space-y-4'>
           {section.fields
-            .filter(field => !field.hiddenOnMobile)
+            .filter((field) => !field.hiddenOnMobile)
             .map((field, fieldIndex) => (
               <div key={fieldIndex} className='space-y-2'>
                 <div className='flex items-center justify-between'>
@@ -155,12 +167,18 @@ export default function ContainerDetailScreen() {
                   </label>
                   {field.copyable && field.value && (
                     <button
+                      type='button'
                       onClick={() => navigator.clipboard.writeText(String(field.value))}
                       className='h-8 w-8 p-0 hover:bg-primary/10 rounded flex items-center justify-center'
                       title='Copy to clipboard'
                     >
                       <svg className='h-4 w-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' />
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z'
+                        />
                       </svg>
                     </button>
                   )}
@@ -168,11 +186,13 @@ export default function ContainerDetailScreen() {
                 <div className={`p-3 bg-muted/20 rounded-lg border ${field.className || ''}`}>
                   <div className='text-sm font-medium text-foreground break-words'>
                     {field.render ? field.render(field.value) : (
-                      field.value === null || field.value === undefined ? (
-                        <span className="text-muted-foreground">-</span>
-                      ) : Array.isArray(field.value) ? (
-                        field.value.length > 0 ? field.value.join(', ') : '-'
-                      ) : String(field.value)
+                      field.value === null || field.value === undefined
+                        ? <span className='text-muted-foreground'>-</span>
+                        : Array.isArray(field.value)
+                        ? (
+                          field.value.length > 0 ? field.value.join(', ') : '-'
+                        )
+                        : String(field.value)
                     )}
                   </div>
                 </div>
@@ -235,19 +255,20 @@ export default function ContainerDetailScreen() {
         {
           key: 'replicas',
           label: 'Replicas',
-          value: `${containerData.replicas.ready}/${containerData.replicas.desired} ready`,
+          value:
+            `${containerData.replicas.current} current (${containerData.replicas.min}-${containerData.replicas.max})`,
           render: () => (
             <div className='flex items-center gap-2'>
               <div className='flex items-center gap-1'>
                 <span className='text-sm font-medium'>
-                  {containerData.replicas.ready}/{containerData.replicas.desired}
+                  {containerData.replicas.current}
                 </span>
-                <span className='text-xs text-muted-foreground'>ready</span>
+                <span className='text-xs text-muted-foreground'>current</span>
               </div>
               <div className='flex items-center gap-1'>
-                <div className='w-2 h-2 rounded-full bg-green-500'></div>
+                <div className='w-2 h-2 rounded-full bg-blue-500'></div>
                 <span className='text-xs text-muted-foreground'>
-                  {containerData.replicas.current} current
+                  {containerData.replicas.min}-{containerData.replicas.max} range
                 </span>
               </div>
             </div>
@@ -276,6 +297,37 @@ export default function ContainerDetailScreen() {
                   {port}
                 </div>
               ))}
+            </div>
+          ),
+        },
+        {
+          key: 'routes',
+          label: 'Routes',
+          value: containerData.routes,
+          render: (routes: string[]) => (
+            <div className='space-y-1'>
+              {routes.length === 0 ? <span className='text-muted-foreground'>No routes configured</span> : (
+                routes.map((route, index) => (
+                  <div key={index} className='flex items-center gap-2'>
+                    <a
+                      href={route}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='text-blue-600 hover:text-blue-800 underline text-sm font-mono bg-muted px-2 py-1 rounded'
+                    >
+                      {route}
+                    </a>
+                    <button
+                      type='button'
+                      onClick={() => navigator.clipboard.writeText(route)}
+                      className='p-1 hover:bg-muted rounded'
+                      title='Copy route URL'
+                    >
+                      <Copy className='h-3 w-3' />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           ),
         },
@@ -356,111 +408,104 @@ export default function ContainerDetailScreen() {
       icon: Info,
       content: (
         <div className='space-y-6'>
-          {sections.slice(0, 2).map((section, index) => (
-            <div key={index}>
-              {renderSectionContent(section)}
-            </div>
-          ))}
-        </div>
-      ),
-    },
-    {
-      id: 'replicas',
-      label: 'Replicas',
-      icon: Users,
-      content: (
-        <div className='space-y-6'>
-          {/* Replica Summary */}
-          <div className='bg-card border rounded-xl overflow-hidden'>
-            <div className='bg-gradient-to-r from-muted/30 to-muted/10 p-6 border-b'>
-              <h2 className='text-xl font-semibold text-foreground'>Replica Status</h2>
-              <p className='text-sm text-muted-foreground mt-2 leading-relaxed'>
-                Overview of all container replicas and their current status
-              </p>
-            </div>
-            <div className='p-6'>
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-6'>
-                <div className='text-center p-4 bg-muted/20 rounded-lg'>
-                  <div className='text-2xl font-bold text-foreground'>{containerData.replicas.desired}</div>
-                  <div className='text-sm text-muted-foreground'>Desired</div>
-                </div>
-                <div className='text-center p-4 bg-muted/20 rounded-lg'>
-                  <div className='text-2xl font-bold text-foreground'>{containerData.replicas.current}</div>
-                  <div className='text-sm text-muted-foreground'>Current</div>
-                </div>
-                <div className='text-center p-4 bg-green-50 rounded-lg'>
-                  <div className='text-2xl font-bold text-green-600'>{containerData.replicas.ready}</div>
-                  <div className='text-sm text-green-600'>Ready</div>
-                </div>
-                <div className='text-center p-4 bg-blue-50 rounded-lg'>
-                  <div className='text-2xl font-bold text-blue-600'>{containerData.replicas.available}</div>
-                  <div className='text-sm text-blue-600'>Available</div>
-                </div>
-              </div>
-            </div>
+          {/* Runtime Information first, then Basic Information */}
+          <div>
+            {renderSectionContent(sections[1])}
+          </div>
+          <div>
+            {renderSectionContent(sections[0])}
           </div>
 
-          {/* Replica Instances */}
+          {/* Replica Status & Instances */}
           <div className='bg-card border rounded-xl overflow-hidden'>
             <div className='bg-gradient-to-r from-muted/30 to-muted/10 p-6 border-b'>
-              <h2 className='text-xl font-semibold text-foreground'>Replica Instances</h2>
+              <h2 className='text-xl font-semibold text-foreground'>Replica Management</h2>
               <p className='text-sm text-muted-foreground mt-2 leading-relaxed'>
-                Detailed information about each container replica instance
+                Overview of replica status and detailed information about each container instance
               </p>
             </div>
             <div className='p-6'>
-              <div className='space-y-4'>
-                {containerData.replicas.instances.map((instance, index) => (
-                  <div key={instance.id} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
-                    <div className='flex items-center justify-between mb-3'>
-                      <div className='flex items-center gap-3'>
-                        <div className='flex items-center gap-2'>
-                          <div className={`w-3 h-3 rounded-full ${
-                            instance.status === 'running' ? 'bg-green-500' :
-                            instance.status === 'starting' ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }`}></div>
-                          <span className='font-medium'>{instance.name}</span>
+              {/* Status Summary */}
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+                <div className='text-center p-4 bg-blue-50 rounded-lg'>
+                  <div className='text-2xl font-bold text-blue-600'>{containerData.replicas.min}</div>
+                  <div className='text-sm text-blue-600'>Minimum</div>
+                </div>
+                <div className='text-center p-4 bg-green-50 rounded-lg'>
+                  <div className='text-2xl font-bold text-green-600'>{containerData.replicas.current}</div>
+                  <div className='text-sm text-green-600'>Current</div>
+                </div>
+                <div className='text-center p-4 bg-orange-50 rounded-lg'>
+                  <div className='text-2xl font-bold text-orange-600'>{containerData.replicas.max}</div>
+                  <div className='text-sm text-orange-600'>Maximum</div>
+                </div>
+              </div>
+
+              {/* Replica Instances */}
+              <div className='border-t pt-6'>
+                <h3 className='text-lg font-semibold text-foreground mb-4'>Replica Instances</h3>
+                <div className='space-y-4'>
+                  {containerData.replicas.instances.map((instance) => (
+                    <div key={instance.id} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
+                      <div className='flex items-center justify-between mb-3'>
+                        <div className='flex items-center gap-3'>
+                          <div className='flex items-center gap-2'>
+                            <div
+                              className={`w-3 h-3 rounded-full ${
+                                instance.status === 'running'
+                                  ? 'bg-green-500'
+                                  : instance.status === 'starting'
+                                  ? 'bg-yellow-500'
+                                  : 'bg-red-500'
+                              }`}
+                            >
+                            </div>
+                            <span className='font-medium'>{instance.name}</span>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(instance.status)}`}
+                          >
+                            {instance.status}
+                          </span>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(instance.status)}`}>
-                          {instance.status}
-                        </span>
+                        <div className='flex items-center gap-2'>
+                          <button
+                            type='button'
+                            onClick={() =>
+                              navigator.clipboard.writeText(instance.id)}
+                            className='p-1 hover:bg-muted rounded'
+                            title='Copy instance ID'
+                          >
+                            <Copy className='h-4 w-4' />
+                          </button>
+                        </div>
                       </div>
-                      <div className='flex items-center gap-2'>
-                        <button
-                          onClick={() => navigator.clipboard.writeText(instance.id)}
-                          className='p-1 hover:bg-muted rounded'
-                          title='Copy instance ID'
-                        >
-                          <Copy className='h-4 w-4' />
-                        </button>
+
+                      <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
+                        <div>
+                          <div className='text-muted-foreground'>Instance ID</div>
+                          <div className='font-mono text-xs'>{instance.id}</div>
+                        </div>
+                        <div>
+                          <div className='text-muted-foreground'>Node</div>
+                          <div className='font-medium'>{instance.node}</div>
+                        </div>
+                        <div>
+                          <div className='text-muted-foreground'>CPU</div>
+                          <div className='font-mono'>{instance.cpu}</div>
+                        </div>
+                        <div>
+                          <div className='text-muted-foreground'>Memory</div>
+                          <div className='font-mono'>{instance.memory}</div>
+                        </div>
+                      </div>
+
+                      <div className='mt-3 text-xs text-muted-foreground'>
+                        Created: {formatDate(instance.created)}
                       </div>
                     </div>
-                    
-                    <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
-                      <div>
-                        <div className='text-muted-foreground'>Instance ID</div>
-                        <div className='font-mono text-xs'>{instance.id}</div>
-                      </div>
-                      <div>
-                        <div className='text-muted-foreground'>Node</div>
-                        <div className='font-medium'>{instance.node}</div>
-                      </div>
-                      <div>
-                        <div className='text-muted-foreground'>CPU</div>
-                        <div className='font-mono'>{instance.cpu}</div>
-                      </div>
-                      <div>
-                        <div className='text-muted-foreground'>Memory</div>
-                        <div className='font-mono'>{instance.memory}</div>
-                      </div>
-                    </div>
-                    
-                    <div className='mt-3 text-xs text-muted-foreground'>
-                      Created: {formatDate(instance.created)}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>

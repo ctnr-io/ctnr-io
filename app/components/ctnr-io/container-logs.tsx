@@ -2,7 +2,7 @@
 
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Download, Pause, Play, RotateCcw, Trash2 } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface ContainerInstance {
   id: string
@@ -49,22 +49,22 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
 
   const getSelectedReplicaName = () => {
     if (!replicas) return containerName
-    const replica = replicas.find(r => r.id === selectedReplica)
+    const replica = replicas.find((r) => r.id === selectedReplica)
     return replica?.name || containerName
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running':
-        return 'text-green-600 bg-green-50'
-      case 'stopped':
-        return 'text-red-600 bg-red-50'
-      case 'starting':
-        return 'text-yellow-600 bg-yellow-50'
-      default:
-        return 'text-gray-600 bg-gray-50'
-    }
-  }
+  // const getStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case 'running':
+  //       return 'text-green-600 bg-green-50'
+  //     case 'stopped':
+  //       return 'text-red-600 bg-red-50'
+  //     case 'starting':
+  //       return 'text-yellow-600 bg-yellow-50'
+  //     default:
+  //       return 'text-gray-600 bg-gray-50'
+  //   }
+  // }
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -79,14 +79,16 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
 
     const interval = setInterval(() => {
       const newLogMessages = [
-        `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] 172.17.0.1 - - [${new Date().toISOString().slice(0, 19).replace('T', ' ')} +0000] "GET /api/health HTTP/1.1" 200 2 "-" "curl/7.68.0"`,
+        `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] 172.17.0.1 - - [${
+          new Date().toISOString().slice(0, 19).replace('T', ' ')
+        } +0000] "GET /api/health HTTP/1.1" 200 2 "-" "curl/7.68.0"`,
         `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] Processing request from 172.17.0.1`,
         `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] Cache hit for key: user_session_abc123`,
         `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] Database query executed in 12ms`,
       ]
-      
+
       const randomMessage = newLogMessages[Math.floor(Math.random() * newLogMessages.length)]
-      setLogs(prev => [...prev, randomMessage])
+      setLogs((prev) => [...prev, randomMessage])
     }, 3000)
 
     return () => clearInterval(interval)
@@ -120,7 +122,7 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
 
   const handleScroll = () => {
     if (!logsContainerRef.current) return
-    
+
     const { scrollTop, scrollHeight, clientHeight } = logsContainerRef.current
     const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10
     setAutoScroll(isAtBottom)
@@ -136,19 +138,23 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
             <div className='flex items-center gap-2 flex-wrap'>
               {replicas.map((replica) => (
                 <button
+                  type='button'
                   key={replica.id}
                   onClick={() => setSelectedReplica(replica.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedReplica === replica.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80'
+                    selectedReplica === replica.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${
-                    replica.status === 'running' ? 'bg-green-500' :
-                    replica.status === 'starting' ? 'bg-yellow-500' :
-                    'bg-red-500'
-                  }`}></div>
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      replica.status === 'running'
+                        ? 'bg-green-500'
+                        : replica.status === 'starting'
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
+                    }`}
+                  >
+                  </div>
                   <span>{replica.name}</span>
                   <span className='text-xs opacity-70'>({replica.node})</span>
                 </button>
@@ -167,19 +173,21 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
             onClick={handleToggleStreaming}
             className='flex items-center gap-2'
           >
-            {isStreaming ? (
-              <>
-                <Pause className='h-4 w-4' />
-                Pause Stream
-              </>
-            ) : (
-              <>
-                <Play className='h-4 w-4' />
-                Resume Stream
-              </>
-            )}
+            {isStreaming
+              ? (
+                <>
+                  <Pause className='h-4 w-4' />
+                  Pause Stream
+                </>
+              )
+              : (
+                <>
+                  <Play className='h-4 w-4' />
+                  Resume Stream
+                </>
+              )}
           </Button>
-          
+
           <Button
             variant='outline'
             size='sm'
@@ -201,7 +209,7 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
             <Download className='h-4 w-4' />
             Download
           </Button>
-          
+
           <Button
             variant='outline'
             size='sm'
@@ -218,11 +226,9 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
       <div className='flex items-center justify-between text-sm text-muted-foreground px-2'>
         <div className='flex items-center gap-4'>
           <span>
-            Status: {isStreaming ? (
-              <span className='text-green-600 font-medium'>Streaming</span>
-            ) : (
-              <span className='text-yellow-600 font-medium'>Paused</span>
-            )}
+            Status: {isStreaming
+              ? <span className='text-green-600 font-medium'>Streaming</span>
+              : <span className='text-yellow-600 font-medium'>Paused</span>}
           </span>
           <span>Lines: {logs.length}</span>
         </div>
@@ -246,20 +252,22 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
           onScroll={handleScroll}
           className='h-96 overflow-y-auto p-4 bg-black text-green-400 font-mono text-sm'
         >
-          {logs.length === 0 ? (
-            <div className='text-muted-foreground text-center py-8'>
-              No logs available
-            </div>
-          ) : (
-            <>
-              {logs.map((log, index) => (
-                <div key={index} className='whitespace-pre-wrap break-words mb-1'>
-                  {log}
-                </div>
-              ))}
-              <div ref={logsEndRef} />
-            </>
-          )}
+          {logs.length === 0
+            ? (
+              <div className='text-muted-foreground text-center py-8'>
+                No logs available
+              </div>
+            )
+            : (
+              <>
+                {logs.map((log, index) => (
+                  <div key={index} className='whitespace-pre-wrap break-words mb-1'>
+                    {log}
+                  </div>
+                ))}
+                <div ref={logsEndRef} />
+              </>
+            )}
         </div>
       </div>
 

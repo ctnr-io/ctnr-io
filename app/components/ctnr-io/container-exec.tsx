@@ -2,8 +2,8 @@
 
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
-import { Send, Terminal, Trash2, Copy } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { Copy, Send, Terminal, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 interface ContainerInstance {
   id: string
@@ -72,7 +72,7 @@ export function ContainerExec({ containerId, containerName, replicas }: Containe
 
   const getSelectedReplicaName = () => {
     if (!replicas) return containerName
-    const replica = replicas.find(r => r.id === selectedReplica)
+    const replica = replicas.find((r) => r.id === selectedReplica)
     return replica?.name || containerName
   }
 
@@ -94,7 +94,7 @@ export function ContainerExec({ containerId, containerName, replicas }: Containe
     if (!cmd.trim() || isExecuting) return
 
     setIsExecuting(true)
-    
+
     // Add command to history
     const commandLine: TerminalLine = {
       id: Date.now().toString(),
@@ -102,9 +102,9 @@ export function ContainerExec({ containerId, containerName, replicas }: Containe
       content: `$ ${cmd}`,
       timestamp: new Date(),
     }
-    
-    setHistory(prev => [...prev, commandLine])
-    setCommandHistory(prev => [...prev, cmd])
+
+    setHistory((prev) => [...prev, commandLine])
+    setCommandHistory((prev) => [...prev, cmd])
     setHistoryIndex(-1)
     setCommand('')
 
@@ -116,7 +116,7 @@ export function ContainerExec({ containerId, containerName, replicas }: Containe
         content: 'Connection closed.',
         timestamp: new Date(),
       }
-      setHistory(prev => [...prev, exitLine])
+      setHistory((prev) => [...prev, exitLine])
       setIsConnected(false)
       setIsExecuting(false)
       return
@@ -129,7 +129,7 @@ export function ContainerExec({ containerId, containerName, replicas }: Containe
     }
 
     // Simulate command execution
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000))
+    await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000))
 
     // Mock responses for common commands
     let output = ''
@@ -200,7 +200,7 @@ http {
       timestamp: new Date(),
     }
 
-    setHistory(prev => [...prev, outputLine])
+    setHistory((prev) => [...prev, outputLine])
     setIsExecuting(false)
   }
 
@@ -261,11 +261,11 @@ http {
   }
 
   const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
     })
   }
 
@@ -279,19 +279,23 @@ http {
             <div className='flex items-center gap-2 flex-wrap'>
               {replicas.map((replica) => (
                 <button
+                  type='button'
                   key={replica.id}
                   onClick={() => setSelectedReplica(replica.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedReplica === replica.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80'
+                    selectedReplica === replica.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${
-                    replica.status === 'running' ? 'bg-green-500' :
-                    replica.status === 'starting' ? 'bg-yellow-500' :
-                    'bg-red-500'
-                  }`}></div>
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      replica.status === 'running'
+                        ? 'bg-green-500'
+                        : replica.status === 'starting'
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
+                    }`}
+                  >
+                  </div>
                   <span>{replica.name}</span>
                   <span className='text-xs opacity-70'>({replica.node})</span>
                 </button>
@@ -306,11 +310,9 @@ http {
         <div className='flex items-center gap-2'>
           <Terminal className='h-4 w-4' />
           <span className='text-sm font-medium'>
-            Status: {isConnected ? (
-              <span className='text-green-600'>Connected</span>
-            ) : (
-              <span className='text-red-600'>Disconnected</span>
-            )}
+            Status: {isConnected
+              ? <span className='text-green-600'>Connected</span>
+              : <span className='text-red-600'>Disconnected</span>}
           </span>
         </div>
 
@@ -324,7 +326,7 @@ http {
             <Trash2 className='h-4 w-4' />
             Clear
           </Button>
-          
+
           {!isConnected && (
             <Button
               variant='outline'
@@ -345,11 +347,15 @@ http {
           {history.map((line) => (
             <div key={line.id} className='mb-1 group flex items-start gap-2'>
               <div className='flex-1 whitespace-pre-wrap break-words'>
-                <span className={`${
-                  line.type === 'command' ? 'text-blue-400 font-bold' :
-                  line.type === 'error' ? 'text-red-400' :
-                  'text-green-400'
-                }`}>
+                <span
+                  className={`${
+                    line.type === 'command'
+                      ? 'text-blue-400 font-bold'
+                      : line.type === 'error'
+                      ? 'text-red-400'
+                      : 'text-green-400'
+                  }`}
+                >
                   {line.content}
                 </span>
               </div>
@@ -369,13 +375,13 @@ http {
               </div>
             </div>
           ))}
-          
+
           {isExecuting && (
             <div className='text-yellow-400 animate-pulse'>
               Executing...
             </div>
           )}
-          
+
           <div ref={terminalEndRef} />
         </div>
 

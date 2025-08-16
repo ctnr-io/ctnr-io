@@ -1,8 +1,7 @@
-import { Bell, Container, CreditCard, Frame, Gauge, Globe, Hammer, HardDrive, Rocket, Route } from 'lucide-react'
+import { Container } from 'lucide-react'
 import * as React from 'react'
 
 import { NavMain } from 'app/components/shadcn/nav-main.tsx'
-import { NavProjects } from 'app/components/shadcn/nav-projects.tsx'
 import { NavUser } from 'app/components/shadcn/nav-user.tsx'
 import {
   Sidebar,

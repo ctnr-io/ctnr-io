@@ -28,26 +28,52 @@ export type Input = z.infer<typeof Input>
 export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
   const { name, command = '/bin/sh', interactive = false, terminal = false } = input
 
-  // Check if the pod exists and is running
-  const podResource = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(name)
-  if (!podResource) {
-    yield `Container ${name} not found.`
-    return
+  // First, try to find the deployment
+  const deployment = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
+
+  let podName: string
+  let containerName: string = name
+
+  if (deployment) {
+    // Find a running pod from the deployment
+    const pods = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPodList({
+      labelSelector: `ctnr.io/name=${name}`,
+    })
+
+    const runningPod = pods.items.find((pod) => pod.status?.phase === 'Running')
+    if (!runningPod) {
+      yield `No running pods found for container ${name}.`
+      return
+    }
+
+    podName = runningPod.metadata?.name || ''
+    // Use the first container name from the pod
+    containerName = runningPod.spec?.containers?.[0]?.name || name
+  } else {
+    // Fallback: try to find the pod directly (for backward compatibility)
+    const podResource = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(name).catch(() => null)
+    if (!podResource) {
+      yield `Container ${name} not found.`
+      return
+    }
+
+    if (podResource.status?.phase !== 'Running') {
+      yield `Container ${name} is not running (status: ${podResource.status?.phase}).`
+      return
+    }
+
+    podName = name
+    containerName = name
   }
 
-  if (podResource.status?.phase !== 'Running') {
-    yield `Container ${name} is not running (status: ${podResource.status?.phase}).`
-    return
-  }
-
-  const tunnel = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).tunnelPodExec(name, {
+  const tunnel = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).tunnelPodExec(podName, {
     command: command === '/bin/sh' ? ['/bin/sh'] : ['sh', '-c', command],
     stdin: interactive,
     tty: terminal,
     stdout: true,
     stderr: true,
     abortSignal: ctx.signal,
-    container: name,
+    container: containerName,
   })
 
   setupSignalHandling(ctx, tunnel, terminal, interactive)

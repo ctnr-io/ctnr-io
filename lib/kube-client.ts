@@ -4,6 +4,7 @@ import { NetworkingV1NamespacedApi } from '@cloudydeno/kubernetes-apis/networkin
 import { AppsV1Api } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { RawKubeConfig } from '@cloudydeno/kubernetes-client/lib/kubeconfig.ts'
 import { ApiextensionsV1Api } from '@cloudydeno/kubernetes-apis/apiextensions.k8s.io/v1'
+import { AutoscalingV1Api } from '@cloudydeno/kubernetes-apis/autoscaling.k8s.io/v1'
 import * as YAML from '@std/yaml'
 import { Quantity, RestClient } from '@cloudydeno/kubernetes-apis/common.ts'
 import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
@@ -33,6 +34,25 @@ export async function getKubeClient() {
     },
     NetworkingV1NamespacedApi(namespace: string) {
       return new NetworkingV1NamespacedApi(client, namespace)
+    },
+    get AutoscalingV1Api() {
+      return new AutoscalingV1Api(client)
+    },
+    MetricsV1Beta1(namespace: string) {
+      return {
+        getPodMetrics: (name: string) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods/${name}`,
+            expectJson: true,
+          }) as Promise<MetricsV1Beta1Pods>,
+        getPodsListMetrics: () =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods`,
+            expectJson: true,
+          }) as Promise<List<MetricsV1Beta1Pods>>,
+      }
     },
     TraefikV1Alpha1(namespace: string) {
       return {
@@ -284,6 +304,26 @@ export type HTTPRoute = {
     }>
     rules: any[]
   }
+}
+
+export type MetricsV1Beta1Pods = {
+  apiVersion: 'metrics.k8s.io/v1beta1'
+  kind: 'PodMetrics'
+  metadata: {
+    name: string
+    namespace: string
+    labels?: Record<string, string>
+    creationTimestamp: string
+  }
+  timestamp: string
+  window: string
+  containers: Array<{
+    name: string
+    usage: {
+      cpu: string
+      memory: string
+    }
+  }>
 }
 
 export type TLSRoute = {

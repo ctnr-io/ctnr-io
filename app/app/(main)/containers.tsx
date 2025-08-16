@@ -15,11 +15,11 @@ interface ContainerData {
   cpu: string
   memory: string
   replicas: {
-    desired: number
+    max: number
+    min: number
     current: number
-    ready: number
-    available: number
   }
+  routes: string[]
 }
 
 // Mock data for containers
@@ -30,15 +30,15 @@ const containers: ContainerData[] = [
     image: 'nginx:alpine',
     status: 'running',
     created: '2024-01-15T10:30:00Z',
-    ports: ['80:3000', '443:3001'],
+    ports: ['web:80/tcp', 'https:443/tcp'],
     cpu: '0.5%',
     memory: '128MB',
     replicas: {
-      desired: 3,
+      max: 5,
+      min: 2,
       current: 3,
-      ready: 2,
-      available: 2,
     },
+    routes: ['https://web-app-frontend-user123.ctnr.io', 'https://myapp.example.com'],
   },
   {
     id: 'cont_5e6f7g8h',
@@ -46,15 +46,15 @@ const containers: ContainerData[] = [
     image: 'node:18-alpine',
     status: 'running',
     created: '2024-01-15T09:15:00Z',
-    ports: ['8080:8080'],
+    ports: ['api:8080/tcp'],
     cpu: '2.1%',
     memory: '256MB',
     replicas: {
-      desired: 2,
+      max: 3,
+      min: 1,
       current: 2,
-      ready: 2,
-      available: 2,
     },
+    routes: ['https://api-backend-user123.ctnr.io'],
   },
   {
     id: 'cont_9i0j1k2l',
@@ -62,15 +62,15 @@ const containers: ContainerData[] = [
     image: 'postgres:15',
     status: 'stopped',
     created: '2024-01-14T16:45:00Z',
-    ports: ['5432:5432'],
+    ports: ['5432/tcp'],
     cpu: '0%',
     memory: '0MB',
     replicas: {
-      desired: 1,
+      max: 1,
+      min: 1,
       current: 0,
-      ready: 0,
-      available: 0,
     },
+    routes: [],
   },
   {
     id: 'cont_3m4n5o6p',
@@ -78,15 +78,15 @@ const containers: ContainerData[] = [
     image: 'redis:7-alpine',
     status: 'running',
     created: '2024-01-15T08:20:00Z',
-    ports: ['6379:6379'],
+    ports: ['6379/tcp'],
     cpu: '0.8%',
     memory: '64MB',
     replicas: {
-      desired: 1,
+      max: 2,
+      min: 1,
       current: 1,
-      ready: 1,
-      available: 1,
     },
+    routes: [],
   },
   {
     id: 'cont_7q8r9s0t',
@@ -98,11 +98,11 @@ const containers: ContainerData[] = [
     cpu: '1.2%',
     memory: '192MB',
     replicas: {
-      desired: 4,
+      max: 6,
+      min: 2,
       current: 3,
-      ready: 1,
-      available: 1,
     },
+    routes: [],
   },
 ]
 
@@ -168,19 +168,24 @@ export default function ContainersScreen() {
     {
       key: 'replicas',
       label: 'Replicas',
-      render: (value, item) => (
+      render: (_value, item) => (
         <div className='flex items-center gap-2'>
           <span className='text-sm font-medium'>
-            {item.replicas.ready}/{item.replicas.desired}
+            {item.replicas.current}
           </span>
           <div className='flex items-center gap-1'>
-            <div className={`w-2 h-2 rounded-full ${
-              item.replicas.ready === item.replicas.desired ? 'bg-green-500' :
-              item.replicas.ready > 0 ? 'bg-yellow-500' :
-              'bg-red-500'
-            }`}></div>
+            <div
+              className={`w-2 h-2 rounded-full ${
+                item.replicas.current >= item.replicas.min
+                  ? 'bg-green-500'
+                  : item.replicas.current > 0
+                  ? 'bg-yellow-500'
+                  : 'bg-red-500'
+              }`}
+            >
+            </div>
             <span className='text-xs text-muted-foreground'>
-              {item.replicas.current} current
+              {item.replicas.min}-{item.replicas.max} range
             </span>
           </div>
         </div>
@@ -201,6 +206,48 @@ export default function ContainersScreen() {
       key: 'memory',
       label: 'Memory',
       className: 'font-mono text-sm',
+    },
+    {
+      key: 'routes',
+      label: 'Routes',
+      render: (value: string[]) => {
+        if (value.length === 0) return '-'
+        if (value.length === 1) {
+          return (
+            <a
+              href={value[0]}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 hover:text-blue-800 underline text-sm'
+              onClick={(e) => e.stopPropagation()}
+            >
+              {value[0].replace(/^https?:\/\//, '')}
+            </a>
+          )
+        }
+        return (
+          <div className='flex flex-col gap-1'>
+            {value.slice(0, 2).map((route, index) => (
+              <a
+                key={index}
+                href={route}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-blue-600 hover:text-blue-800 underline text-xs'
+                onClick={(e) => e.stopPropagation()}
+              >
+                {route.replace(/^https?:\/\//, '')}
+              </a>
+            ))}
+            {value.length > 2 && (
+              <span className='text-xs text-muted-foreground'>
+                +{value.length - 2} more
+              </span>
+            )}
+          </div>
+        )
+      },
+      className: 'text-sm',
     },
     {
       key: 'created',
@@ -272,12 +319,12 @@ export default function ContainersScreen() {
         className: getStatusColor(item.status),
       })}
       onRowClick={handleRowClick}
-      rowClickable={true}
+      rowClickable
       searchable
       searchPlaceholder='Search containers by name, image, or status...'
       searchKeys={['name', 'image', 'status']}
       columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'ports', 'cpu', 'memory']}
+      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'routes', 'ports', 'cpu', 'memory']}
       emptyMessage='No containers found. Create your first container to get started.'
     />
   )

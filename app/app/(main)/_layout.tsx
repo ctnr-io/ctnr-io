@@ -17,7 +17,7 @@ export default function MainLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="overflow-auto">
+      <SidebarInset className='overflow-auto'>
         <header className='sticky top-0 bg-white border-b flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12'>
           <div className='flex items-center gap-2 px-4'>
             <SidebarTrigger className='-ml-1' />

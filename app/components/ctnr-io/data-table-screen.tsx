@@ -140,8 +140,8 @@ export function DataTableScreen<T = any>({
     const status = mobileCardStatus?.(item)
 
     return (
-      <div 
-        key={index} 
+      <div
+        key={index}
         className={`border-b last:border-b-0 p-2 ${
           rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : ''
         }`}
@@ -160,12 +160,15 @@ export function DataTableScreen<T = any>({
             </div>
           </div>
           {status && (
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0 ml-3`}>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0 ml-3`}
+            >
               {status.label}
             </span>
           )}
         </div>
-{/* 
+        {
+          /*
         <div className='space-y-3 mb-4'>
           {columns
             .filter((col) => !col.hiddenOnMobile && visibleColumns.has(col.key))
@@ -182,9 +185,11 @@ export function DataTableScreen<T = any>({
                 </div>
               )
             })}
-        </div> */}
+        </div> */
+        }
 
-        {/* {actions.length > 0 && (
+        {
+          /* {actions.length > 0 && (
           <div className='flex items-center justify-center gap-2 pt-2 border-t border-muted/30'>
             {actions
               .filter((action) => !action.condition || action.condition(item))
@@ -204,7 +209,8 @@ export function DataTableScreen<T = any>({
                 </Button>
               ))}
           </div>
-        )} */}
+        )} */
+        }
       </div>
     )
   }
@@ -227,7 +233,7 @@ export function DataTableScreen<T = any>({
           </TableHeader>
           <TableBody>
             {filteredData.map((item, index) => (
-              <TableRow 
+              <TableRow
                 key={index}
                 className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
                 onClick={() => rowClickable && onRowClick && onRowClick(item)}
@@ -285,153 +291,153 @@ export function DataTableScreen<T = any>({
 
   return (
     <div className='flex flex-col justify-between h-full md:h-auto'>
-    <div className='flex flex-col gap-4 p-4 md:gap-6 md:p-6'>
-      {/* Header Section */}
-      <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-        <div className='flex items-center gap-3'>
-          <Icon className='h-6 w-6 sm:h-8 sm:w-8 text-primary' />
-          <div>
-            <h1 className='text-2xl sm:text-3xl font-bold text-foreground'>{title}</h1>
-            <p className='text-sm sm:text-base text-muted-foreground mt-1'>
-              {description}
-            </p>
+      <div className='flex flex-col gap-4 p-4 md:gap-6 md:p-6'>
+        {/* Header Section */}
+        <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='flex items-center gap-3'>
+            <Icon className='h-6 w-6 sm:h-8 sm:w-8 text-primary' />
+            <div>
+              <h1 className='text-2xl sm:text-3xl font-bold text-foreground'>{title}</h1>
+              <p className='text-sm sm:text-base text-muted-foreground mt-1'>
+                {description}
+              </p>
+            </div>
           </div>
-        </div>
-        {primaryAction && (
-          <Button
-            className='bg-primary hover:bg-primary/90 w-full sm:w-auto'
-            onClick={primaryAction.onClick}
-          >
-            <primaryAction.icon className='h-4 w-4 mr-2' />
-            <span className='sm:inline'>{primaryAction.label}</span>
-          </Button>
-        )}
-      </div>
-
-      {/* Description */}
-      {infoDescription && (
-        <div className='bg-card border rounded-lg p-3 md:p-4'>
-          <p className='text-sm sm:text-base text-card-foreground'>
-            {infoDescription}
-          </p>
-        </div>
-      )}
-
-      {/* Data Table */}
-      <div className='bg-card border rounded-lg overflow-hidden'>
-        <div className='p-3 md:p-4 border-b'>
-          <h2 className='text-lg sm:text-xl font-semibold'>{tableTitle}</h2>
-          {tableDescription && (
-            <p className='text-xs sm:text-sm text-muted-foreground'>
-              {tableDescription}
-            </p>
+          {primaryAction && (
+            <Button
+              className='bg-primary hover:bg-primary/90 w-full sm:w-auto'
+              onClick={primaryAction.onClick}
+            >
+              <primaryAction.icon className='h-4 w-4 mr-2' />
+              <span className='sm:inline'>{primaryAction.label}</span>
+            </Button>
           )}
         </div>
 
-        {/* Desktop Search and Filter Bar */}
-        {(searchable || columnFilterable) && (
-          <div className='hidden md:block p-3 md:p-4 border-b'>
-            <div className='flex items-center gap-4'>
-              {searchable && (
-                <div className='relative min-w-sm'>
-                  <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-                  <Input
-                    placeholder={searchPlaceholder}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className='pl-9'
-                  />
-                </div>
-              )}
+        {/* Description */}
+        {infoDescription && (
+          <div className='bg-card border rounded-lg p-3 md:p-4'>
+            <p className='text-sm sm:text-base text-card-foreground'>
+              {infoDescription}
+            </p>
+          </div>
+        )}
 
-              {columnFilterable && (
-                <div className='relative'>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() => setShowColumnFilter(!showColumnFilter)}
-                    className='flex items-center gap-2'
-                  >
-                    <Settings2 className='h-4 w-4' />
-                    Columns
-                  </Button>
+        {/* Data Table */}
+        <div className='bg-card border rounded-lg overflow-hidden'>
+          <div className='p-3 md:p-4 border-b'>
+            <h2 className='text-lg sm:text-xl font-semibold'>{tableTitle}</h2>
+            {tableDescription && (
+              <p className='text-xs sm:text-sm text-muted-foreground'>
+                {tableDescription}
+              </p>
+            )}
+          </div>
 
-                  {showColumnFilter && (
-                    <div className='absolute top-full mt-2 -left-1/2 bg-white border rounded-lg shadow-lg p-3 min-w-64 z-10'>
-                      <div className='space-y-3'>
-                        <div className='grid grid-cols-2 gap-1'>
-                          {columns.map((column) => (
-                            <label key={column.key} className='flex items-center gap-3 text-sm cursor-pointer'>
-                              <Checkbox
-                                key={column.key}
-                                checked={visibleColumns.has(column.key)}
-                                onCheckedChange={(checked) => {
-                                  const newVisibleColumns = new Set(visibleColumns)
-                                  if (checked) {
-                                    newVisibleColumns.add(column.key)
-                                  } else {
-                                    newVisibleColumns.delete(column.key)
-                                  }
-                                  setVisibleColumns(newVisibleColumns)
-                                }}
-                                className='rounded'
-                                title={column.label}
-                              />
-                              <span className='flex items-center gap-2 text-sm'>
-                                {visibleColumns.has(column.key)
-                                  ? <Eye className='h-3 w-3 text-green-600' />
-                                  : <EyeOff className='h-3 w-3 text-gray-400' />}
-                                {column.mobileLabel || column.label}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
+          {/* Desktop Search and Filter Bar */}
+          {(searchable || columnFilterable) && (
+            <div className='hidden md:block p-3 md:p-4 border-b'>
+              <div className='flex items-center gap-4'>
+                {searchable && (
+                  <div className='relative min-w-sm'>
+                    <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+                    <Input
+                      placeholder={searchPlaceholder}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className='pl-9'
+                    />
+                  </div>
+                )}
 
-                        <div className='pt-2 mt-2 flex gap-2'>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => setVisibleColumns(new Set(columns.map((col) => col.key)))}
-                            className='text-xs flex-1'
-                          >
-                            Show All
-                          </Button>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => setVisibleColumns(new Set())}
-                            className='text-xs flex-1'
-                          >
-                            Hide All
-                          </Button>
+                {columnFilterable && (
+                  <div className='relative'>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setShowColumnFilter(!showColumnFilter)}
+                      className='flex items-center gap-2'
+                    >
+                      <Settings2 className='h-4 w-4' />
+                      Columns
+                    </Button>
+
+                    {showColumnFilter && (
+                      <div className='absolute top-full mt-2 -left-1/2 bg-white border rounded-lg shadow-lg p-3 min-w-64 z-10'>
+                        <div className='space-y-3'>
+                          <div className='grid grid-cols-2 gap-1'>
+                            {columns.map((column) => (
+                              <label key={column.key} className='flex items-center gap-3 text-sm cursor-pointer'>
+                                <Checkbox
+                                  key={column.key}
+                                  checked={visibleColumns.has(column.key)}
+                                  onCheckedChange={(checked) => {
+                                    const newVisibleColumns = new Set(visibleColumns)
+                                    if (checked) {
+                                      newVisibleColumns.add(column.key)
+                                    } else {
+                                      newVisibleColumns.delete(column.key)
+                                    }
+                                    setVisibleColumns(newVisibleColumns)
+                                  }}
+                                  className='rounded'
+                                  title={column.label}
+                                />
+                                <span className='flex items-center gap-2 text-sm'>
+                                  {visibleColumns.has(column.key)
+                                    ? <Eye className='h-3 w-3 text-green-600' />
+                                    : <EyeOff className='h-3 w-3 text-gray-400' />}
+                                  {column.mobileLabel || column.label}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+
+                          <div className='pt-2 mt-2 flex gap-2'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => setVisibleColumns(new Set(columns.map((col) => col.key)))}
+                              className='text-xs flex-1'
+                            >
+                              Show All
+                            </Button>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => setVisibleColumns(new Set())}
+                              className='text-xs flex-1'
+                            >
+                              Hide All
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {filteredData.length === 0
-          ? (
-            <div className='p-8 text-center text-muted-foreground'>
-              {searchQuery ? `No results found for "${searchQuery}"` : emptyMessage}
-            </div>
-          )
-          : (
-            <>
-              {/* Mobile Card View */}
-              <div className='block md:hidden'>
-                {filteredData.map((item, index) => renderMobileCard(item, index))}
+                    )}
+                  </div>
+                )}
               </div>
-
-              {/* Desktop Table View */}
-              {renderDesktopTable()}
-            </>
+            </div>
           )}
-      </div>
+
+          {filteredData.length === 0
+            ? (
+              <div className='p-8 text-center text-muted-foreground'>
+                {searchQuery ? `No results found for "${searchQuery}"` : emptyMessage}
+              </div>
+            )
+            : (
+              <>
+                {/* Mobile Card View */}
+                <div className='block md:hidden'>
+                  {filteredData.map((item, index) => renderMobileCard(item, index))}
+                </div>
+
+                {/* Desktop Table View */}
+                {renderDesktopTable()}
+              </>
+            )}
+        </div>
       </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}
       {(searchable || columnFilterable) && (
@@ -449,7 +455,8 @@ export function DataTableScreen<T = any>({
               </div>
             )}
 
-            {/* {columnFilterable && (
+            {
+              /* {columnFilterable && (
               <div className='relative'>
                 <Button
                   variant={!showColumnFilter ? 'outline' : 'secondary'}
@@ -514,7 +521,8 @@ export function DataTableScreen<T = any>({
                   </div>
                 )}
               </div>
-            )} */}
+            )} */
+            }
           </div>
         </div>
       )}

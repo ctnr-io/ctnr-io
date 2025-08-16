@@ -17,6 +17,8 @@ export const Meta = {
   },
 }
 
+const clusterNames = ['eu-0', 'eu-1', 'eu-2'] as const
+
 export const Input = z.object({
   name: ContainerName,
   image: z.string()
@@ -49,12 +51,13 @@ export const Input = z.object({
     .optional()
     .default(1)
     .describe('Number of replicas: single number (e.g., 3) or range (e.g., "1-5" for min-max)'),
+  cluster: z.enum(clusterNames).optional().describe('Cluster to run the container on'),
 })
 
 export type Input = z.infer<typeof Input>
 
 export default async function* ({ ctx, input }: ServerRequest<Input>): ServerResponse<Input> {
-  const { name, image, env = [], publish, interactive, terminal, detach, force, command, replicas } = input
+  const { name, image, env = [], publish, interactive, terminal, detach, force, command, replicas, cluster = clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)] } = input
 
   // Parse replicas parameter
   let replicaCount: number
@@ -83,6 +86,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       labels: {
         'ctnr.io/owner-id': ctx.auth.user.id,
         'ctnr.io/name': name,
+        [`cluster.ctnr.io/${cluster}`]: 'true',
       },
       annotations: {
         'ctnr.io/min-replicas': minReplicas.toString(),

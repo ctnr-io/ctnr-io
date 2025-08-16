@@ -21,6 +21,7 @@ interface ContainerData {
     current: number
   }
   routes: string[]
+  clusters: string[]
 }
 
 // Mock data for containers
@@ -40,6 +41,7 @@ const containers: ContainerData[] = [
       current: 3,
     },
     routes: ['https://web-app-frontend-user123.ctnr.io', 'https://myapp.example.com'],
+    clusters: ['eu-0', 'us-west-2'],
   },
   {
     id: 'cont_5e6f7g8h',
@@ -56,6 +58,7 @@ const containers: ContainerData[] = [
       current: 2,
     },
     routes: ['https://api-backend-user123.ctnr.io'],
+    clusters: ['eu-0'],
   },
   {
     id: 'cont_9i0j1k2l',
@@ -72,6 +75,7 @@ const containers: ContainerData[] = [
       current: 0,
     },
     routes: [],
+    clusters: ['eu-2', 'us-east-1'],
   },
   {
     id: 'cont_3m4n5o6p',
@@ -88,6 +92,7 @@ const containers: ContainerData[] = [
       current: 1,
     },
     routes: [],
+    clusters: ['eu-0', 'eu-2', 'us-east-1'],
   },
   {
     id: 'cont_7q8r9s0t',
@@ -104,6 +109,7 @@ const containers: ContainerData[] = [
       current: 3,
     },
     routes: [],
+    clusters: ['development'],
   },
 ]
 
@@ -207,6 +213,26 @@ export default function ContainersScreen() {
       key: 'memory',
       label: 'Memory',
       className: 'font-mono text-sm',
+    },
+    {
+      key: 'clusters',
+      label: 'Clusters',
+      render: (value: string[]) => {
+        if (value.length === 0) return '-'
+        return (
+          <div className='flex flex-wrap gap-1'>
+            {value.map((cluster, index) => (
+              <span
+                key={index}
+                className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200'
+              >
+                {cluster}
+              </span>
+            ))}
+          </div>
+        )
+      },
+      className: 'text-sm',
     },
     {
       key: 'routes',
@@ -323,8 +349,8 @@ export default function ContainersScreen() {
       onRowClick={handleRowClick}
       rowClickable
       searchable
-      searchPlaceholder='Search containers by name, image, or status...'
-      searchKeys={['name', 'image', 'status']}
+      searchPlaceholder='Search containers by name, image, status, or clusters...'
+      searchKeys={['name', 'image', 'status', 'clusters']}
       columnFilterable
       defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'ports', 'cpu', 'memory']}
       emptyMessage='No containers found. Create your first container to get started.'

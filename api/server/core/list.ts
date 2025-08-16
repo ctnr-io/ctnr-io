@@ -64,6 +64,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   // Transform deployments to container data (hide Kubernetes internals)
   const containers = await Promise.all(deployments.items.map(async (deployment) => {
     const annotations = deployment.metadata?.annotations || {}
+    const labels = deployment.metadata?.labels || {}
     const spec = deployment.spec || {}
     const status = deployment.status || {}
 
@@ -75,6 +76,9 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
 
     // Get routes for this container
     const routes = extractRoutesForContainer(deployment.metadata?.name || '', httpRoutes, ingressRoutes)
+
+    // Extract cluster information from labels
+    const clusters = extractClustersFromLabels(labels)
 
     // Get container info from deployment template
     const container = (spec as any).template?.spec?.containers?.[0]
@@ -90,6 +94,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       memory: resources.memory,
       replicas: replicaInfo,
       routes: routes,
+      clusters: clusters,
     }
   }))
 
@@ -122,6 +127,14 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
           }
         } else {
           yield `  ports: []`
+        }
+        if (container.clusters && container.clusters.length > 0) {
+          yield `  clusters:`
+          for (const cluster of container.clusters) {
+            yield `    - ${cluster}`
+          }
+        } else {
+          yield `  clusters: []`
         }
       }
       break
@@ -413,6 +426,22 @@ function extractRoutesForContainer(containerName: string, httpRoutes: any[], ing
   }
 
   return routes
+}
+
+function extractClustersFromLabels(labels: any): string[] {
+  const clusters: string[] = []
+  
+  // Look for labels with pattern cluster.ctnr.io/<cluster-name>=true
+  for (const [key, value] of Object.entries(labels)) {
+    if (key.startsWith('cluster.ctnr.io/') && value === 'true') {
+      const clusterName = key.replace('cluster.ctnr.io/', '')
+      if (clusterName) {
+        clusters.push(clusterName)
+      }
+    }
+  }
+  
+  return clusters
 }
 
 function formatAge(createdAt?: Date): string {

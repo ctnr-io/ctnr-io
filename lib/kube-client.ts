@@ -9,7 +9,6 @@ import * as YAML from '@std/yaml'
 import { Quantity, RestClient } from '@cloudydeno/kubernetes-apis/common.ts'
 import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import { match } from 'ts-pattern'
-import { yaml } from '@tmpl/core'
 
 const kubeconfig = Deno.env.get('KUBECONFIG') || Deno.env.get('HOME') + '/.kube/config'
 
@@ -243,6 +242,61 @@ export async function getKubeClient() {
     get ApiextensionsV1Api() {
       return new ApiextensionsV1Api(client)
     },
+    KarmadaV1Alpha1(namespace: string) {
+      return {
+        getPropagationPolicy: (name: string) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
+            expectJson: true,
+          }) as Promise<KarmadaV1Alpha1PropagationPolicy>,
+        getPropagationPolicyList: () =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies`,
+            expectJson: true,
+          }) as Promise<List<KarmadaV1Alpha1PropagationPolicy>>,
+        createPropagationPolicy: (body: KarmadaV1Alpha1PropagationPolicy) =>
+          client.performRequest({
+            method: 'POST',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies`,
+            bodyJson: body,
+            expectJson: true,
+          }),
+        deletePropagationPolicy: (name: string) =>
+          client.performRequest({
+            method: 'DELETE',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
+            expectJson: true,
+          }),
+
+        getFederatedResourceQuota: (name: string) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas/${name}`,
+            expectJson: true,
+          }) as Promise<KarmadaV1Alpha1FederatedResourceQuota>,
+        getFederatedResourceQuotaList: () =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas`,
+            expectJson: true,
+          }) as Promise<List<KarmadaV1Alpha1FederatedResourceQuota>>,
+        createFederatedResourceQuota: (body: KarmadaV1Alpha1FederatedResourceQuota) =>
+          client.performRequest({
+            method: 'POST',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas`,
+            bodyJson: body,
+            expectJson: true,
+          }),
+        deleteFederatedResourceQuota: (name: string) =>
+          client.performRequest({
+            method: 'DELETE',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas/${name}`,
+            expectJson: true,
+          }),
+      }
+    },
   }
 }
 
@@ -409,6 +463,7 @@ type CertManagerV1Certificate = {
   metadata: {
     name: string
     namespace: string
+    labels?: Record<string, string>
   }
   spec: {
     secretName: string
@@ -468,6 +523,107 @@ type GatewayV1Beta1ReferenceGrant = {
       namespace?: string
     }>
   }
+}
+
+type KarmadaV1Alpha1PropagationPolicy = {
+  apiVersion: 'policy.karmada.io/v1alpha1'
+  kind: 'PropagationPolicy'
+  metadata: {
+    name: string
+    namespace: string
+    labels: Record<string, string>
+  }
+  spec: {
+    resourceSelectors: Array<{
+      apiVersion?: string
+      kind?: string
+      name?: string
+      namespace?: string
+      labelSelector?: {
+        matchLabels: Record<string, string>
+      }
+    }>
+    placement: {
+      clusterAffinity: {
+        clusterNames: string[]
+      }
+    }
+  }
+}
+
+type KarmadaV1Alpha1FederatedResourceQuota = {
+  apiVersion: 'policy.karmada.io/v1alpha1'
+  kind: 'FederatedResourceQuota'
+  metadata: {
+    name: string
+    namespace: string
+    labels: Record<string, string>
+  }
+  spec: {
+    overall: Partial<
+      Record<
+        | 'cpu'
+        | 'memory'
+        | 'storage'
+        | 'ephemeral-storage'
+        | 'requests.cpu'
+        | 'requests.memory'
+        | 'requests.storage'
+        | 'requests.ephemeral-storage'
+        | 'limits.cpu'
+        | 'limits.memory'
+        | 'limits.storage'
+        | 'limits.ephemeral-storage',
+        string
+      >
+    >
+  }
+}
+
+async function ensureFederatedResourceQuota(
+  kc: KubeClient,
+  namespace: string,
+  federatedResourceQuota: KarmadaV1Alpha1FederatedResourceQuota,
+): Promise<void> {
+  const federatedResourceQuotaName = federatedResourceQuota.metadata.name
+  await match(
+    // Get the federated resource quota and return null if it does not exist
+    await kc.KarmadaV1Alpha1(namespace).getFederatedResourceQuota(federatedResourceQuotaName).catch(() => null),
+  )
+    // if federated resource quota does not exist, create it
+    .with(null, () => kc.KarmadaV1Alpha1(namespace).createFederatedResourceQuota(federatedResourceQuota))
+    // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
+    .with(federatedResourceQuota as any, () => true)
+    .otherwise(async () => {
+      console.debug('Replacing existing FederatedResourceQuota', federatedResourceQuotaName)
+      // Delete the existing federated resource quota first
+      await kc.KarmadaV1Alpha1(namespace).deleteFederatedResourceQuota(federatedResourceQuotaName)
+      // Then create the new one
+      return kc.KarmadaV1Alpha1(namespace).createFederatedResourceQuota(federatedResourceQuota)
+    })
+}
+
+async function ensurePropagationPolicy(
+  kc: KubeClient,
+  namespace: string,
+  propagationPolicy: KarmadaV1Alpha1PropagationPolicy,
+): Promise<void> {
+  const propagationPolicyName = propagationPolicy.metadata.name
+  await match(
+    // Get the federated resource quota and return null if it does not exist
+    await kc.KarmadaV1Alpha1(namespace).getPropagationPolicy(propagationPolicyName).catch(() => null),
+  )
+    // if federated resource quota does not exist, create it
+    .with(null, () => kc.KarmadaV1Alpha1(namespace).createPropagationPolicy(propagationPolicy))
+    // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
+    .with(propagationPolicy as any, () => true)
+    .otherwise(async () => {
+      console.debug('Replacing existing PropagationPolicy', propagationPolicyName)
+      // Delete the existing federated resource quota first
+      await kc.KarmadaV1Alpha1(namespace).deletePropagationPolicy(propagationPolicyName)
+      // Then create the new one
+      return kc.KarmadaV1Alpha1(namespace).createPropagationPolicy(propagationPolicy)
+    })
 }
 
 async function ensureNamespace(kc: KubeClient, namespace: Namespace): Promise<void> {
@@ -761,69 +917,101 @@ export const ensureUserNamespace = async (
     },
   }
 
-  // Ensure the namespace has correct network policies
-  const networkPolicyName = 'ctnr-user-network-policy'
-  const networkPolicy = yaml`
-    apiVersion: cilium.io/v2
-    kind: CiliumNetworkPolicy
-    metadata:
-      name: ${networkPolicyName}
-      namespace: ${namespaceName}
-      labels:
-        "ctnr.io/owner-id": ${userId}
-    spec:
-      endpointSelector:
-        matchLabels:
-          "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-      ingress: 
-        # Allow from same namespace
-        - fromEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-        # Allow from ctnr-api
-        - fromEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ctnr-system
-        # Allow from traefik
-        - fromEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": traefik
-        # Allow from external/public (outside cluster)
-        - fromEntities:
-            - world
-      egress:
-        # Allow to same namespace
-        - toEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-        # Allow DNS to kube-dns/CoreDNS in cluster
-        - toEndpoints:
-            - matchLabels:
-                io.kubernetes.pod.namespace: kube-system
-                k8s-app: kube-dns
-          toPorts:
-            - ports:
-              - port: "53"
-                protocol: TCP
-              - port: "53"
-                protocol: UDP
-              rules:
-                dns:
-                  - matchPattern: "*"
-        # Allow to traefik
-        - toEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": traefik
-        # Allow to external/public (outside cluster)
-        - toEntities:
-            - world
-  `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
-
   await ensureNamespace(kc, namespace)
 
-  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy)
+  const clusterNames = ['eu-0', 'eu-1', 'eu-2']
 
-  await ensureResourceQuota(kc, namespaceName, {
+  await ensurePropagationPolicy(kc, namespaceName, {
+    apiVersion: 'policy.karmada.io/v1alpha1',
+    kind: 'PropagationPolicy',
+    metadata: {
+      name: 'ctnr-user-propagation-policy-all',
+      namespace: namespaceName,
+      labels: {
+        'ctnr.io/owner-id': userId,
+      },
+    },
+    spec: {
+      resourceSelectors: [
+        {
+          labelSelector: {
+            matchLabels: {
+              'cluster.ctnr.io/all': 'true',
+            },
+          },
+        },
+      ],
+      placement: {
+        clusterAffinity: {
+          clusterNames,
+        },
+      },
+    },
+  })
+  for (const clusterName of clusterNames) {
+    const resources = [{
+      apiVersion: 'v1',
+      kind: 'Pod',
+    }, {
+      apiVersion: 'v1',
+      kind: 'Service',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'StatefulSet',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'DaemonSet',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'ReplicaSet',
+    }, {
+      apiVersion: 'gateway.networking.k8s.io/v1',
+      kind: 'HTTPRoute',
+    }, {
+      apiVersion: 'gateway.networking.k8s.io/v1beta1',
+      kind: 'HTTPRoute',
+    }, {
+      apiVersion: 'cert-manager.io/v1',
+      kind: 'Certificate',
+    }, {
+      apiVersion: 'traefik.io/v1alpha1',
+      kind: 'IngressRoute',
+    }]
+    const labelSelector = {
+      matchLabels: {
+        ['cluster.ctnr.io/' + clusterName]: 'true',
+      },
+    }
+    await ensurePropagationPolicy(kc, namespaceName, {
+      apiVersion: 'policy.karmada.io/v1alpha1',
+      kind: 'PropagationPolicy',
+      metadata: {
+        name: 'ctnr-user-propagation-policy-' + clusterName,
+        namespace: namespaceName,
+        labels: {
+          'ctnr.io/owner-id': userId,
+        },
+      },
+      spec: {
+        resourceSelectors: resources.map((resource) => ({
+          ...resource,
+          labelSelector,
+        })),
+        placement: {
+          clusterAffinity: {
+            clusterNames: [clusterName],
+          },
+        },
+      },
+    })
+  }
+
+  await ensureFederatedResourceQuota(kc, namespaceName, {
+    apiVersion: 'policy.karmada.io/v1alpha1',
+    kind: 'FederatedResourceQuota',
     metadata: {
       name: 'ctnr-user-quota',
       namespace: namespaceName,
@@ -832,17 +1020,77 @@ export const ensureUserNamespace = async (
       },
     },
     spec: {
-      hard: {
-        'limits.cpu': new Quantity(2000, 'm'),
-        'limits.memory': new Quantity(4, 'G'),
-        'requests.cpu': new Quantity(1000, 'm'),
-        'requests.memory': new Quantity(2, 'G'),
+      overall: {
+        'limits.cpu': new Quantity(2000, 'm').serialize(),
+        'limits.memory': new Quantity(4, 'G').serialize(),
+        'requests.cpu': new Quantity(1000, 'm').serialize(),
+        'requests.memory': new Quantity(2, 'G').serialize(),
         // "pods": new Quantity("10"),
         // "services": new Quantity("10"),
         // "persistentvolumeclaims": new Quantity("10"),
       },
     },
   })
+
+  // // Ensure the namespace has correct network policies
+  // const networkPolicyName = 'ctnr-user-network-policy'
+  // const networkPolicy = yaml`
+  //   apiVersion: cilium.io/v2
+  //   kind: CiliumNetworkPolicy
+  //   metadata:
+  //     name: ${networkPolicyName}
+  //     namespace: ${namespaceName}
+  //     labels:
+  //       "ctnr.io/owner-id": ${userId}
+  //       "cluster.ctnr.io/all": "true"
+  //   spec:
+  //     endpointSelector:
+  //       matchLabels:
+  //         "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+  //     ingress:
+  //       # Allow from same namespace
+  //       - fromEndpoints:
+  //           - matchLabels:
+  //               "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+  //       # Allow from ctnr-api
+  //       - fromEndpoints:
+  //           - matchLabels:
+  //               "k8s:io.kubernetes.pod.namespace": ctnr-system
+  //       # Allow from traefik
+  //       - fromEndpoints:
+  //           - matchLabels:
+  //               "k8s:io.kubernetes.pod.namespace": traefik
+  //       # Allow from external/public (outside cluster)
+  //       - fromEntities:
+  //           - world
+  //     egress:
+  //       # Allow to same namespace
+  //       - toEndpoints:
+  //           - matchLabels:
+  //               "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+  //       # Allow DNS to kube-dns/CoreDNS in cluster
+  //       - toEndpoints:
+  //           - matchLabels:
+  //               io.kubernetes.pod.namespace: kube-system
+  //               k8s-app: kube-dns
+  //         toPorts:
+  //           - ports:
+  //             - port: "53"
+  //               protocol: TCP
+  //             - port: "53"
+  //               protocol: UDP
+  //             rules:
+  //               dns:
+  //                 - matchPattern: "*"
+  //       # Allow to traefik
+  //       - toEndpoints:
+  //           - matchLabels:
+  //               "k8s:io.kubernetes.pod.namespace": traefik
+  //       # Allow to external/public (outside cluster)
+  //       - toEntities:
+  //           - world
+  // `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
+  // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy)
 
   return namespaceName
 }
@@ -855,19 +1103,30 @@ export async function ensureUserRoute(
     name: string
     hostnames: string[]
     ports: Array<{ name: string; port: number }>
+    clusters: string[]
   },
 ): Promise<void> {
-  const { userId, name, hostnames, ports } = options
+  const { userId, name, hostnames, ports, clusters } = options
+
+  const clustersLabels = Object.fromEntries(clusters.map((cluster) => [
+    `cluster.ctnr.io/${cluster}`,
+    'true',
+  ]))
 
   await ensureService(kc, namespace, {
     metadata: {
       name: name,
       namespace: namespace,
+      labels: {
+        'ctnr.io/owner-id': userId,
+        ...clustersLabels,
+      },
     },
     spec: {
       ports,
       selector: {
         'ctnr.io/owner-id': userId,
+        'ctnr.io/name': name,
       },
     },
   })
@@ -881,6 +1140,7 @@ export async function ensureUserRoute(
       namespace: namespace,
       labels: {
         'ctnr.io/owner-id': userId,
+        ...clustersLabels,
       },
     },
     spec: {
@@ -922,6 +1182,9 @@ export async function ensureUserRoute(
       metadata: {
         name: tld,
         namespace: namespace,
+        labels: {
+          ...clustersLabels,
+        },
       },
       spec: {
         secretName: tld,
@@ -941,6 +1204,7 @@ export async function ensureUserRoute(
         namespace: namespace,
         labels: {
           'ctnr.io/owner-id': userId,
+          ...clustersLabels,
         },
       },
       spec: {

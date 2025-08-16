@@ -71,10 +71,14 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       throw new Error(`No ports found for container ${input.name} matching specified ports`)
     }
 
+    const clusters = Object.entries(deployment?.metadata?.labels || {}).filter(([key, value]) =>
+      key.startsWith('cluster.ctnr.io') && value === 'true'
+    ).map(([key]) => key.split('/')[1]!)
+
     const userIdShort = shortUUIDtranslator.fromUUID(ctx.auth.user.id)
     const hostnames = [
       ...routedPorts.map((port) => [
-        `${port.name}-${input.name}-${userIdShort}.ctnr.io`,
+        ...clusters.map((cluster) => `${port.name}-${input.name}-${userIdShort}.${cluster}.ctnr.io`),
         input.domain! && `${port.name}.${input.domain}`,
       ]),
     ].flat().filter(Boolean)
@@ -123,6 +127,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       name: input.name,
       userId: ctx.auth.user.id,
       ports: routedPorts,
+      clusters,
     })
 
     yield `Routes created successfully for container ${input.name}:`

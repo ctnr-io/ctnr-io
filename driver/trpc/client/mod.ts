@@ -3,9 +3,11 @@ import { createTRPCClient, createWSClient, TRPCClient, wsLink } from '@trpc/clie
 import { ServerRouter } from 'driver/trpc/server/router.ts'
 
 export async function createTRPCWebSocketClient({
+  url,
   accessToken,
   refreshToken,
 }: {
+  url: string
   accessToken?: string
   refreshToken?: string
 }): Promise<{
@@ -15,7 +17,7 @@ export async function createTRPCWebSocketClient({
   const { promise, resolve, reject } = Promise.withResolvers<void>()
 
   const wsClient = createWSClient({
-    url: Deno.env.get('CTNR_API_URL')!,
+    url,
     connectionParams: () => {
       return {
         accessToken,
@@ -23,6 +25,9 @@ export async function createTRPCWebSocketClient({
       }
     },
     WebSocket: globalThis.WebSocket,
+    onError() {
+      console.error('WebSocket error occurred.')
+    },
     onOpen() {
       // Handle WebSocket open event
       console.debug('WebSocket connection established.')
@@ -34,10 +39,10 @@ export async function createTRPCWebSocketClient({
       if (code !== 1000) { // 1000 is normal closure
         console.error(reason || 'Unexpected error')
         reject(new Error(reason))
-        Deno.exit(code)
+        // Deno.exit(code)
       } else {
         resolve()
-        Deno.exit(0)
+        // Deno.exit(0)
       }
     },
   })

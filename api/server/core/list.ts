@@ -430,7 +430,7 @@ function extractRoutesForContainer(containerName: string, httpRoutes: any[], ing
 
 function extractClustersFromLabels(labels: any): string[] {
   const clusters: string[] = []
-  
+
   // Look for labels with pattern cluster.ctnr.io/<cluster-name>=true
   for (const [key, value] of Object.entries(labels)) {
     if (key.startsWith('cluster.ctnr.io/') && value === 'true') {
@@ -440,7 +440,7 @@ function extractClustersFromLabels(labels: any): string[] {
       }
     }
   }
-  
+
   return clusters
 }
 

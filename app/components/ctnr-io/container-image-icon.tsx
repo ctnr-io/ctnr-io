@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Container } from 'lucide-react'
 
 interface ContainerImageIconProps {
@@ -21,14 +21,14 @@ const getIconUrl = (imageName: string): string | null => {
   return `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${imageName}/${imageName}-original.svg`
 }
 
-export function ContainerImageIcon({ image, className = "h-4 w-4" }: ContainerImageIconProps) {
+export function ContainerImageIcon({ image, className = 'h-4 w-4' }: ContainerImageIconProps) {
   const [iconUrl, setIconUrl] = useState<string | null>(null)
   const [hasError, setHasError] = useState(false)
 
   useEffect(() => {
     const imageName = getImageName(image)
     const url = getIconUrl(imageName)
-    
+
     if (!url) {
       setHasError(true)
       return

@@ -57,7 +57,19 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>
 
 export default async function* ({ ctx, input }: ServerRequest<Input>): ServerResponse<Input> {
-  const { name, image, env = [], publish, interactive, terminal, detach, force, command, replicas, cluster = clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)] } = input
+  const {
+    name,
+    image,
+    env = [],
+    publish,
+    interactive,
+    terminal,
+    detach,
+    force,
+    command,
+    replicas,
+    cluster = clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)],
+  } = input
 
   // Parse replicas parameter
   let replicaCount: number

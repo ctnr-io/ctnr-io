@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import * as fs from '@std/fs'
 
-const homeDir = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || ''
+const homeDir = process.env.HOME || process.env.USERPROFILE || ''
 const configDir = join(homeDir, '.ctnr')
 const storageFile = join(configDir, 'auth.json')
 

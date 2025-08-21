@@ -1,16 +1,20 @@
 import 'lib/utils.ts'
 import { createCli } from 'trpc-cli'
-import { createTrpcClientTerminalContext } from './context.ts'
+import { createTrpcClientContext } from '../context.ts'
 import { cliRouter } from './router.ts'
 import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
+import { authStorage } from './storage.ts'
 
 try {
   const clientCli = createCli({
     router: cliRouter,
     name: 'ctnr',
-    version: Deno.env.get('CTNR_VERSION'),
+    version: process.env.CTNR_VERSION,
     description: 'ctnr.io Remote CLI',
-    context: await createTrpcClientTerminalContext({
+    context: await createTrpcClientContext({
+      auth: {
+        storage: authStorage,
+      },
       stdio: {
         stdin: Deno.stdin.readable,
         stdout: Deno.stdout.writable,

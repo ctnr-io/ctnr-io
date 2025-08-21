@@ -6,6 +6,9 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   scheme: 'ctnr-io',
+  extra: {
+    githubClientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || 'Iv23lidn21XPbJZJYhet',
+  },
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   ios: {

@@ -5,14 +5,14 @@ import * as Exec from 'api/server/core/exec.ts'
 import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
 import { initTRPC } from '@trpc/server'
-import { ClientTerminalContext } from './context.ts'
+import { TrpcClientContext } from '../context.ts'
 import login from 'api/client/auth/login-pkce.ts'
 import logout from 'api/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'ctx/mod.ts'
 import { SubscribeProcedureOutput } from 'driver/trpc/server/procedures/core.ts'
 
-export const trpc = initTRPC.context<ClientTerminalContext>().create()
+export const trpc = initTRPC.context<TrpcClientContext>().create()
 
 function transformSubscribeResolver<
   Input,
@@ -25,7 +25,7 @@ function transformSubscribeResolver<
     onData?: (data: SubscribeProcedureOutput) => void
     onStopped?: () => void
   }) => Unsubscribable,
-  { ctx, input, signal }: { ctx: ClientTerminalContext; input: Input; signal?: AbortSignal },
+  { ctx, input, signal }: { ctx: TrpcClientContext; input: Input; signal?: AbortSignal },
 ): Promise<void> {
   return new Promise<void>((resolve, reject) =>
     resolver(input, {

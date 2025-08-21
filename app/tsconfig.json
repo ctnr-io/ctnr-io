@@ -5,7 +5,7 @@
     "paths": {
       "app/*": [
         "./*"
-      ]
+      ],
     },
     "moduleResolution": "bundler"
   },

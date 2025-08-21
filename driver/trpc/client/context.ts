@@ -3,15 +3,15 @@ import loginPkce from 'api/client/auth/login-pkce.ts'
 import { createClientContext } from 'ctx/client/mod.ts'
 import { bypassWebSocketMessageHandler } from 'lib/websocket.ts'
 import { Buffer } from 'node:buffer'
-import { ClientContext } from '../../../../ctx/mod.ts'
-import { ServerRouter } from '../../server/router.ts'
-import { createTRPCWebSocketClient } from '../mod.ts'
+import { ClientContext } from 'ctx/mod.ts'
+import { ServerRouter } from '../server/router.ts'
+import { createTRPCWebSocketClient } from './mod.ts'
 
 type ProcedureOptions = {
   authenticate: boolean
 }
 
-export type ClientTerminalContext = ClientContext & {
+export type TrpcClientContext = ClientContext & {
   /**
    * This function prevent to start websocket connection until the first call to `connect`
    * This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
@@ -24,24 +24,28 @@ export type ClientTerminalContext = ClientContext & {
   ) => Promise<R>
 }
 
-export async function createTrpcClientTerminalContext(
+export async function createTrpcClientContext(
   opts: {
     stdio: ClientContext['stdio']
+    auth: {
+      storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
+    }
   },
-): Promise<ClientTerminalContext> {
+): Promise<TrpcClientContext> {
   const ctx = await createClientContext(opts)
   return {
     ...ctx,
     connect: async (procedureOptions, callback) => {
       try {
-        if (procedureOptions.authenticate) {
-          await loginPkce({ ctx })
-        }
+        // if (procedureOptions.authenticate) {
+        //   await loginPkce({ ctx })
+        // }
         const { data: { session } } = await ctx.auth.client.getSession()
         if (!session) {
           throw new Error('Failed to retrieve session. Please log in again.')
         }
         const client = await createTRPCWebSocketClient({
+          url: process.env.CTNR_API_URL!,
           accessToken: session.access_token,
           refreshToken: session.refresh_token,
         })

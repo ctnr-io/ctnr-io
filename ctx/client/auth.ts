@@ -1,10 +1,9 @@
 import { getSupabaseClient } from 'lib/supabase.ts'
 import type { AuthClientContext } from '../mod.ts'
-import { authStorage } from 'driver/trpc/client/terminal/storage.ts'
 
-export async function createAuthClientContext(): Promise<AuthClientContext> {
+export async function createAuthClientContext({ storage }: { storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> }): Promise<AuthClientContext> {
   const supabase = getSupabaseClient({
-    storage: authStorage,
+    storage,
   })
   const { data: { session } } = await supabase.auth.getSession()
   const { data: { user } } = await supabase.auth.getUser()

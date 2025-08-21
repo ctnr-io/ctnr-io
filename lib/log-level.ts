@@ -6,7 +6,7 @@ enum LogLevel {
   Error = 4,
 }
 
-const logLevel = match(Deno.env.get('LOG_LEVEL'))
+const logLevel = match(process.env.LOG_LEVEL)
   .with('info', () => LogLevel.Info)
   .with('warn', () => LogLevel.Warn)
   .with('error', () => LogLevel.Error)
@@ -14,7 +14,7 @@ const logLevel = match(Deno.env.get('LOG_LEVEL'))
 
 globalThis.console = {
   ...console,
-  debug: Deno.env.get('DEBUG') === 'true' ? console.debug : () => {},
+  debug: process.env.DEBUG === 'true' ? console.debug : () => {},
   info: logLevel <= LogLevel.Info ? console.info : () => {},
   warn: logLevel <= LogLevel.Warn ? console.warn : () => {},
   error: logLevel <= LogLevel.Error ? console.error : () => {},

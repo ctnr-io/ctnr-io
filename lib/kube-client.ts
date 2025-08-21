@@ -10,7 +10,7 @@ import { Quantity, RestClient } from '@cloudydeno/kubernetes-apis/common.ts'
 import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import { match } from 'ts-pattern'
 
-const kubeconfig = Deno.env.get('KUBECONFIG') || Deno.env.get('HOME') + '/.kube/config'
+const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
 export async function getKubeClient() {
   let client: RestClient

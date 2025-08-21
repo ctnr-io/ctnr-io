@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from 'app/components/shadcn/ui/sidebar.tsx'
-import { AppLogo } from './app-logo.tsx'
+import { AppSidebarLogo } from './app-sidebar-logo.tsx'
 
 // ctnr.io navigation data
 const data = {
@@ -193,7 +193,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>
-        <AppLogo />
+        <AppSidebarLogo />
       </SidebarHeader>
       <SidebarContent>
         {/* <NavProjects projects={data.projects} /> */}

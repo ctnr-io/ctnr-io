@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ContainerName, PortName, ServerResponse } from './_common.ts'
+import { ContainerName, PortName, ServerResponse } from '../../_common.ts'
 import { ensureUserRoute } from 'lib/kube-client.ts'
 import { hash } from 'node:crypto'
 import * as shortUUID from '@opensrc/short-uuid'

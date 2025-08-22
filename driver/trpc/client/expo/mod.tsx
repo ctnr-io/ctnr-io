@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { createTRPCContext } from '@trpc/tanstack-react-query'
-import { ServerRouter } from '../../server/router.ts'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Platform } from 'react-native'
 
-import { createTRPCWebSocketClient } from '../mod.ts'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import * as SplashScreen from 'expo-splash-screen'
+import { createTRPCContext } from '@trpc/tanstack-react-query'
+import { createTrpcClientContext, TrpcClientContext } from 'driver/trpc/client/context.ts'
+import { ServerRouter } from '../../server/router.ts'
+import { TRPCClient } from '@trpc/client'
+import { createAuthClientContext } from 'ctx/client/auth.ts'
+
+SplashScreen.preventAutoHideAsync()
 
 export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<ServerRouter>()
 
@@ -35,77 +42,67 @@ export function getQueryClient() {
   }
 }
 
-// const ExpoTRPCClientContext = React.createContext<ClientContext>(
-//   await createClientContext({
-//     auth: {
-//       storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
-//     },
-//     stdio: {
-//       stdin: new ReadableStream(),
-//       stdout: new WritableStream(),
-//       stderr: new WritableStream(),
-//       exit: () => {},
-//       setRaw: () => {},
-//       signalChan: function* () {
-//         // TODO: Implement signal handling when needed
-//         // Currently disabled to avoid linting issues
-//         // yield* createAsyncGeneratorListener(
-//         //   [
-//         //     "SIGINT",
-//         //     "SIGQUIT",
-//         //   ] as const,
-//         //   Deno.addSignalListener,
-//         //   Deno.removeSignalListener,
-//         //   (eventType) => eventType,
-//         // );
-//       } as any,
-//       terminalSizeChan: async function* () {
-//         if (!Deno.stdin.isTerminal()) {
-//           return
-//         }
-//         // Send the initial terminal size
-//         const consoleSize = () => {
-//           return {
-//             columns: 0,
-//             rows: 0,
-//           }
-//         }
-//         yield consoleSize()
-//         // Send terminal size updates
-//         yield* createAsyncGeneratorListener(
-//           ['SIGWINCH'],
-//           () => {},
-//           () => {},
-//           consoleSize,
-//         )
-//       },
-//     },
-//   }),
-// )
+// Create client context for
+const ExpoTrpcClientContext = React.createContext<TrpcClientContext | null>(null)
 
-export function ExpoTRPCClientProvider({ children }: React.PropsWithChildren) {
-  const [trpcClient, setTrpcClient] = useState<Awaited<ReturnType<typeof createTRPCWebSocketClient>>>()
-  useEffect(() => {
-    ;(async () => {
-      console.log('Creating TRPC WebSocket client...')
-      try {
-        const client = await createTRPCWebSocketClient({
-          url: process.env.EXPO_PUBLIC_CTNR_API_URL!,
-        })
-        console.log('TRPC WebSocket client created successfully')
-        setTrpcClient(client)
-      } catch (error) {
-        console.error('Failed to create TRPC WebSocket client:', error)
-      }
-    })()
-  }, [])
+export function useExpoTrpcClientContext(): TrpcClientContext {
+  const context = React.useContext(ExpoTrpcClientContext)
+  if (!context) {
+    throw new Error('useExpoTrpcClientContext must be used within ExpoTrpcClientProvider')
+  }
+  return context
+}
+
+export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
+  const [state, setState] = useState<{ ctx: TrpcClientContext; server: TRPCClient<ServerRouter> | null } | null>(null)
   const queryClient = getQueryClient()
+
+  const updateState = async () => {
+    const ctx = await createTrpcClientContext({
+      auth: {
+        storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
+      },
+      stdio: {
+        stdin: new ReadableStream(),
+        stdout: new WritableStream(),
+        stderr: new WritableStream(),
+        exit: () => {},
+        setRaw: () => {},
+        signalChan: function* () {
+          // TODO: Implement signal handling when needed
+        } as any,
+        terminalSizeChan: async function* () {
+          // TODO: Implement terminal size handling when needed
+        },
+      },
+    })
+    setState({
+      ctx,
+      server: await (ctx.connect(async ({ server }) => server).catch(() => null)),
+    })
+  }
+
+  useEffect(() => {
+    updateState()
+  }, [])
+
+  useEffect(() => {
+    if (!state) return
+    const {
+      data: { subscription },
+    } = state.ctx.auth.client.onAuthStateChange((_event, _session) => {
+      console.log('Auth state changed:', _event, _session)
+      updateState()
+    })
+    return () => subscription.unsubscribe()
+  }, [state?.ctx.auth.client])
+
   return (
     <QueryClientProvider client={queryClient}>
-      {trpcClient && (
-        <TRPCProvider trpcClient={trpcClient?.trpc} queryClient={queryClient}>
-          {children}
-        </TRPCProvider>
+      {state && (
+        <ExpoTrpcClientContext.Provider value={state?.ctx}>
+          <TRPCProvider queryClient={queryClient} trpcClient={state?.server!}>{children}</TRPCProvider>
+        </ExpoTrpcClientContext.Provider>
       )}
     </QueryClientProvider>
   )

@@ -6,7 +6,7 @@ import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from '../context.ts'
-import login from 'api/client/auth/login-pkce.ts'
+import login from 'api/client/auth/login-from-terminal.ts'
 import logout from 'api/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'ctx/mod.ts'
@@ -71,7 +71,6 @@ export const cliRouter = trpc.router({
   // Core procedures
   run: trpc.procedure.meta(Run.Meta).input(Run.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      { authenticate: true },
       ({ server }) =>
         transformSubscribeResolver(server.core.run.subscribe, {
           ctx,
@@ -87,31 +86,26 @@ export const cliRouter = trpc.router({
   ),
   list: trpc.procedure.meta(List.Meta).input(List.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      { authenticate: true },
       ({ server }) => transformSubscribeResolver(server.core.list.subscribe, { input, signal, ctx }),
     )
   ),
   attach: trpc.procedure.meta(Attach.Meta).input(Attach.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      { authenticate: true },
       ({ server }) => transformSubscribeResolver(server.core.attach.subscribe, { input, signal, ctx }),
     )
   ),
   exec: trpc.procedure.meta(Exec.Meta).input(Exec.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      { authenticate: true },
       ({ server }) => transformSubscribeResolver(server.core.exec.subscribe, { input, signal, ctx }),
     )
   ),
   route: trpc.procedure.meta(Route.Meta).input(Route.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      { authenticate: true },
       ({ server }) => transformSubscribeResolver(server.core.route.subscribe, { input, signal, ctx }),
     )
   ),
   logs: trpc.procedure.meta(Logs.Meta).input(Logs.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      { authenticate: true },
       ({ server }) =>
         server.core.logs.mutate(input, {
           signal,

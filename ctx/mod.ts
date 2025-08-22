@@ -42,7 +42,12 @@ export type AuthServerContext = {
   auth: {
     client: SupabaseClient['auth']
     session: Session
-    user: User
+    user: {
+      id: string
+      email: string
+      name: string
+      avatar: string
+    }
   }
 }
 
@@ -50,13 +55,19 @@ export type AuthServerContext = {
  * User may or may not be authenticated in client context.
  * If unauthenticated, session and user will be null.
  */
-export type AuthClientContext = AuthServerContext | {
-  auth: {
-    client: SupabaseClient['auth']
-    session: null
-    user: null
-  }
-}
+export type AuthClientContext =
+  & (AuthServerContext | {
+    auth: {
+      client: SupabaseClient['auth']
+      session: null
+      user: null
+    }
+  })
+  & ({
+    auth: {
+      storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
+    }
+  })
 
 export type ServerContext = SignalContext & StdioContext & KubeContext & AuthServerContext & DeferServerContext & {
   __type: 'server'

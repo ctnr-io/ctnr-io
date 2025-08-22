@@ -25,7 +25,12 @@ export async function createAuthServerContext(
       auth: {
         client: supabase.auth,
         session: session,
-        user: user,
+        user: {
+          avatar: user.user_metadata.avatar_url,
+          email: user.email!,
+          id: user.id,
+          name: user.user_metadata.name,
+        },
       },
     }
   } catch (error) {

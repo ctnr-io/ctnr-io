@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ContainerName } from './_common.ts'
+import { ContainerName } from '../../_common.ts'
 
 export const Meta = {
   aliases: {

@@ -1,49 +1,25 @@
-'use dom'
-
-import { AppSidebar } from 'app/components/ctnr-io/app-sidebar.tsx'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from 'app/components/shadcn/ui/breadcrumb.tsx'
-import { Separator } from 'app/components/shadcn/ui/separator.tsx'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from 'app/components/shadcn/ui/sidebar.tsx'
 import { Slot } from 'expo-router'
+import { useExpoTrpcClientContext } from 'driver/trpc/client/expo/mod.tsx'
+import logout from 'api/client/auth/logout.ts'
+import { useRouter } from 'expo-router'
+import AppLayout from 'app/components/ctnr-io/app-layout.tsx'
+import { Redirect } from 'expo-router'
+import { router } from 'expo-router'
 
 export default function MainLayout() {
+  const ctx = useExpoTrpcClientContext()
+  const handleLogout = async () => {
+    console.log('yp;p')
+    await logout({ ctx })
+    // router.replace('/login')
+  }
+  console.log(ctx)
+  if (!ctx.auth.session) {
+    return <Redirect href='/login'  />
+  }
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className='overflow-auto'>
-        <header className='sticky top-0 bg-white border-b flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12'>
-          <div className='flex items-center gap-2 px-4'>
-            <SidebarTrigger className='-ml-1' />
-            <Separator
-              orientation='vertical'
-              className='mr-2 data-[orientation=vertical]:h-4'
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className='hidden md:block'>
-                  <BreadcrumbLink href='#'>
-                    My Project
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className='hidden md:block' />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Containers</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <div className='flex flex-1 flex-col'>
-          <Slot />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <AppLayout user={ctx.auth.user!} onLogout={handleLogout}>
+      <Slot />
+    </AppLayout>
   )
 }

@@ -1,4 +1,80 @@
+import { AuthClientContext } from 'ctx/mod.ts'
+import { ClientResponse } from '../../_common.ts'
+import login from './login.ts'
 import { html } from '@tmpl/core'
+
+export default async function* ({ ctx }: { ctx: AuthClientContext }): ClientResponse {
+  try {
+    // Start callback server to get redirect URI
+    const { server, promise, url: redirectUri } = startCallbackServer()
+
+    try {
+      // Use the shared login function with the callback server's redirect URI
+      const loginGenerator = login({
+        ctx,
+        input: {
+          redirectTo: redirectUri,
+          provider: 'github'
+        }
+      })
+
+      let oauthUrl: string | null = null
+
+      // Process login generator and capture OAuth URL
+      for await (const message of loginGenerator) {
+        if (typeof message === 'string') {
+          // Check if this message contains the OAuth URL
+          if (message.startsWith('Open this URL: ')) {
+            oauthUrl = message.replace('Open this URL: ', '')
+            
+            // Open browser instead of just yielding the message
+            yield '📱 Opening browser for authentication...'
+            
+            // Check if running in terminal and try to open browser
+            if (typeof Deno !== 'undefined' && Deno.stdin?.isTerminal?.()) {
+              try {
+                await openBrowser(oauthUrl)
+              } catch (error) {
+                console.warn('Failed to open browser automatically:', error)
+                console.log(`Please manually open: ${oauthUrl}`)
+              }
+            } else {
+              console.log('Please open the following URL in your browser:')
+              console.log(`  ${oauthUrl}`)
+              console.log('After authenticating, return to this terminal to continue.')
+            }
+
+            // Wait for the callback
+            yield '⏳ Waiting for authentication callback...'
+            const { code } = await promise
+
+            // Exchange the authorization code for a session
+            yield '🔄 Completing authentication...'
+            const { data, error } = await ctx.auth.client.exchangeCodeForSession(code)
+            
+            if (error) {
+              throw new Error(`Failed to exchange code for session: ${error.message}`)
+            }
+            
+            if (data.session) {
+              yield '✅ Authentication successful!'
+              return
+            } else {
+              throw new Error('Session not established after code exchange')
+            }
+          } else {
+            // Pass through other messages from login
+            yield message
+          }
+        }
+      }
+    } finally {
+      server.shutdown()
+    }
+  } catch (error) {
+    throw new Error(`OAuth flow failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
 
 /**
  * Start local HTTP server to handle OAuth callback

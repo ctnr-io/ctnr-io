@@ -2,7 +2,7 @@ import { Container } from 'lucide-react'
 import * as React from 'react'
 
 import { NavMain } from 'app/components/shadcn/nav-main.tsx'
-import { NavUser } from 'app/components/shadcn/nav-user.tsx'
+import { NavUser } from 'app/components/ctnr-io/nav-user.tsx'
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +11,7 @@ import {
   SidebarRail,
 } from 'app/components/shadcn/ui/sidebar.tsx'
 import { AppSidebarLogo } from './app-sidebar-logo.tsx'
+import { ClientContext } from 'ctx/mod.ts'
 
 // ctnr.io navigation data
 const data = {
@@ -189,7 +190,14 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, onLogout, ...props }: React.ComponentProps<typeof Sidebar> & {
+  user: {
+    email: string
+    name: string
+    avatar: string
+  },
+  onLogout: () => unknown 
+}) {
   return (
     <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>
@@ -200,7 +208,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} onLogout={onLogout} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

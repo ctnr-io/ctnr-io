@@ -6,7 +6,7 @@ import * as Attach from 'api/server/core/attach.ts'
 import * as Exec from 'api/server/core/exec.ts'
 import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
-import { ServerResponse } from 'api/server/core/_common.ts'
+import { ServerResponse } from '../../../../api/_common.ts'
 import { ServerContext } from 'ctx/mod.ts'
 
 export type SubscribeProcedureOutput = {

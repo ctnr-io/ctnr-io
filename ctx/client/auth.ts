@@ -12,6 +12,7 @@ export async function createAuthClientContext(
   if (!session || !user) {
     return {
       auth: {
+        storage,
         client: supabase.auth,
         session: null,
         user: null,
@@ -20,9 +21,15 @@ export async function createAuthClientContext(
   }
   return {
     auth: {
+      storage,
       client: supabase.auth,
       session,
-      user,
+      user: {
+        id: user.id,
+        email: user.email || '',
+        name: user.user_metadata.name || '',
+        avatar: user.user_metadata.avatar_url || '',
+      },
     },
   }
 }

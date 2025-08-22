@@ -1,9 +1,11 @@
 {
   "imports": {
+    "api/": "../api/",
     "app/": "../app/",
+    "cli/": "../cli/",
+    "driver/": "../driver/",
     "lib/": "../lib/",
-    "ctx/": "../ctx/",
-    "driver/": "../driver/"
+    "ctx/": "../ctx/"
   },
   "compilerOptions": {
     "lib": [

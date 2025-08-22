@@ -1,7 +1,43 @@
 import AuthLoginPage from 'app/components/ctnr-io/auth-login-page.tsx'
-import { useTRPCClient } from 'driver/trpc/client/expo/mod.tsx'
+import { useState } from 'react'
+import { useRouter } from 'expo-router'
+import { useExpoTrpcClientContext } from 'driver/trpc/client/expo/mod.tsx'
+import loginFromApp from 'api/client/auth/login-from-app.ts'
+import { Redirect } from 'expo-router'
 
 export default function AuthLoginScreen() {
-  const trpc = useTRPCClient()
-  return <AuthLoginPage onSignInGithub={trpc} />
+  const ctx = useExpoTrpcClientContext()
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+
+  const handleSignInGithub = async () => {
+    setIsLoading(true)
+    try {
+      // Use the new auth system
+      const authGenerator = loginFromApp({ ctx })
+
+      // Process the auth flow
+      for await (const message of authGenerator) {
+        console.log(message)
+      }
+
+      // Redirect to main app after successful auth
+      router.replace('/')
+    } catch (error) {
+      console.error('Authentication failed:', error)
+      // Handle error (show toast, etc.)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  if (ctx.auth.session) {
+    return (
+      <Redirect href='/' />
+    )
+  }
+
+  return (
+    <AuthLoginPage onSignInGithub={handleSignInGithub} isLoading={isLoading} />
+  )
 }

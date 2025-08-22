@@ -1,15 +1,9 @@
 import { TRPCClient } from '@trpc/client'
-import loginPkce from 'api/client/auth/login-pkce.ts'
 import { createClientContext } from 'ctx/client/mod.ts'
 import { bypassWebSocketMessageHandler } from 'lib/websocket.ts'
-import { Buffer } from 'node:buffer'
 import { ClientContext } from 'ctx/mod.ts'
 import { ServerRouter } from '../server/router.ts'
 import { createTRPCWebSocketClient } from './mod.ts'
-
-type ProcedureOptions = {
-  authenticate: boolean
-}
 
 export type TrpcClientContext = ClientContext & {
   /**
@@ -17,7 +11,6 @@ export type TrpcClientContext = ClientContext & {
    * This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
    */
   connect: <R>(
-    procedureOptions: ProcedureOptions,
     callback: ({ server }: {
       server: TRPCClient<ServerRouter>
     }) => Promise<R>,
@@ -35,28 +28,27 @@ export async function createTrpcClientContext(
   const ctx = await createClientContext(opts)
   return {
     ...ctx,
-    connect: async (procedureOptions, callback) => {
+    connect: async (callback) => {
       try {
-        // if (procedureOptions.authenticate) {
-        //   await loginPkce({ ctx })
-        // }
         const { data: { session } } = await ctx.auth.client.getSession()
         if (!session) {
           throw new Error('Failed to retrieve session. Please log in again.')
         }
+
         const client = await createTRPCWebSocketClient({
           url: process.env.CTNR_API_URL!,
           accessToken: session.access_token,
           refreshToken: session.refresh_token,
         })
 
+        const decoder = new TextDecoder('utf-8')
         opts.stdio.stdin.pipeTo(
           new WritableStream({
             write(chunk) {
               // Forward stdin data to the WebSocket as a JSON object
               client.websocket.connection?.ws.send(JSON.stringify({
                 type: 'stdin',
-                data: Buffer.from(chunk).toString('utf-8'),
+                data: decoder.decode(new Uint8Array(chunk)),
               }))
             },
             close() {
@@ -129,8 +121,12 @@ export async function createTrpcClientContext(
           server: client.trpc,
         })
       } catch (error) {
-        console.error(error instanceof Error ? error.message : 'An error occurred while executing command.')
-        Deno.exit(1)
+        if (globalThis.Deno) {
+          console.error(error instanceof Error ? error.message : 'An error occurred while executing command.')
+          Deno.exit(1)
+        } else {
+          throw error
+        }
       }
     },
   }

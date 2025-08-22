@@ -4,7 +4,7 @@ import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { Quantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import attach from './attach.ts'
-import { ContainerName, Publish, ServerRequest, ServerResponse } from './_common.ts'
+import { ContainerName, Publish, ServerRequest, ServerResponse } from '../../_common.ts'
 import * as Route from './route.ts'
 
 export const Meta = {

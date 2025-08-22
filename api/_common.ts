@@ -57,8 +57,8 @@ export type ServerResponse<Input> = AsyncGenerator<
 
 export type ClientRequest<Input> = { ctx: ClientContext; input: Input }
 
-export type ClientResponse = AsyncGenerator<
+export type ClientResponse<Output = void> = AsyncGenerator<
   string | object,
-  void,
+  Output,
   unknown
 >

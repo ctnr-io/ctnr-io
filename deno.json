@@ -35,6 +35,7 @@
     "@types/react": "npm:@types/react@^19.1.10",
     "@types/react-native": "npm:@types/react-native@^0.73.0",
     "@types/ws": "npm:@types/ws@^8.2.0",
+    "expo-splash-screen": "npm:expo-splash-screen@^0.30.10",
     "ip6addr": "npm:ip6addr@^0.2.5",
     "itertools-ts": "npm:itertools-ts@^2.2.0",
     "react": "npm:react@^19.1.1",

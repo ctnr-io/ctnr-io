@@ -10,7 +10,7 @@ export type Signals =
   | 'SIGQUIT'
 
 export type StdioContext = {
-  stdio: {
+  stdio?: {
     stdin: ReadableStream
     stdout: WritableStream
     stderr: WritableStream

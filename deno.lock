@@ -6,39 +6,32 @@
     "jsr:@cloudydeno/kubernetes-client@~0.7.5": "0.7.5",
     "jsr:@cloudydeno/stream-observables@1": "1.4.1",
     "jsr:@opensrc/short-uuid@1": "1.0.0",
-    "jsr:@std/assert@^1.0.12": "1.0.13",
-    "jsr:@std/assert@^1.0.13": "1.0.13",
-    "jsr:@std/async@^1.0.13": "1.0.13",
+    "jsr:@std/assert@^1.0.12": "1.0.14",
+    "jsr:@std/assert@^1.0.13": "1.0.14",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/crypto@^1.0.5": "1.0.5",
-    "jsr:@std/data-structures@^1.0.8": "1.0.8",
     "jsr:@std/data-structures@^1.0.9": "1.0.9",
     "jsr:@std/dotenv@~0.225.5": "0.225.5",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
-    "jsr:@std/fs@^1.0.18": "1.0.19",
     "jsr:@std/fs@^1.0.19": "1.0.19",
     "jsr:@std/internal@^1.0.10": "1.0.10",
-    "jsr:@std/internal@^1.0.6": "1.0.10",
-    "jsr:@std/internal@^1.0.8": "1.0.9",
     "jsr:@std/internal@^1.0.9": "1.0.10",
-    "jsr:@std/path@1": "1.1.1",
+    "jsr:@std/path@1": "1.1.2",
     "jsr:@std/path@1.0.6": "1.0.6",
-    "jsr:@std/path@^1.0.9": "1.1.1",
-    "jsr:@std/path@^1.1.0": "1.1.1",
-    "jsr:@std/path@^1.1.1": "1.1.1",
-    "jsr:@std/streams@1": "1.0.10",
+    "jsr:@std/path@^1.0.9": "1.1.2",
+    "jsr:@std/path@^1.1.1": "1.1.2",
+    "jsr:@std/streams@1": "1.0.11",
     "jsr:@std/streams@1.0.5": "1.0.5",
-    "jsr:@std/streams@^1.0.10": "1.0.10",
+    "jsr:@std/streams@^1.0.10": "1.0.11",
     "jsr:@std/testing@^1.0.10": "1.0.15",
     "jsr:@std/uuid@^1.0.6": "1.0.9",
     "jsr:@std/yaml@1": "1.0.9",
     "jsr:@std/yaml@1.0.5": "1.0.5",
     "jsr:@std/yaml@^1.0.6": "1.0.9",
     "jsr:@std/yaml@^1.0.8": "1.0.9",
-    "jsr:@tmpl/core@0.6": "0.6.1",
-    "jsr:@tmpl/core@~0.6.1": "0.6.1",
-    "jsr:@tmpl/gen@0.6": "0.6.1",
+    "jsr:@tmpl/core@~0.6.3": "0.6.3",
+    "jsr:@tmpl/gen@0.6": "0.6.3",
     "npm:@react-native-async-storage/async-storage@^2.2.0": "2.2.0_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10",
     "npm:@supabase/supabase-js@^2.45.4": "2.55.0",
     "npm:@tanstack/react-query@^5.85.5": "5.85.5_react@19.1.1",
@@ -93,23 +86,17 @@
     "@opensrc/short-uuid@1.0.0": {
       "integrity": "80985b40538cd1f4a7aa1f7e9e9787ff07fe6475673ae7467391b0d7fc147945"
     },
-    "@std/assert@1.0.13": {
-      "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
+    "@std/assert@1.0.14": {
+      "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
       "dependencies": [
-        "jsr:@std/internal@^1.0.6"
+        "jsr:@std/internal@^1.0.10"
       ]
-    },
-    "@std/async@1.0.13": {
-      "integrity": "1d76ca5d324aef249908f7f7fe0d39aaf53198e5420604a59ab5c035adc97c96"
     },
     "@std/bytes@1.0.6": {
       "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
     },
     "@std/crypto@1.0.5": {
       "integrity": "0dcfbb319fe0bba1bd3af904ceb4f948cde1b92979ec1614528380ed308a3b40"
-    },
-    "@std/data-structures@1.0.8": {
-      "integrity": "2fb7219247e044c8fcd51341788547575653c82ae2c759ff209e0263ba7d9b66"
     },
     "@std/data-structures@1.0.9": {
       "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
@@ -127,19 +114,16 @@
         "jsr:@std/path@^1.1.1"
       ]
     },
-    "@std/internal@1.0.9": {
-      "integrity": "bdfb97f83e4db7a13e8faab26fb1958d1b80cc64366501af78a0aee151696eb8"
-    },
     "@std/internal@1.0.10": {
       "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
     },
     "@std/path@1.0.6": {
       "integrity": "ab2c55f902b380cf28e0eec501b4906e4c1960d13f00e11cfbcd21de15f18fed"
     },
-    "@std/path@1.1.1": {
-      "integrity": "fe00026bd3a7e6a27f73709b83c607798be40e20c81dde655ce34052fd82ec76",
+    "@std/path@1.1.2": {
+      "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
       "dependencies": [
-        "jsr:@std/internal@^1.0.9"
+        "jsr:@std/internal@^1.0.10"
       ]
     },
     "@std/streams@1.0.5": {
@@ -148,30 +132,18 @@
         "jsr:@std/bytes@^1.0.2"
       ]
     },
-    "@std/streams@1.0.10": {
-      "integrity": "75c0b1431873cd0d8b3d679015220204d36d3c7420d93b60acfc379eb0dc30af",
+    "@std/streams@1.0.11": {
+      "integrity": "db583d27e28d133f389f1eec318cffdf4998305e5134c1d4b1c56b361cee6018",
       "dependencies": [
         "jsr:@std/bytes@^1.0.6"
-      ]
-    },
-    "@std/testing@1.0.14": {
-      "integrity": "144b3737105b9071cb50c957681f58a1b8ec0f3e5b19ad830f401c5fa931e8f0",
-      "dependencies": [
-        "jsr:@std/assert@^1.0.13",
-        "jsr:@std/async",
-        "jsr:@std/data-structures@^1.0.8",
-        "jsr:@std/fs@^1.0.18",
-        "jsr:@std/internal@^1.0.8",
-        "jsr:@std/path@^1.1.0"
       ]
     },
     "@std/testing@1.0.15": {
       "integrity": "a490169f5ccb0f3ae9c94fbc69d2cd43603f2cffb41713a85f99bbb0e3087cbc",
       "dependencies": [
         "jsr:@std/assert@^1.0.13",
-        "jsr:@std/async",
-        "jsr:@std/data-structures@^1.0.9",
-        "jsr:@std/fs@^1.0.19",
+        "jsr:@std/data-structures",
+        "jsr:@std/fs",
         "jsr:@std/internal@^1.0.10",
         "jsr:@std/path@^1.1.1"
       ]
@@ -192,23 +164,17 @@
     "@std/yaml@1.0.9": {
       "integrity": "6bad3dc766dd85b4b37eabcba81b6aa4eac7a392792ae29abcfb0f90602d55bb"
     },
-    "@tmpl/core@0.6.0": {
-      "integrity": "4076bf0d563f5fdec3d31a734b62f11b24ae8d8a540ea1aa01c6c148e3a015de",
+    "@tmpl/core@0.6.3": {
+      "integrity": "d4b0311a4607247ab319a051d9a60085d6693bffe747cdfbcc50ffa75d7225bc",
       "dependencies": [
         "jsr:@std/yaml@^1.0.6"
       ]
     },
-    "@tmpl/core@0.6.1": {
-      "integrity": "886479991855277bf5fda1fc04ed86241ff48e27ea954570508167491511d2e7",
-      "dependencies": [
-        "jsr:@std/yaml@^1.0.6"
-      ]
-    },
-    "@tmpl/gen@0.6.1": {
-      "integrity": "2ca00cc6dbd68138ff5a45573e951b0845d7a30bd5ff5a6b47130514ff797e1b",
+    "@tmpl/gen@0.6.3": {
+      "integrity": "e03dd5744d76d57d7b6081449101d0b5df9f49fae13bb8ee424a8644218004f9",
       "dependencies": [
         "jsr:@std/path@^1.0.9",
-        "jsr:@tmpl/core@~0.6.1"
+        "jsr:@tmpl/core"
       ]
     }
   },
@@ -4745,7 +4711,7 @@
       "jsr:@std/testing@^1.0.10",
       "jsr:@std/uuid@^1.0.6",
       "jsr:@std/yaml@^1.0.8",
-      "jsr:@tmpl/core@0.6",
+      "jsr:@tmpl/core@~0.6.3",
       "jsr:@tmpl/gen@0.6",
       "npm:@react-native-async-storage/async-storage@^2.2.0",
       "npm:@supabase/supabase-js@^2.45.4",

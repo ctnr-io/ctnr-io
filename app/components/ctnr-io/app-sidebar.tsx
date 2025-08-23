@@ -11,7 +11,6 @@ import {
   SidebarRail,
 } from 'app/components/shadcn/ui/sidebar.tsx'
 import { AppSidebarLogo } from './app-sidebar-logo.tsx'
-import { ClientContext } from 'ctx/mod.ts'
 
 // ctnr.io navigation data
 const data = {
@@ -39,8 +38,8 @@ const data = {
           url: '/containers',
         },
         {
-          title: 'Create',
-          url: '/containers/create',
+          title: 'Deploy',
+          url: '/containers/new',
         },
       ],
     },

@@ -1,7 +1,7 @@
 import 'lib/utils.ts'
 import { createCli } from 'trpc-cli'
 import { createTrpcClientContext } from '../context.ts'
-import { cliRouter } from './router.ts'
+import { cliRouter } from '../router.ts'
 import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
 import { authStorage } from './storage.ts'
 
@@ -52,7 +52,11 @@ try {
     }),
   })
 
-  await clientCli.run()
+  await clientCli.run({
+    logger: {
+      info: console.warn
+    }
+  })
 } catch (error) {
   console.debug(error)
   console.error('An error occurred while executing command.')

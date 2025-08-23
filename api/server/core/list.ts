@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
 import { ServerResponse } from '../../_common.ts'
+import * as YAML from '@std/yaml'
 
 export const Meta = {
   aliases: {
@@ -100,49 +101,19 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
 
   switch (output) {
     case 'raw':
-      yield containers
+      return containers
       break
 
     case 'json':
-      yield JSON.stringify(containers, null, 2)
+      return JSON.stringify(containers, null, 2)
       break
 
     case 'yaml':
-      for (const container of containers) {
-        yield `- id: ${container.id}`
-        yield `  name: ${container.name}`
-        yield `  image: ${container.image}`
-        yield `  status: ${container.status}`
-        yield `  createdAt: ${container.createdAt.toISOString()}`
-        yield `  cpu: ${container.cpu}`
-        yield `  memory: ${container.memory}`
-        yield `  replicas:`
-        yield `    max: ${container.replicas.max}`
-        yield `    min: ${container.replicas.min}`
-        yield `    current: ${container.replicas.current}`
-        if (container.ports && container.ports.length > 0) {
-          yield `  ports:`
-          for (const port of container.ports) {
-            yield `    - ${port}`
-          }
-        } else {
-          yield `  ports: []`
-        }
-        if (container.clusters && container.clusters.length > 0) {
-          yield `  clusters:`
-          for (const cluster of container.clusters) {
-            yield `    - ${cluster}`
-          }
-        } else {
-          yield `  clusters: []`
-        }
-      }
+      return YAML.stringify(containers)
       break
 
     case 'name':
-      for (const container of containers) {
-        yield container.name
-      }
+      return containers.map(container => container.name).join('\n')
       break
 
     case 'wide':

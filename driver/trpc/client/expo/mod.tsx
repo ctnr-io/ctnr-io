@@ -62,19 +62,19 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
       auth: {
         storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
       },
-      stdio: {
-        stdin: new ReadableStream(),
-        stdout: new WritableStream(),
-        stderr: new WritableStream(),
-        exit: () => {},
-        setRaw: () => {},
-        signalChan: function* () {
-          // TODO: Implement signal handling when needed
-        } as any,
-        terminalSizeChan: async function* () {
-          // TODO: Implement terminal size handling when needed
-        },
-      },
+      // stdio: {
+      //   stdin: new ReadableStream(),
+      //   stdout: new WritableStream(),
+      //   stderr: new WritableStream(),
+      //   exit: () => {},
+      //   setRaw: () => {},
+      //   signalChan: function* () {
+      //     // TODO: Implement signal handling when needed
+      //   } as any,
+      //   terminalSizeChan: async function* () {
+      //     // TODO: Implement terminal size handling when needed
+      //   },
+      // },
     })
     setState({
       ctx,
@@ -91,11 +91,10 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
     const {
       data: { subscription },
     } = state.ctx.auth.client.onAuthStateChange((_event, _session) => {
-      console.log('Auth state changed:', _event, _session)
       updateState()
     })
     return () => subscription.unsubscribe()
-  }, [state?.ctx.auth.client])
+  }, [])
 
   return (
     <QueryClientProvider client={queryClient}>

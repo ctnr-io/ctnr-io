@@ -5,7 +5,7 @@ import * as Exec from 'api/server/core/exec.ts'
 import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
 import { initTRPC } from '@trpc/server'
-import { TrpcClientContext } from '../context.ts'
+import { TrpcClientContext } from './context.ts'
 import login from 'api/client/auth/login-from-terminal.ts'
 import logout from 'api/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
@@ -16,36 +16,33 @@ export const trpc = initTRPC.context<TrpcClientContext>().create()
 
 function transformSubscribeResolver<
   Input,
+  Output,
 >(
   resolver: (input: Input, opts: {
     signal?: AbortSignal
     onStarted?: () => void
     onError?: (error: Error) => void
     onComplete?: () => void
-    onData?: (data: SubscribeProcedureOutput) => void
+    onData?: (data: SubscribeProcedureOutput<Output>) => void
     onStopped?: () => void
   }) => Unsubscribable,
   { ctx, input, signal }: { ctx: TrpcClientContext; input: Input; signal?: AbortSignal },
-): Promise<void> {
-  return new Promise<void>((resolve, reject) =>
+): Promise<Output> {
+  let result: Output
+  return new Promise<Output>((resolve, reject) =>
     resolver(input, {
       signal,
       onError: reject,
-      onComplete: resolve,
-      onData: (data: SubscribeProcedureOutput) => {
+      onComplete: () => {
+        resolve(result)
+      },
+      onData: (data: SubscribeProcedureOutput<Output>) => {
         switch (data.type) {
-          case 'function':
-            return eval(data.value)({ ctx, input, signal })
-          case 'template':
-            return eval(data.value)({ ctx, input, signal })
-          case 'message':
+          case 'yield':
             console.warn(data.value)
             return
-          case 'raw':
-            console.warn(data.value)
-            return
-          default:
-            console.warn(data)
+          case 'return':
+            result = data.value as Output
             return
         }
       },

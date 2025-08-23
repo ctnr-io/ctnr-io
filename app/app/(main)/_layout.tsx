@@ -9,11 +9,8 @@ import { router } from 'expo-router'
 export default function MainLayout() {
   const ctx = useExpoTrpcClientContext()
   const handleLogout = async () => {
-    console.log('yp;p')
     await logout({ ctx })
-    // router.replace('/login')
   }
-  console.log(ctx)
   if (!ctx.auth.session) {
     return <Redirect href='/login'  />
   }

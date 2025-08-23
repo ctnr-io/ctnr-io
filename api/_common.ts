@@ -46,19 +46,16 @@ export const Publish = z.string().transform((value) => {
 
 export type ServerRequest<Input> = { ctx: ServerContext; input: Input }
 
-export type ServerResponse<Input> = AsyncGenerator<
-  | string
-  | object
-  | ReturnType<typeof ts>
-  | ((args: { ctx: ClientContext; input: Input; signal?: AbortSignal }) => void),
-  void,
+export type ServerResponse<Output> = AsyncGenerator<
+  string,
+  Output,
   unknown
 >
 
 export type ClientRequest<Input> = { ctx: ClientContext; input: Input }
 
 export type ClientResponse<Output = void> = AsyncGenerator<
-  string | object,
+  string,
   Output,
   unknown
 >

@@ -35,13 +35,13 @@ export default async function* ({ ctx }: { ctx: AuthClientContext }): ClientResp
               try {
                 await openBrowser(oauthUrl)
               } catch (error) {
-                console.warn('Failed to open browser automatically:', error)
-                console.log(`Please manually open: ${oauthUrl}`)
+                yield 'Failed to open browser automatically:', error
+                yield `Please manually open: ${oauthUrl}`
               }
             } else {
-              console.log('Please open the following URL in your browser:')
-              console.log(`  ${oauthUrl}`)
-              console.log('After authenticating, return to this terminal to continue.')
+              yield 'Please open the following URL in your browser:'
+              yield `  ${oauthUrl}`
+              yield 'After authenticating, return to this terminal to continue.'
             }
 
             // Wait for the callback

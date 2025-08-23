@@ -328,9 +328,9 @@ export default function ContainersTableScreen({ data }: { data: ContainerData[] 
       description='Manage and monitor your application containers'
       icon={Container}
       primaryAction={{
-        label: 'Create Container',
+        label: 'Deploy Container',
         icon: Container,
-        onClick: () => console.log('Create container'),
+        onClick: () => console.log('Deploy container'),
       }}
       infoDescription='View and manage all your containers in one place. Start, stop, restart, and monitor your containers with real-time status updates. You can also view logs, attach to containers, and manage port forwarding.'
       data={data}

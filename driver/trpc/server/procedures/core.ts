@@ -6,38 +6,28 @@ import * as Attach from 'api/server/core/attach.ts'
 import * as Exec from 'api/server/core/exec.ts'
 import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
-import { ServerResponse } from '../../../../api/_common.ts'
+import { ServerResponse } from 'api/_common.ts'
 import { ServerContext } from 'ctx/mod.ts'
 
-export type SubscribeProcedureOutput = {
-  type: 'function'
+export type SubscribeProcedureOutput<Output> = {
+  type: 'yield'
   value: string
 } | {
-  type: 'template'
-  value: string
-} | {
-  type: 'message'
-  value: string
-} | {
-  type: 'raw'
-  value: object
+  type: 'return'
+  value: Output
 }
 
-function transformSubscribeProcedure<Input, Opts extends { ctx: ServerContext; input: Input }>(
-  procedure: (opts: Opts) => ServerResponse<Input>,
+function transformSubscribeProcedure<Input, Output, Opts extends { ctx: ServerContext; input: Input }>(
+  procedure: (opts: Opts) => ServerResponse<Output>,
 ) {
-  return async function* (opts: Opts): AsyncGenerator<SubscribeProcedureOutput, void, unknown> {
-    for await (const value of procedure(opts)) {
-      if (typeof value === 'function') {
-        yield { type: 'function', value: value.toString() }
-      } else if (value.constructor.name === 'TemplateClass') {
-        yield { type: 'template', value: value.toString() }
-      } else if (typeof value === 'string') {
-        yield { type: 'message', value: value }
-      } else {
-        yield { type: 'raw', value: value }
-      }
+  return async function* (opts: Opts): AsyncGenerator<SubscribeProcedureOutput<Output>, void, unknown> {
+     const gen = procedure(opts)
+    let result = await gen.next();
+    while (!result.done) {
+      yield { type: 'yield', value: result.value };
+      result = await gen.next();
     }
+    yield { type: 'return', value: result.value };
     await opts.ctx.defer.run()
   }
 }

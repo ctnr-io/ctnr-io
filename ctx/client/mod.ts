@@ -7,7 +7,7 @@ export async function createClientContext(opts: {
   auth: {
     storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
   }
-  stdio: StdioContext['stdio']
+  stdio?: StdioContext['stdio']
 }): Promise<ClientContext> {
   const signalContext = await createSignalClientContext()
   const authContext = await createAuthClientContext(opts.auth)

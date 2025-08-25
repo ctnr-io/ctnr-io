@@ -21,9 +21,11 @@ export type StdioContext = {
   }
 }
 
+type KubeCluster = 'eu' | 'eu-0' | 'eu-1' | 'eu-2'
+
 export type KubeContext = {
   kube: {
-    client: KubeClient
+    client: Record<KubeCluster, KubeClient>
     namespace: string
   }
 }

@@ -24,14 +24,14 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   const { name, interactive = false, terminal = false } = input
 
   // First, try to find the deployment
-  const deployment = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
+  const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
 
   let podName: string
   let containerName: string = name
 
   if (deployment) {
     // Find a running pod from the deployment
-    const pods = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPodList({
+    const pods = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPodList({
       labelSelector: `ctnr.io/name=${name}`,
     })
 
@@ -46,7 +46,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     containerName = runningPod.spec?.containers?.[0]?.name || name
   } else {
     // Fallback: try to find the pod directly (for backward compatibility)
-    const podResource = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPod(name).catch(() => null)
+    const podResource = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPod(name).catch(() => null)
     if (!podResource) {
       yield `Container ${name} not found.`
       return
@@ -61,7 +61,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     containerName = name
   }
 
-  const tunnel = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).tunnelPodAttach(podName, {
+  const tunnel = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).tunnelPodAttach(podName, {
     stdin: interactive,
     tty: terminal,
     stdout: true,

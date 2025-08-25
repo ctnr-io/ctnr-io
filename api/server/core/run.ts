@@ -205,7 +205,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
           // topologySpreadConstraints: [
           //   {
           //     maxSkew: 1,
-          //     topologyKey: "ctx.kube.client.io/hostname",
+          //     topologyKey: "ctx.kube.client['eu'].io/hostname",
           //     whenUnsatisfiable: "DoNotSchedule",
           //     labelSelector: {
           //       matchLabels: {
@@ -233,7 +233,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   }
 
   // Check if the deployment already exists
-  let deployment = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
+  let deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
   if (deployment) {
     if (force) {
       yield `Container ${name} already exists. Forcing recreation...`
@@ -241,12 +241,12 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       await Promise.all([
         // Wait for deployment to be fully deleted
         waitForDeploymentDeletion(ctx, name),
-        ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
+        ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
           abortSignal: ctx.signal,
           gracePeriodSeconds: 0, // Force delete immediately
           propagationPolicy: 'Foreground', // Ensure all resources are cleaned up
         }),
-        ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).deletePodList({
+        ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).deletePodList({
           labelSelector: `ctnr.io/name=${name}`,
           abortSignal: ctx.signal,
           gracePeriodSeconds: 0, // Force delete immediately
@@ -260,7 +260,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
 
   // Create the deployment
   yield `Container ${name} created. Waiting for it to be ready...`
-  await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).createDeployment(deploymentResource, {
+  await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).createDeployment(deploymentResource, {
     abortSignal: ctx.signal,
   })
 
@@ -280,7 +280,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   // Get the first pod for interactive/terminal operations
   let pod: Pod | null = null
   if (interactive || terminal || !detach) {
-    const pods = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPodList({
+    const pods = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPodList({
       labelSelector: `ctnr.io/name=${name}`,
     })
     pod = pods.items.find((p) => p.status?.phase === 'Running') || null
@@ -326,7 +326,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       },
     })
   } else {
-    const logs = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
+    const logs = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
       container: name,
       abortSignal: ctx.signal,
     })
@@ -348,7 +348,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
 //   // TODO: Implement exponential backoff for failed watch attempts
 //   // TODO: Add circuit breaker pattern for resilience
 
-//   const podWatcher = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).watchPodList({
+//   const podWatcher = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
 //     labelSelector: `ctnr.io/name=${name}`,
 //     abortSignal: ctx.signal,
 //   })
@@ -371,7 +371,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
 //   name: string,
 //   predicate: (pod: Pod) => boolean | Promise<boolean>,
 // ): Promise<Pod> {
-//   const podWatcher = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).watchPodList({
+//   const podWatcher = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
 //     labelSelector: `ctnr.io/name=${name}`,
 //     abortSignal: ctx.signal,
 //   })
@@ -393,7 +393,7 @@ async function waitForDeployment(
   name: string,
   predicate: (deployment: Deployment) => boolean | Promise<boolean>,
 ): Promise<Deployment> {
-  const deploymentWatcher = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
+  const deploymentWatcher = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: ctx.signal,
   })
@@ -411,7 +411,7 @@ async function waitForDeployment(
 }
 
 async function waitForDeploymentDeletion(ctx: ServerContext, name: string): Promise<void> {
-  const deploymentWatcher = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
+  const deploymentWatcher = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: ctx.signal,
   })

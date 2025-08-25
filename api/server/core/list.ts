@@ -13,6 +13,8 @@ export const Meta = {
 
 export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
+  name: z.string().optional(), // Filter by specific container name
+  cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2']).optional(), // Select specific cluster
 })
 
 export type Input = z.infer<typeof Input>
@@ -45,25 +47,59 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
 }[Type]
 
 export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Output<NonNullable<typeof input['output']>>> {
-  const { output = 'raw' } = input
+  const { output = 'raw', name, cluster = 'eu' } = input
 
-  // List deployments with label ctnr.io/name
-  const deployments = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).getDeploymentList({
-    labelSelector: 'ctnr.io/name',
+  // Use the specified cluster or default to 'eu'
+  const kubeClient = ctx.kube.client[cluster]
+
+  // Build label selector - if name is provided, filter by specific name
+  let labelSelector = 'ctnr.io/name'
+  if (name) {
+    labelSelector = `ctnr.io/name=${name}`
+  }
+
+  // List deployments with label ctnr.io/name (optionally filtered by name)
+  const deployments = await kubeClient.AppsV1.namespace(ctx.kube.namespace).getDeploymentList({
+    labelSelector,
   })
 
   // Get metrics for all pods in the namespace
   let podMetrics: any[] = []
-  try {
-    const metricsResponse = await ctx.kube.client.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
-    podMetrics = metricsResponse.items || []
-  } catch (error) {
-    console.warn('Failed to fetch pod metrics:', error)
-    // Continue without metrics
+  if (cluster === 'eu') {
+    // For abstract 'eu' cluster, fetch metrics from all concrete clusters
+    const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
+    
+    for (const concreteCluster of concreteClusters) {
+      try {
+        const clusterClient = ctx.kube.client[concreteCluster]
+        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
+        const clusterMetrics = metricsResponse.items || []
+        
+        // Add cluster information to each metric for identification
+        const enrichedMetrics = clusterMetrics.map((metric: any) => ({
+          ...metric,
+          _cluster: concreteCluster
+        }))
+        
+        podMetrics.push(...enrichedMetrics)
+      } catch (error) {
+        console.warn(`Failed to fetch pod metrics from cluster ${concreteCluster}:`, error)
+        // Continue with other clusters
+      }
+    }
+  } else {
+    // For specific clusters, fetch metrics only from that cluster
+    try {
+      const metricsResponse = await kubeClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
+      podMetrics = metricsResponse.items || []
+    } catch (error) {
+      console.warn(`Failed to fetch pod metrics from cluster ${cluster}:`, error)
+      // Continue without metrics
+    }
   }
 
   // Get all pods for replica instances information
-  const allPods = await ctx.kube.client.CoreV1.namespace(ctx.kube.namespace).getPodList({
+  const allPods = await kubeClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
     labelSelector: 'ctnr.io/name',
   })
 
@@ -71,14 +107,14 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   let httpRoutes: any[] = []
   let ingressRoutes: any[] = []
   try {
-    const httpRoutesResponse = await ctx.kube.client.GatewayNetworkingV1(ctx.kube.namespace).listHTTPRoutes() as any
+    const httpRoutesResponse = await kubeClient.GatewayNetworkingV1(ctx.kube.namespace).listHTTPRoutes() as any
     httpRoutes = httpRoutesResponse?.items || []
   } catch (error) {
     console.warn('Failed to fetch HTTP routes:', error)
   }
 
   try {
-    const ingressRoutesResponse = await ctx.kube.client.TraefikV1Alpha1(ctx.kube.namespace).listIngressRoutes() as any
+    const ingressRoutesResponse = await kubeClient.TraefikV1Alpha1(ctx.kube.namespace).listIngressRoutes() as any
     ingressRoutes = ingressRoutesResponse?.items || []
   } catch (error) {
     console.warn('Failed to fetch Ingress routes:', error)

@@ -13,6 +13,8 @@ interface ContainerData {
   status: 'running' | 'stopped' | 'restarting'
   created: string
   ports: string[]
+  cpu: string
+  memory: string
   replicas: {
     max: number
     min: number
@@ -124,12 +126,12 @@ function formatDate(dateString: string) {
   })
 }
 
-export default function ContainersTableScreen({
-  data,
-  isLoading = false,
-}: {
+export default function ContainersTableScreen({ 
+  data, 
+  isLoading = false 
+}: { 
   data: ContainerData[]
-  isLoading?: boolean
+  isLoading?: boolean 
 }) {
   const router = useRouter()
 
@@ -196,6 +198,16 @@ export default function ContainersTableScreen({
       key: 'ports',
       label: 'Ports',
       render: (value: string[]) => value.length > 0 ? value.join(', ') : '-',
+      className: 'font-mono text-sm',
+    },
+    {
+      key: 'cpu',
+      label: 'CPU',
+      className: 'font-mono text-sm',
+    },
+    {
+      key: 'memory',
+      label: 'Memory',
       className: 'font-mono text-sm',
     },
     {
@@ -336,7 +348,7 @@ export default function ContainersTableScreen({
       searchPlaceholder='Search containers by name, image, status, or clusters...'
       searchKeys={['name', 'image', 'status', 'clusters']}
       columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'clusters', 'ports']}
+      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'ports', 'cpu', 'memory']}
       emptyMessage='No containers found. Create your first container to get started.'
       loading={isLoading}
     />

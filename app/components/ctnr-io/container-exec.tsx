@@ -6,14 +6,11 @@ import { Copy, Send, Terminal, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 interface ContainerInstance {
-  id: string
   name: string
   status: string
-  node: string
 }
 
 interface ContainerExecProps {
-  containerId: string
   containerName: string
   replicas?: ContainerInstance[]
 }
@@ -25,8 +22,8 @@ interface TerminalLine {
   timestamp: Date
 }
 
-export function ContainerExec({ containerId, containerName, replicas }: ContainerExecProps) {
-  const [selectedReplica, setSelectedReplica] = useState<string>(replicas?.[0]?.id || containerId)
+export function ContainerExec({ containerName, replicas }: ContainerExecProps) {
+  const [selectedReplica, setSelectedReplica] = useState<string>(replicas?.[0]?.name!)
   const [command, setCommand] = useState('')
   const [history, setHistory] = useState<TerminalLine[]>([
     {
@@ -72,7 +69,7 @@ export function ContainerExec({ containerId, containerName, replicas }: Containe
 
   const getSelectedReplicaName = () => {
     if (!replicas) return containerName
-    const replica = replicas.find((r) => r.id === selectedReplica)
+    const replica = replicas.find((r) => r.name === selectedReplica)
     return replica?.name || containerName
   }
 
@@ -280,10 +277,10 @@ http {
               {replicas.map((replica) => (
                 <button
                   type='button'
-                  key={replica.id}
-                  onClick={() => setSelectedReplica(replica.id)}
+                  key={replica.name}
+                  onClick={() => setSelectedReplica(replica.name)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedReplica === replica.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                    selectedReplica === replica.name ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
                   <div
@@ -297,7 +294,6 @@ http {
                   >
                   </div>
                   <span>{replica.name}</span>
-                  <span className='text-xs opacity-70'>({replica.node})</span>
                 </button>
               ))}
             </div>

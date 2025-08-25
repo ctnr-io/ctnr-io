@@ -1,6 +1,7 @@
 import 'lib/utils.ts'
 import { createTRPCClient, createWSClient, TRPCClient, wsLink } from '@trpc/client'
 import { TRPCServerRouter } from 'driver/trpc/server/router.ts'
+import SuperJSON from 'superjson'
 
 export async function createTRPCWebSocketClient({
   url,
@@ -52,6 +53,7 @@ export async function createTRPCWebSocketClient({
   const trpcClient = createTRPCClient<TRPCServerRouter>({
     links: [wsLink({
       client: wsClient,
+      transformer: SuperJSON,
     })],
   }) as TRPCClient<TRPCServerRouter>
   return {

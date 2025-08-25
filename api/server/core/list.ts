@@ -32,10 +32,22 @@ export type Container = {
     max: number
     min: number
     current: number
-    instances: any[]
+    instances: {
+      id: string
+      name: string
+      status: string
+      createdAt: Date
+      cpu: string
+      memory: string
+    }[]
   }
   routes: string[]
   clusters: string[]
+  restartPolicy: string
+  command: string[]
+  workingDir: string
+  environment: Record<string, string>
+  volumes: string[]
 }
 
 type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
@@ -99,9 +111,43 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   }
 
   // Get all pods for replica instances information
-  const allPods = await kubeClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
-    labelSelector: 'ctnr.io/name',
-  })
+  let allPods: any[] = []
+  if (cluster === 'eu') {
+    // For abstract 'eu' cluster, fetch pods from all concrete clusters
+    const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
+    
+    for (const concreteCluster of concreteClusters) {
+      try {
+        const clusterClient = ctx.kube.client[concreteCluster]
+        const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
+          labelSelector: 'ctnr.io/name',
+        })
+        const clusterPods = podsResponse.items || []
+        
+        // Add cluster information to each pod for identification
+        const enrichedPods = clusterPods.map((pod: any) => ({
+          ...pod,
+          _cluster: concreteCluster
+        }))
+        
+        allPods.push(...enrichedPods)
+      } catch (error) {
+        console.warn(`Failed to fetch pods from cluster ${concreteCluster}:`, error)
+        // Continue with other clusters
+      }
+    }
+  } else {
+    // For specific clusters, fetch pods only from that cluster
+    try {
+      const podsResponse = await kubeClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
+        labelSelector: 'ctnr.io/name',
+      })
+      allPods = podsResponse.items || []
+    } catch (error) {
+      console.warn(`Failed to fetch pods from cluster ${cluster}:`, error)
+      allPods = []
+    }
+  }
 
   // Get all routes for containers
   let httpRoutes: any[] = []
@@ -128,7 +174,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     const status = deployment.status || {}
 
     // Extract replica information from deployment spec and status
-    const replicaInfo = await extractReplicaInfoWithInstances(deployment, allPods.items, podMetrics)
+    const replicaInfo = await extractReplicaInfoWithInstances(deployment, allPods, podMetrics)
 
     // Get real resource usage from metrics API
     const resources = await extractResourceUsageFromMetrics(deployment, podMetrics, annotations)
@@ -154,6 +200,11 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       replicas: replicaInfo,
       routes: routes,
       clusters: clusters,
+      restartPolicy: (spec as any).template?.spec?.restartPolicy || 'Always',
+      command: container?.command || [],
+      workingDir: container?.workingDir || '/',
+      environment: extractEnvironmentVariables(container?.env || []),
+      volumes: extractVolumeMounts(container?.volumeMounts || []),
     }
   }))
   
@@ -264,7 +315,6 @@ function extractReplicaInfoWithInstances(
   const instances = deploymentPods.map((pod) => {
     const podName = pod.metadata?.name || ''
     const podStatus = pod.status?.phase || 'Unknown'
-    const nodeName = pod.spec?.nodeName || 'Unknown'
     const createdAt = pod.metadata?.creationTimestamp || ''
 
     // Find metrics for this specific pod
@@ -310,7 +360,6 @@ function extractReplicaInfoWithInstances(
       id: pod.metadata?.uid || '',
       name: podName,
       status: podStatus.toLowerCase(),
-      node: nodeName,
       created: createdAt,
       cpu: cpu,
       memory: memory,
@@ -468,6 +517,48 @@ function extractClustersFromLabels(labels: any): string[] {
   }
 
   return clusters
+}
+
+function extractEnvironmentVariables(envVars: any[]): Record<string, string> {
+  const environment: Record<string, string> = {}
+  
+  if (!envVars || envVars.length === 0) return environment
+  
+  for (const envVar of envVars) {
+    if (envVar.name && envVar.value !== undefined) {
+      environment[envVar.name] = envVar.value
+    } else if (envVar.name && envVar.valueFrom) {
+      // Handle valueFrom cases (secrets, configMaps, etc.)
+      if (envVar.valueFrom.secretKeyRef) {
+        environment[envVar.name] = `<secret:${envVar.valueFrom.secretKeyRef.name}/${envVar.valueFrom.secretKeyRef.key}>`
+      } else if (envVar.valueFrom.configMapKeyRef) {
+        environment[envVar.name] = `<configMap:${envVar.valueFrom.configMapKeyRef.name}/${envVar.valueFrom.configMapKeyRef.key}>`
+      } else if (envVar.valueFrom.fieldRef) {
+        environment[envVar.name] = `<field:${envVar.valueFrom.fieldRef.fieldPath}>`
+      } else if (envVar.valueFrom.resourceFieldRef) {
+        environment[envVar.name] = `<resource:${envVar.valueFrom.resourceFieldRef.resource}>`
+      } else {
+        environment[envVar.name] = '<valueFrom>'
+      }
+    }
+  }
+  
+  return environment
+}
+
+function extractVolumeMounts(volumeMounts: any[]): string[] {
+  const volumes: string[] = []
+  
+  if (!volumeMounts || volumeMounts.length === 0) return volumes
+  
+  for (const mount of volumeMounts) {
+    if (mount.name && mount.mountPath) {
+      const readOnly = mount.readOnly ? ':ro' : ''
+      volumes.push(`${mount.name}:${mount.mountPath}${readOnly}`)
+    }
+  }
+  
+  return volumes
 }
 
 function formatAge(createdAt?: Date): string {

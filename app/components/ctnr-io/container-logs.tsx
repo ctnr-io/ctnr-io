@@ -5,20 +5,17 @@ import { Download, Pause, Play, RotateCcw, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 interface ContainerInstance {
-  id: string
   name: string
   status: string
-  node: string
 }
 
 interface ContainerLogsProps {
-  containerId: string
   containerName: string
   replicas?: ContainerInstance[]
 }
 
-export function ContainerLogs({ containerId, containerName, replicas }: ContainerLogsProps) {
-  const [selectedReplica, setSelectedReplica] = useState<string>(replicas?.[0]?.id || containerId)
+export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
+  const [selectedReplica, setSelectedReplica] = useState<string>(replicas?.[0]?.name!)
   const [logs, setLogs] = useState<string[]>([
     '[2024-01-15 10:30:15] Starting nginx: nginx.',
     '[2024-01-15 10:30:15] nginx: [warn] the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2',
@@ -49,7 +46,7 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
 
   const getSelectedReplicaName = () => {
     if (!replicas) return containerName
-    const replica = replicas.find((r) => r.id === selectedReplica)
+    const replica = replicas.find((r) => r.name === selectedReplica)
     return replica?.name || containerName
   }
 
@@ -139,10 +136,10 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
               {replicas.map((replica) => (
                 <button
                   type='button'
-                  key={replica.id}
-                  onClick={() => setSelectedReplica(replica.id)}
+                  key={replica.name}
+                  onClick={() => setSelectedReplica(replica.name)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedReplica === replica.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                    selectedReplica === replica.name ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
                   <div
@@ -156,7 +153,6 @@ export function ContainerLogs({ containerId, containerName, replicas }: Containe
                   >
                   </div>
                   <span>{replica.name}</span>
-                  <span className='text-xs opacity-70'>({replica.node})</span>
                 </button>
               ))}
             </div>

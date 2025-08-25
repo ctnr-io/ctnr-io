@@ -2,8 +2,9 @@
 
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Separator } from 'app/components/shadcn/ui/separator.tsx'
+import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
-import { LucideIcon } from 'lucide-react'
+import { LucideIcon, LucideProps } from 'lucide-react'
 import { ReactNode } from 'react'
 
 export interface ItemField {
@@ -36,7 +37,7 @@ export interface ItemSection {
 export interface ItemTab {
   id: string
   label: string
-  icon?: LucideIcon
+  icon?: (props: LucideProps) => ReactNode
   content: ReactNode
 }
 
@@ -44,7 +45,7 @@ export interface DataItemScreenProps {
   // Header props
   title: string
   description: string
-  icon: LucideIcon
+  icon: (props: LucideProps) => ReactNode
 
   // Status/Badge
   status?: {
@@ -67,7 +68,7 @@ export interface DataItemScreenProps {
   children?: ReactNode
 
   // Loading and error states
-  loading?: boolean
+  isLoading?: boolean
   error?: string
   notFound?: boolean
   notFoundMessage?: string
@@ -92,7 +93,7 @@ export function DataItemScreen({
   tabs,
   defaultTab,
   children,
-  loading = false,
+  isLoading = false,
   error,
   notFound = false,
   notFoundMessage = 'Item not found',
@@ -123,11 +124,91 @@ export function DataItemScreen({
     return String(field.value)
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className='flex flex-col gap-4 p-4 md:gap-6 md:p-6'>
-        <div className='flex items-center justify-center h-64'>
-          <div className='text-muted-foreground'>Loading...</div>
+        {/* Header Section Skeleton */}
+        <div className=''>
+          <div className='flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between'>
+            <div className='flex items-start gap-4'>
+              <div className='flex-shrink-0 p-3 bg-primary/10 rounded-xl'>
+                <Skeleton className='h-8 w-8' />
+              </div>
+              <div className='flex-1 min-w-0'>
+                <div className='flex items-center gap-3 mb-2 flex-wrap'>
+                  <Skeleton className='h-9 w-64' />
+                  <Skeleton className='h-6 w-20 rounded-full' />
+                </div>
+                <Skeleton className='h-5 w-96 max-w-full' />
+              </div>
+            </div>
+
+            {/* Actions Skeleton */}
+            <div className='flex flex-col sm:flex-row gap-3'>
+              <div className='flex flex-wrap gap-2 md:justify-end'>
+                <Skeleton className='h-10 w-10' />
+                <Skeleton className='h-10 w-10' />
+              </div>
+              <Skeleton className='h-10 w-32' />
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className='w-full'>
+          <div className='flex w-full gap-2 mb-6'>
+            <Skeleton className='h-10 w-24' />
+            <Skeleton className='h-10 w-28' />
+            <Skeleton className='h-10 w-32' />
+          </div>
+
+          {/* Content Sections Skeleton */}
+          <div className='space-y-6'>
+            {[1, 2, 3].map((sectionIndex) => (
+              <div
+                key={sectionIndex}
+                className='bg-card border rounded-xl overflow-hidden'
+              >
+                <div className='bg-gradient-to-r from-muted/30 to-muted/10 p-6 border-b'>
+                  <Skeleton className='h-6 w-48 mb-2' />
+                  <Skeleton className='h-4 w-80 max-w-full' />
+                </div>
+
+                <div className='p-6'>
+                  {/* Desktop Layout Skeleton */}
+                  <div className='hidden md:block'>
+                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                      {[1, 2, 3, 4].map((fieldIndex) => (
+                        <div key={fieldIndex} className='space-y-2'>
+                          <Skeleton className='h-4 w-24' />
+                          <div className='flex items-start gap-3 bg-muted/20 rounded-lg border'>
+                            <div className='flex-1 min-w-0 p-3'>
+                              <Skeleton className='h-4' style={{ width: `${Math.random() * 40 + 60}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Mobile Layout Skeleton */}
+                  <div className='block md:hidden space-y-4'>
+                    {[1, 2, 3].map((fieldIndex) => (
+                      <div key={fieldIndex} className='space-y-2'>
+                        <div className='flex items-center justify-between'>
+                          <Skeleton className='h-4 w-24' />
+                        </div>
+                        <div className='p-3 bg-muted/20 rounded-lg border'>
+                          <Skeleton className='h-4' style={{ width: `${Math.random() * 40 + 60}%` }} />
+                        </div>
+                        {fieldIndex < 3 && <div className='my-4 h-px bg-border' />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )

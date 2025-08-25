@@ -8,5 +8,6 @@ export default function ContainersScreen() {
   const { data, isLoading } = useQuery(trpc.core.listQuery.queryOptions({
     output: 'raw'
   }))
+  
   return <ContainersTableScreen data={(data as any) ?? []} isLoading={isLoading} />
 }

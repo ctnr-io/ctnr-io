@@ -60,7 +60,7 @@ function transformGeneratorToMutation<Input, Opts extends { ctx: ClientContext; 
   }
 }
 
-export const cliRouter = trpc.router({
+export const clientRouter = trpc.router({
   // Client authentication procedures
   login: trpc.procedure.mutation(transformGeneratorToMutation(login)),
   logout: trpc.procedure.mutation(logout),
@@ -83,7 +83,7 @@ export const cliRouter = trpc.router({
   ),
   list: trpc.procedure.meta(List.Meta).input(List.Input.extend({
     output: List.Input.shape.output.unwrap().default('wide').optional(),
-  })).mutation(({ input, signal, ctx }) =>
+  })).query(({ input, signal, ctx }) =>
     ctx.connect(
       (server) => transformSubscribeResolver(server.core.list.subscribe, { input, signal, ctx }),
     )
@@ -105,12 +105,9 @@ export const cliRouter = trpc.router({
   ),
   logs: trpc.procedure.meta(Logs.Meta).input(Logs.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      (server) =>
-        server.core.logs.mutate(input, {
-          signal,
-        }),
+      (server) => transformSubscribeResolver(server.core.logs.subscribe, { ctx, input, signal }),
     )
   ),
 })
 
-export type CliRouter = typeof cliRouter
+export type clientRouter = typeof clientRouter

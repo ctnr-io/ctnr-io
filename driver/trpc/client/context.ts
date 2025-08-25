@@ -2,7 +2,7 @@ import { TRPCClient } from '@trpc/client'
 import { createClientContext } from 'ctx/client/mod.ts'
 import { bypassWebSocketMessageHandler } from 'lib/websocket.ts'
 import { ClientContext } from 'ctx/mod.ts'
-import type { ServerRouter } from '../server/router.ts'
+import type { TRPCServerRouter } from 'driver/trpc/server/router.ts'
 import { createTRPCWebSocketClient } from './mod.ts'
 
 export type TrpcClientContext = ClientContext & {
@@ -11,7 +11,7 @@ export type TrpcClientContext = ClientContext & {
    * This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
    */
   connect: <R>(
-    callback: (server: TRPCClient<ServerRouter>) => Promise<R>,
+    callback: (server: TRPCClient<TRPCServerRouter>) => Promise<R>,
   ) => Promise<R>
 }
 

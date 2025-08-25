@@ -32,6 +32,20 @@ function transformSubscribeProcedure<Input, Output, Opts extends { ctx: ServerCo
   }
 }
 
+function transformQueryProcedure<Input, Output, Opts extends { ctx: ServerContext; input: Input }>(
+  procedure: (opts: Opts) => ServerResponse<Output>,
+) {
+  return async function (opts: Opts): Promise<Output> {
+     const gen = procedure(opts)
+    let result = await gen.next();
+    while (!result.done) {
+      result = await gen.next();
+    }
+    await opts.ctx.defer.run()
+    return result.value
+  }
+}
+
 export const run = trpc.procedure
   .meta(Run.Meta)
   .input(Run.Input)
@@ -41,6 +55,11 @@ export const list = trpc.procedure
   .meta(List.Meta)
   .input(List.Input)
   .subscription(transformSubscribeProcedure(List.default))
+
+export const listQuery = trpc.procedure
+  .meta(List.Meta)
+  .input(List.Input)
+  .query(transformQueryProcedure(List.default))
 
 export const attach = trpc.procedure
   .meta(Attach.Meta)
@@ -60,4 +79,4 @@ export const route = trpc.procedure
 export const logs = trpc.procedure
   .meta(Logs.Meta)
   .input(Logs.Input)
-  .mutation(Logs.default)
+  .subscription(transformSubscribeProcedure(Logs.default))

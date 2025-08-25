@@ -4,7 +4,7 @@ import { ContainerExec } from 'app/components/ctnr-io/container-exec.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { ContainerLogs } from 'app/components/ctnr-io/container-logs.tsx'
 import { DataItemScreen, ItemAction, ItemSection, ItemTab } from 'app/components/ctnr-io/data-item-screen.tsx'
-import { Container, Copy, FileText, Info, Play, RotateCcw, Settings, Square, Terminal, Trash2 } from 'lucide-react'
+import { Copy, FileText, Info, Play, RotateCcw, Settings, Square, Terminal, Trash2 } from 'lucide-react'
 
 // Example container detail data
 const containerData = {

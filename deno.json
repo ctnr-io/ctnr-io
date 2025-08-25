@@ -51,10 +51,10 @@
     "cli/": "./cli/",
     "driver/": "./driver/",
     "lib/": "./lib/",
-    "ctx/": "./ctx/"
+    "ctx/": "./ctx/",
+    "@cloudydeno/spdy-transport": "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/mod.ts"
   },
   "compilerOptions": {
-    "jsx": "react",
     "strictNullChecks": true,
     "strictFunctionTypes": true
   },

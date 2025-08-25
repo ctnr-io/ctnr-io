@@ -1,4 +1,4 @@
-import { Connection } from 'https://deno.land/x/spdy_transport@v0.1/mod.ts'
+import { Connection } from '@cloudydeno/spdy-transport'
 
 import type { JSONValue, KubernetesTunnel, RequestOptions } from '@cloudydeno/kubernetes-client/lib/contract.ts'
 import { KubeConfigRestClient } from '@cloudydeno/kubernetes-client/transports/via-kubeconfig.ts'

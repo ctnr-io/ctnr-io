@@ -1,13 +1,13 @@
 import 'lib/utils.ts'
 import { createCli } from 'trpc-cli'
 import { createTrpcClientContext } from '../context.ts'
-import { cliRouter } from '../router.ts'
+import { clientRouter } from '../router.ts'
 import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
 import { authStorage } from './storage.ts'
 
 try {
   const clientCli = createCli({
-    router: cliRouter,
+    router: clientRouter,
     name: 'ctnr',
     version: process.env.CTNR_VERSION,
     description: 'ctnr.io Remote CLI',

@@ -3,6 +3,7 @@
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
+import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
 import { Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
 import { ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
@@ -234,62 +235,75 @@ export function DataTableScreen<T = any>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredData.map((item, index) => (
-              <TableRow
-                key={index}
-                className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
-                onClick={() => rowClickable && onRowClick && onRowClick(item)}
-              >
-                {visibleColumnsArray.map((column) => {
-                  const value = item[column.key as keyof T]
-                  const displayValue = column.render ? column.render(value, item) : String(value || '')
-
-                  return (
+            {loading ? (
+              // Show skeleton rows when loading
+              [...Array(5)].map((_, index) => (
+                <TableRow key={`skeleton-${index}`}>
+                  {visibleColumnsArray.map((column) => (
                     <TableCell key={column.key} className={column.className}>
-                      {displayValue}
+                      <Skeleton className='h-4' style={{ width: `${Math.random() * 40 + 60}%` }} />
                     </TableCell>
-                  )
-                })}
-                {actions.length > 0 && (
-                  <TableCell className='text-right'>
-                    <div className='flex items-center justify-end gap-1'>
-                      {actions
-                        .filter((action) => !action.condition || action.condition(item))
-                        .map((action, actionIndex) => (
-                          <Button
-                            key={actionIndex}
-                            variant={action.variant || 'ghost'}
-                            size='sm'
-                            onClick={(e) => {
-                              e.stopPropagation() // Prevent row click when clicking action buttons
-                              action.onClick(item)
-                            }}
-                            className={action.className}
-                            title={action.label}
-                          >
-                            <action.icon className='h-4 w-4' />
-                          </Button>
-                        ))}
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
+                  ))}
+                  {actions.length > 0 && (
+                    <TableCell className='text-right'>
+                      <div className='flex items-center justify-end gap-1'>
+                        <Skeleton className='h-8 w-8' />
+                        <Skeleton className='h-8 w-8' />
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            ) : (
+              // Show actual data when not loading
+              filteredData.map((item, index) => (
+                <TableRow
+                  key={index}
+                  className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                  onClick={() => rowClickable && onRowClick && onRowClick(item)}
+                >
+                  {visibleColumnsArray.map((column) => {
+                    const value = item[column.key as keyof T]
+                    const displayValue = column.render ? column.render(value, item) : String(value || '')
+
+                    return (
+                      <TableCell key={column.key} className={column.className}>
+                        {displayValue}
+                      </TableCell>
+                    )
+                  })}
+                  {actions.length > 0 && (
+                    <TableCell className='text-right'>
+                      <div className='flex items-center justify-end gap-1'>
+                        {actions
+                          .filter((action) => !action.condition || action.condition(item))
+                          .map((action, actionIndex) => (
+                            <Button
+                              key={actionIndex}
+                              variant={action.variant || 'ghost'}
+                              size='sm'
+                              onClick={(e) => {
+                                e.stopPropagation() // Prevent row click when clicking action buttons
+                                action.onClick(item)
+                              }}
+                              className={action.className}
+                              title={action.label}
+                            >
+                              <action.icon className='h-4 w-4' />
+                            </Button>
+                          ))}
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
     )
   }
 
-  if (loading) {
-    return (
-      <div className='flex flex-col gap-4 p-4 md:gap-6 md:p-6'>
-        <div className='flex items-center justify-center h-64'>
-          <div className='text-muted-foreground'>Loading...</div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className='flex flex-col justify-between h-full md:h-auto'>
@@ -422,23 +436,46 @@ export function DataTableScreen<T = any>({
             </div>
           )}
 
-          {filteredData.length === 0
-            ? (
-              <div className='p-8 text-center text-muted-foreground'>
-                {searchQuery ? `No results found for "${searchQuery}"` : emptyMessage}
+          {loading ? (
+            <>
+              {/* Mobile Card View - Loading */}
+              <div className='block md:hidden'>
+                {[...Array(5)].map((_, index) => (
+                  <div key={`mobile-skeleton-${index}`} className='border-b last:border-b-0 p-2'>
+                    <div className='flex items-start justify-between'>
+                      <div className='flex items-center gap-3 flex-1 min-w-0'>
+                        <div className='flex-shrink-0 p-2 bg-muted rounded-lg'>
+                          <Skeleton className='h-4 w-4' />
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <Skeleton className='h-4 w-32 mb-2' />
+                          <Skeleton className='h-3 w-48' />
+                        </div>
+                      </div>
+                      <Skeleton className='h-6 w-16 rounded-full flex-shrink-0 ml-3' />
+                    </div>
+                  </div>
+                ))}
               </div>
-            )
-            : (
-              <>
-                {/* Mobile Card View */}
-                <div className='block md:hidden'>
-                  {filteredData.map((item, index) => renderMobileCard(item, index))}
-                </div>
 
-                {/* Desktop Table View */}
-                {renderDesktopTable()}
-              </>
-            )}
+              {/* Desktop Table View - Loading */}
+              {renderDesktopTable()}
+            </>
+          ) : filteredData.length === 0 ? (
+            <div className='p-8 text-center text-muted-foreground'>
+              {searchQuery ? `No results found for "${searchQuery}"` : emptyMessage}
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className='block md:hidden'>
+                {filteredData.map((item, index) => renderMobileCard(item, index))}
+              </div>
+
+              {/* Desktop Table View */}
+              {renderDesktopTable()}
+            </>
+          )}
         </div>
       </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}

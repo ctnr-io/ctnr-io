@@ -6,12 +6,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as SplashScreen from 'expo-splash-screen'
 import { createTRPCContext } from '@trpc/tanstack-react-query'
 import { createTrpcClientContext, TrpcClientContext } from 'driver/trpc/client/context.ts'
-import { ServerRouter } from '../../server/router.ts'
+import type { TRPCServerRouter } from 'driver/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
 
 SplashScreen.preventAutoHideAsync()
 
-export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<ServerRouter>()
+export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<TRPCServerRouter>()
 
 function makeQueryClient() {
   return new QueryClient({
@@ -53,7 +53,7 @@ export function useExpoTrpcClientContext(): TrpcClientContext {
 }
 
 export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
-  const [state, setState] = useState<{ ctx: TrpcClientContext; server: TRPCClient<ServerRouter> | null } | null>(null)
+  const [state, setState] = useState<{ ctx: TrpcClientContext; server: TRPCClient<TRPCServerRouter> | null } | null>(null)
   const queryClient = getQueryClient()
 
   const updateState = async () => {

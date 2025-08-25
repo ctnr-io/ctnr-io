@@ -1,12 +1,12 @@
 import ContainersTableScreen from 'app/components/ctnr-io/containers-table-screen.tsx'
-import { useExpoTrpcClientContext, useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useQuery } from '@tanstack/react-query'
 
 export default function ContainersScreen() {
-  const ctx = useExpoTrpcClientContext()
-  console.log({ ctx })
-  ctx.connect((server) => {
-    // Do something with the server
-    server.core.list.subscribe()
-  })
-  return <ContainersTableScreen data={ []} />
+  const trpc = useTRPC()
+
+  const { data, isLoading } = useQuery(trpc.core.listQuery.queryOptions({
+    output: 'raw'
+  }))
+  return <ContainersTableScreen data={(data as any) ?? []} isLoading={isLoading} />
 }

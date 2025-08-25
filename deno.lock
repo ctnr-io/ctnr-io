@@ -8,6 +8,7 @@
     "jsr:@opensrc/short-uuid@1": "1.0.0",
     "jsr:@std/assert@^1.0.12": "1.0.14",
     "jsr:@std/assert@^1.0.13": "1.0.14",
+    "jsr:@std/async@^1.0.13": "1.0.14",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/crypto@^1.0.5": "1.0.5",
@@ -32,27 +33,27 @@
     "jsr:@std/yaml@^1.0.8": "1.0.9",
     "jsr:@tmpl/core@~0.6.3": "0.6.3",
     "jsr:@tmpl/gen@0.6": "0.6.3",
-    "npm:@react-native-async-storage/async-storage@^2.2.0": "2.2.0_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10",
-    "npm:@supabase/supabase-js@^2.45.4": "2.55.0",
+    "npm:@react-native-async-storage/async-storage@^2.2.0": "2.2.0_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11_react@19.1.1",
+    "npm:@supabase/supabase-js@^2.45.4": "2.56.0",
     "npm:@tanstack/react-query@^5.85.5": "5.85.5_react@19.1.1",
     "npm:@trpc/client@^11.5.0": "11.5.0_@trpc+server@11.5.0__typescript@5.9.2_typescript@5.9.2",
     "npm:@trpc/server@^11.5.0": "11.5.0_typescript@5.9.2",
     "npm:@trpc/tanstack-react-query@^11.5.0": "11.5.0_@tanstack+react-query@5.85.5__react@19.1.1_@trpc+client@11.5.0__@trpc+server@11.5.0___typescript@5.9.2__typescript@5.9.2_@trpc+server@11.5.0__typescript@5.9.2_react@19.1.1_react-dom@19.1.1__react@19.1.1_typescript@5.9.2",
     "npm:@types/ip6addr@~0.2.6": "0.2.6",
     "npm:@types/ip@^1.1.3": "1.1.3",
-    "npm:@types/react-native@0.73": "0.73.0_@types+react@19.1.10",
-    "npm:@types/react@^19.1.10": "19.1.10",
+    "npm:@types/node@*": "22.15.15",
+    "npm:@types/react-native@0.73": "0.73.0_@types+react@19.1.11_react@19.1.1",
+    "npm:@types/react@^19.1.10": "19.1.11",
     "npm:@types/ws@^8.2.0": "8.18.1",
-    "npm:create-expo-app@*": "3.4.2",
-    "npm:expo-splash-screen@~0.30.10": "0.30.10_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react@19.1.1_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10",
+    "npm:expo-splash-screen@~0.30.10": "0.30.10_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react@19.1.1_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11",
     "npm:ip6addr@~0.2.5": "0.2.5",
     "npm:itertools-ts@^2.2.0": "2.2.0",
-    "npm:react-native@0.81": "0.81.0_@types+react@19.1.10_react@19.1.1",
+    "npm:react-native@0.81": "0.81.0_@types+react@19.1.11_react@19.1.1",
     "npm:react@^19.1.1": "19.1.1",
     "npm:superjson@^2.2.2": "2.2.2",
     "npm:trpc-cli@~0.9.2": "0.9.2_zod@3.25.76",
-    "npm:ts-pattern@^5.7.1": "5.7.1",
-    "npm:ts-to-zod@^3.15.0": "3.15.0_typescript@5.9.2",
+    "npm:ts-pattern@^5.7.1": "5.8.0",
+    "npm:ts-to-zod@^3.15.0": "3.15.0_typescript@5.9.2_@types+node@22.15.15",
     "npm:ws@8": "8.18.3",
     "npm:zod@^3.24.2": "3.25.76"
   },
@@ -91,6 +92,9 @@
       "dependencies": [
         "jsr:@std/internal@^1.0.10"
       ]
+    },
+    "@std/async@1.0.14": {
+      "integrity": "62e954a418652c704d37563a3e54a37d4cf0268a9dcaeac1660cc652880b5326"
     },
     "@std/bytes@1.0.6": {
       "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
@@ -142,6 +146,7 @@
       "integrity": "a490169f5ccb0f3ae9c94fbc69d2cd43603f2cffb41713a85f99bbb0e3087cbc",
       "dependencies": [
         "jsr:@std/assert@^1.0.13",
+        "jsr:@std/async",
         "jsr:@std/data-structures",
         "jsr:@std/fs",
         "jsr:@std/internal@^1.0.10",
@@ -157,9 +162,6 @@
     },
     "@std/yaml@1.0.5": {
       "integrity": "71ba3d334305ee2149391931508b2c293a8490f94a337eef3a09cade1a2a2742"
-    },
-    "@std/yaml@1.0.8": {
-      "integrity": "90b8aab62995e929fa0ea5f4151c287275b63e321ac375c35ff7406ca60c169d"
     },
     "@std/yaml@1.0.9": {
       "integrity": "6bad3dc766dd85b4b37eabcba81b6aa4eac7a392792ae29abcfb0f90602d55bb"
@@ -956,7 +958,7 @@
         "resolve-from@5.0.0",
         "resolve.exports",
         "semver@7.7.2",
-        "send",
+        "send@0.19.1",
         "slugify",
         "source-map-support",
         "stacktrace-parser",
@@ -1150,7 +1152,7 @@
     "@expo/sudo-prompt@9.3.2": {
       "integrity": "sha512-HHQigo3rQWKMDzYDLkubN5WQOYXJJE2eNqIQC2axC2iO3mHdwnIR7FgZVvHWtBwAdzBgAP0ECp8KqS8TiMKvgw=="
     },
-    "@expo/vector-icons@14.1.0_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1_react@19.1.1_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_@types+react@19.1.10": {
+    "@expo/vector-icons@14.1.0_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1_react@19.1.1_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_@types+react@19.1.11": {
       "integrity": "sha512-7T09UE9h8QDTsUeMGymB4i+iqvtEeaO5VvUjryFB4tugDTG/bkzViWA74hm5pfjjDEhYMXWaX112mcvhccmIwQ==",
       "dependencies": [
         "expo-font",
@@ -1176,6 +1178,17 @@
       "dependencies": [
         "chardet",
         "iconv-lite"
+      ]
+    },
+    "@inquirer/external-editor@1.0.1_@types+node@22.15.15": {
+      "integrity": "sha512-Oau4yL24d2B5IL4ma4UpbQigkVhzPDXLoqy1ggK4gnHg/stmkffJE4oOXHXF3uz0UEpywG68KcyXsyYpA1Re/Q==",
+      "dependencies": [
+        "@types/node",
+        "chardet",
+        "iconv-lite"
+      ],
+      "optionalPeers": [
+        "@types/node"
       ]
     },
     "@isaacs/cliui@8.0.2": {
@@ -1327,7 +1340,7 @@
     "@pkgjs/parseargs@0.11.0": {
       "integrity": "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="
     },
-    "@react-native-async-storage/async-storage@2.2.0_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10": {
+    "@react-native-async-storage/async-storage@2.2.0_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11_react@19.1.1": {
       "integrity": "sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw==",
       "dependencies": [
         "merge-options",
@@ -1554,7 +1567,7 @@
     "@react-native/normalize-colors@0.81.0": {
       "integrity": "sha512-3gEu/29uFgz+81hpUgdlOojM4rjHTIPwxpfygFNY60V6ywZih3eLDTS8kAjNZfPFHQbcYrNorJzwnL5yFF/uLw=="
     },
-    "@react-native/virtualized-lists@0.81.0_@types+react@19.1.10_react@19.1.1_react-native@0.81.0__@types+react@19.1.10__react@19.1.1": {
+    "@react-native/virtualized-lists@0.81.0_@types+react@19.1.11_react@19.1.1_react-native@0.81.0__@types+react@19.1.11__react@19.1.1": {
       "integrity": "sha512-p14QC5INHkbMZ96158sUxkSwN6zp138W11G+CRGoLJY4Q9WRJBCe7wHR5Owyy3XczQXrIih/vxAXwgYeZ2XByg==",
       "dependencies": [
         "@types/react",
@@ -1600,8 +1613,8 @@
         "whatwg-url"
       ]
     },
-    "@supabase/postgrest-js@1.19.4": {
-      "integrity": "sha512-O4soKqKtZIW3olqmbXXbKugUtByD2jPa8kL2m2c1oozAO11uCcGrRhkZL0kVxjBLrXHE0mdSkFsMj7jDSfyNpw==",
+    "@supabase/postgrest-js@1.21.3": {
+      "integrity": "sha512-rg3DmmZQKEVCreXq6Am29hMVe1CzemXyIWVYyyua69y6XubfP+DzGfLxME/1uvdgwqdoaPbtjBDpEBhqxq1ZwA==",
       "dependencies": [
         "@supabase/node-fetch"
       ]
@@ -1621,8 +1634,8 @@
         "@supabase/node-fetch"
       ]
     },
-    "@supabase/supabase-js@2.55.0": {
-      "integrity": "sha512-Y1uV4nEMjQV1x83DGn7+Z9LOisVVRlY1geSARrUHbXWgbyKLZ6/08dvc0Us1r6AJ4tcKpwpCZWG9yDQYo1JgHg==",
+    "@supabase/supabase-js@2.56.0": {
+      "integrity": "sha512-XqwhHSyVnkjdliPN61CmXsmFGnFHTX2WDdwjG3Ukvdzuu3Trix+dXupYOQ3BueIyYp7B6t0yYpdQtJP2hIInyg==",
       "dependencies": [
         "@supabase/auth-js",
         "@supabase/functions-js",
@@ -1737,15 +1750,15 @@
     "@types/phoenix@1.6.6": {
       "integrity": "sha512-PIzZZlEppgrpoT2QgbnDU+MMzuR6BbCjllj0bM70lWoejMeNJAxCchxnv7J3XFkI8MpygtRpzXrIlmWUBclP5A=="
     },
-    "@types/react-native@0.73.0_@types+react@19.1.10": {
+    "@types/react-native@0.73.0_@types+react@19.1.11_react@19.1.1": {
       "integrity": "sha512-6ZRPQrYM72qYKGWidEttRe6M5DZBEV5F+MHMHqd4TTYx0tfkcdrUFGdef6CCxY0jXU7wldvd/zA/b0A/kTeJmA==",
       "dependencies": [
         "react-native"
       ],
       "deprecated": true
     },
-    "@types/react@19.1.10": {
-      "integrity": "sha512-EhBeSYX0Y6ye8pNebpKrwFJq7BoQ8J5SO6NlvNwwHjSj6adXJViPQrKlsyPw7hLBLvckEMO1yxeGdR82YBBlDg==",
+    "@types/react@19.1.11": {
+      "integrity": "sha512-lr3jdBw/BGj49Eps7EvqlUaoeA0xpj3pc0RoJkHpYaCHkVK7i28dKyImLQb3JVlqs3aYSXf7qYuWOW/fgZnTXQ==",
       "dependencies": [
         "csstype"
       ]
@@ -2139,8 +2152,8 @@
     "camelcase@6.3.0": {
       "integrity": "sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA=="
     },
-    "caniuse-lite@1.0.30001736": {
-      "integrity": "sha512-ImpN5gLEY8gWeqfLUyEF4b7mYWcYoR2Si1VhnrbM4JizRFmfGaAQ12PhNykq6nvI4XvKLrsp8Xde74D5phJOSw=="
+    "caniuse-lite@1.0.30001737": {
+      "integrity": "sha512-BiloLiXtQNrY5UyF0+1nSJLXUENuhka2pzy2Fx5pGxqavdrxSCW4U6Pn/PoG3Efspi2frRbHpBV2XsrPE6EDlw=="
     },
     "case@1.6.3": {
       "integrity": "sha512-mzDSXIPaFwVDvZAHqZ9VlbyF4yyXRuX6IvB06WvPYkqJVO24kX1PPhv9bfpKNFZyxYFmmgo03HUiD8iklmJYRQ=="
@@ -2333,10 +2346,6 @@
         "parse-json"
       ]
     },
-    "create-expo-app@3.4.2": {
-      "integrity": "sha512-1NboGZh63VE47f0JfnIff1GfSzMi32I+sRZ7vNbRBurNvmumEgVjyUSHIfGWW0otxJUb2eWqEE5ThadlBpsIVw==",
-      "bin": true
-    },
     "cross-spawn@7.0.6": {
       "integrity": "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==",
       "dependencies": [
@@ -2416,8 +2425,8 @@
       ],
       "bin": true
     },
-    "electron-to-chromium@1.5.207": {
-      "integrity": "sha512-mryFrrL/GXDTmAtIVMVf+eIXM09BBPlO5IQ7lUyKmK8d+A4VpRGG+M3ofoVef6qyF8s60rJei8ymlJxjUA8Faw=="
+    "electron-to-chromium@1.5.208": {
+      "integrity": "sha512-ozZyibehoe7tOhNaf16lKmljVf+3npZcJIEbJRVftVsmAg5TeA1mGS9dVCZzOwr2xT7xK15V0p7+GZqSPgkuPg=="
     },
     "emoji-regex@8.0.0": {
       "integrity": "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A=="
@@ -2477,17 +2486,17 @@
     "exec-async@2.2.0": {
       "integrity": "sha512-87OpwcEiMia/DeiKFzaQNBNFeN3XkkpYIh9FyOqq5mS2oKv3CBE67PXoEKcr6nodWdXNogTiQ0jE2NGuoffXPw=="
     },
-    "expo-asset@11.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react@19.1.1_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1": {
+    "expo-asset@11.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react@19.1.1_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1": {
       "integrity": "sha512-b5P8GpjUh08fRCf6m5XPVAh7ra42cQrHBIMgH2UXP+xsj4Wufl6pLy6jRF5w6U7DranUMbsXm8TOyq4EHy7ADg==",
       "dependencies": [
         "@expo/image-utils",
         "expo",
-        "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_react@19.1.1_@types+react@19.1.10_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1",
+        "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_react@19.1.1_@types+react@19.1.11_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1",
         "react",
         "react-native"
       ]
     },
-    "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10_react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1": {
+    "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11_react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1": {
       "integrity": "sha512-byBjGsJ6T6FrLlhOBxw4EaiMXrZEn/MlUYIj/JAd+FS7ll5X/S4qVRbIimSJtdW47hXMq0zxPfJX6njtA56hHA==",
       "dependencies": [
         "@expo/config",
@@ -2496,7 +2505,7 @@
         "react-native"
       ]
     },
-    "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_react@19.1.1_@types+react@19.1.10_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1": {
+    "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_react@19.1.1_@types+react@19.1.11_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1": {
       "integrity": "sha512-byBjGsJ6T6FrLlhOBxw4EaiMXrZEn/MlUYIj/JAd+FS7ll5X/S4qVRbIimSJtdW47hXMq0zxPfJX6njtA56hHA==",
       "dependencies": [
         "@expo/config",
@@ -2505,14 +2514,14 @@
         "react-native"
       ]
     },
-    "expo-file-system@18.1.11_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10_react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1": {
+    "expo-file-system@18.1.11_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11_react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1": {
       "integrity": "sha512-HJw/m0nVOKeqeRjPjGdvm+zBi5/NxcdPf8M8P3G2JFvH5Z8vBWqVDic2O58jnT1OFEy0XXzoH9UqFu7cHg9DTQ==",
       "dependencies": [
         "expo",
         "react-native"
       ]
     },
-    "expo-font@13.3.2_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2__@types+react@19.1.10_react@19.1.1_@types+react@19.1.10_react-native@0.81.0__@types+react@19.1.10__react@19.1.1": {
+    "expo-font@13.3.2_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2__@types+react@19.1.11_react@19.1.1_@types+react@19.1.11_react-native@0.81.0__@types+react@19.1.11__react@19.1.1": {
       "integrity": "sha512-wUlMdpqURmQ/CNKK/+BIHkDA5nGjMqNlYmW0pJFXY/KE/OG80Qcavdu2sHsL4efAIiNGvYdBS10WztuQYU4X0A==",
       "dependencies": [
         "expo",
@@ -2520,7 +2529,7 @@
         "react"
       ]
     },
-    "expo-keep-awake@14.1.4_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react@19.1.1_@types+react@19.1.10_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1": {
+    "expo-keep-awake@14.1.4_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react@19.1.1_@types+react@19.1.11_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1": {
       "integrity": "sha512-wU9qOnosy4+U4z/o4h8W9PjPvcFMfZXrlUoKTMBW7F4pLqhkkP/5G4EviPZixv4XWFMjn1ExQ5rV6BX8GwJsWA==",
       "dependencies": [
         "expo",
@@ -2546,14 +2555,14 @@
         "invariant"
       ]
     },
-    "expo-splash-screen@0.30.10_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react@19.1.1_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10": {
+    "expo-splash-screen@0.30.10_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react@19.1.1_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11": {
       "integrity": "sha512-Tt9va/sLENQDQYeOQ6cdLdGvTZ644KR3YG9aRlnpcs2/beYjOX1LHT510EGzVN9ljUTg+1ebEo5GGt2arYtPjw==",
       "dependencies": [
         "@expo/prebuild-config",
         "expo"
       ]
     },
-    "expo@53.0.20_react@19.1.1_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_expo-font@13.3.2__expo@53.0.20__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1_@types+react@19.1.10": {
+    "expo@53.0.20_react@19.1.1_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_expo-font@13.3.2__expo@53.0.20__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1_@types+react@19.1.11": {
       "integrity": "sha512-Nh+HIywVy9KxT/LtH08QcXqrxtUOA9BZhsXn3KCsAYA+kNb80M8VKN8/jfQF+I6CgeKyFKJoPNsWgI0y0VBGrA==",
       "dependencies": [
         "@babel/runtime",
@@ -2565,7 +2574,7 @@
         "@expo/vector-icons",
         "babel-preset-expo",
         "expo-asset",
-        "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.10___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.10___react-native@0.81.0____@types+react@19.1.10____react@19.1.1__@types+react@19.1.10_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10_react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.10____react@19.1.1___expo-font@13.3.2___@types+react@19.1.10__react@19.1.1__@types+react@19.1.10__react-native@0.81.0___@types+react@19.1.10___react@19.1.1",
+        "expo-constants@17.1.7_expo@53.0.20__react@19.1.1__react-native@0.81.0___@types+react@19.1.11___react@19.1.1__expo-font@13.3.2___expo@53.0.20___react@19.1.1___@types+react@19.1.11___react-native@0.81.0____@types+react@19.1.11____react@19.1.1__@types+react@19.1.11_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11_react@19.1.1_expo-font@13.3.2__expo@53.0.20___react@19.1.1___react-native@0.81.0____@types+react@19.1.11____react@19.1.1___expo-font@13.3.2___@types+react@19.1.11__react@19.1.1__@types+react@19.1.11__react-native@0.81.0___@types+react@19.1.11___react@19.1.1",
         "expo-file-system",
         "expo-font",
         "expo-keep-awake",
@@ -2831,7 +2840,27 @@
     "inquirer@8.2.7": {
       "integrity": "sha512-UjOaSel/iddGZJ5xP/Eixh6dY1XghiBw4XK13rCCIJcJfyhhoul/7KhLLUGtebEj6GDYM6Vnx/mVsjx2L/mFIA==",
       "dependencies": [
-        "@inquirer/external-editor",
+        "@inquirer/external-editor@1.0.1",
+        "ansi-escapes",
+        "chalk@4.1.2",
+        "cli-cursor@3.1.0",
+        "cli-width",
+        "figures",
+        "lodash",
+        "mute-stream",
+        "ora@5.4.1",
+        "run-async",
+        "rxjs",
+        "string-width@4.2.3",
+        "strip-ansi@6.0.1",
+        "through",
+        "wrap-ansi@6.2.0"
+      ]
+    },
+    "inquirer@8.2.7_@types+node@22.15.15": {
+      "integrity": "sha512-UjOaSel/iddGZJ5xP/Eixh6dY1XghiBw4XK13rCCIJcJfyhhoul/7KhLLUGtebEj6GDYM6Vnx/mVsjx2L/mFIA==",
+      "dependencies": [
+        "@inquirer/external-editor@1.0.1_@types+node@22.15.15",
         "ansi-escapes",
         "chalk@4.1.2",
         "cli-cursor@3.1.0",
@@ -3827,14 +3856,14 @@
     "react-is@18.3.1": {
       "integrity": "sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg=="
     },
-    "react-native-edge-to-edge@1.6.0_react@19.1.1_react-native@0.81.0__@types+react@19.1.10__react@19.1.1_@types+react@19.1.10": {
+    "react-native-edge-to-edge@1.6.0_react@19.1.1_react-native@0.81.0__@types+react@19.1.11__react@19.1.1_@types+react@19.1.11": {
       "integrity": "sha512-2WCNdE3Qd6Fwg9+4BpbATUxCLcouF6YRY7K+J36KJ4l3y+tWN6XCqAC4DuoGblAAbb2sLkhEDp4FOlbOIot2Og==",
       "dependencies": [
         "react",
         "react-native"
       ]
     },
-    "react-native@0.81.0_@types+react@19.1.10_react@19.1.1": {
+    "react-native@0.81.0_@types+react@19.1.11_react@19.1.1": {
       "integrity": "sha512-RDWhewHGsAa5uZpwIxnJNiv5tW2y6/DrQUjEBdAHPzGMwuMTshern2s4gZaWYeRU3SQguExVddCjiss9IBhxqA==",
       "dependencies": [
         "@jest/create-cache-key-function",
@@ -4042,6 +4071,24 @@
         "statuses@2.0.1"
       ]
     },
+    "send@0.19.1": {
+      "integrity": "sha512-p4rRk4f23ynFEfcD9LA0xRYngj+IyGiEYyqqOak8kaN0TvNmuxC2dcVeBn62GpCeR2CpWqyHCNScTP91QbAVFg==",
+      "dependencies": [
+        "debug@2.6.9",
+        "depd",
+        "destroy",
+        "encodeurl@2.0.0",
+        "escape-html",
+        "etag",
+        "fresh",
+        "http-errors",
+        "mime",
+        "ms@2.1.3",
+        "on-finished@2.4.1",
+        "range-parser",
+        "statuses@2.0.1"
+      ]
+    },
     "serialize-error@2.1.0": {
       "integrity": "sha512-ghgmKt5o4Tly5yEG/UJp8qTd0AN7Xalw4XBtDEKP655B699qMEtra1WlXeE6WIvdEG481JvRxULKsInq/iNysw=="
     },
@@ -4051,7 +4098,7 @@
         "encodeurl@2.0.0",
         "escape-html",
         "parseurl",
-        "send"
+        "send@0.19.0"
       ]
     },
     "setprototypeof@1.2.0": {
@@ -4340,8 +4387,8 @@
     "ts-interface-checker@0.1.13": {
       "integrity": "sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA=="
     },
-    "ts-pattern@5.7.1": {
-      "integrity": "sha512-EGs8PguQqAAUIcQfK4E9xdXxB6s2GK4sJfT/vcc9V1ELIvC4LH/zXu2t/5fajtv6oiRCxdv7BgtVK3vWgROxag=="
+    "ts-pattern@5.8.0": {
+      "integrity": "sha512-kIjN2qmWiHnhgr5DAkAafF9fwb0T5OhMVSWrm8XEdTFnX6+wfXwYOFjeF86UZ54vduqiR7BfqScFmXSzSaH8oA=="
     },
     "ts-to-zod@3.15.0_typescript@5.9.2": {
       "integrity": "sha512-Lu5ITqD8xCIo4JZp4Cg3iSK3J2x3TGwwuDtNHfAIlx1mXWKClRdzqV+x6CFEzhKtJlZzhyvJIqg7DzrWfsdVSg==",
@@ -4351,7 +4398,29 @@
         "case",
         "chokidar",
         "fs-extra",
-        "inquirer",
+        "inquirer@8.2.7",
+        "lodash",
+        "ora@5.4.1",
+        "prettier",
+        "rxjs",
+        "slash",
+        "threads",
+        "tslib@2.8.1",
+        "tsutils",
+        "typescript",
+        "zod"
+      ],
+      "bin": true
+    },
+    "ts-to-zod@3.15.0_typescript@5.9.2_@types+node@22.15.15": {
+      "integrity": "sha512-Lu5ITqD8xCIo4JZp4Cg3iSK3J2x3TGwwuDtNHfAIlx1mXWKClRdzqV+x6CFEzhKtJlZzhyvJIqg7DzrWfsdVSg==",
+      "dependencies": [
+        "@oclif/core",
+        "@typescript/vfs",
+        "case",
+        "chokidar",
+        "fs-extra",
+        "inquirer@8.2.7_@types+node@22.15.15",
         "lodash",
         "ora@5.4.1",
         "prettier",
@@ -4624,40 +4693,6 @@
     "https://deno.land/std@0.177.0/testing/_diff.ts": "1a3c044aedf77647d6cac86b798c6417603361b66b54c53331b312caeb447aea",
     "https://deno.land/std@0.177.0/testing/_format.ts": "a69126e8a469009adf4cf2a50af889aca364c349797e63174884a52ff75cf4c7",
     "https://deno.land/std@0.177.0/testing/asserts.ts": "984ab0bfb3faeed92ffaa3a6b06536c66811185328c5dd146257c702c41b01ab",
-    "https://deno.land/std@0.208.0/assert/_constants.ts": "8a9da298c26750b28b326b297316cdde860bc237533b07e1337c021379e6b2a9",
-    "https://deno.land/std@0.208.0/assert/_diff.ts": "58e1461cc61d8eb1eacbf2a010932bf6a05b79344b02ca38095f9b805795dc48",
-    "https://deno.land/std@0.208.0/assert/_format.ts": "a69126e8a469009adf4cf2a50af889aca364c349797e63174884a52ff75cf4c7",
-    "https://deno.land/std@0.208.0/assert/assert.ts": "9a97dad6d98c238938e7540736b826440ad8c1c1e54430ca4c4e623e585607ee",
-    "https://deno.land/std@0.208.0/assert/assert_almost_equals.ts": "e15ca1f34d0d5e0afae63b3f5d975cbd18335a132e42b0c747d282f62ad2cd6c",
-    "https://deno.land/std@0.208.0/assert/assert_array_includes.ts": "6856d7f2c3544bc6e62fb4646dfefa3d1df5ff14744d1bca19f0cbaf3b0d66c9",
-    "https://deno.land/std@0.208.0/assert/assert_equals.ts": "d8ec8a22447fbaf2fc9d7c3ed2e66790fdb74beae3e482855d75782218d68227",
-    "https://deno.land/std@0.208.0/assert/assert_exists.ts": "407cb6b9fb23a835cd8d5ad804e2e2edbbbf3870e322d53f79e1c7a512e2efd7",
-    "https://deno.land/std@0.208.0/assert/assert_false.ts": "0ccbcaae910f52c857192ff16ea08bda40fdc79de80846c206bfc061e8c851c6",
-    "https://deno.land/std@0.208.0/assert/assert_greater.ts": "ae2158a2d19313bf675bf7251d31c6dc52973edb12ac64ac8fc7064152af3e63",
-    "https://deno.land/std@0.208.0/assert/assert_greater_or_equal.ts": "1439da5ebbe20855446cac50097ac78b9742abe8e9a43e7de1ce1426d556e89c",
-    "https://deno.land/std@0.208.0/assert/assert_instance_of.ts": "3aedb3d8186e120812d2b3a5dea66a6e42bf8c57a8bd927645770bd21eea554c",
-    "https://deno.land/std@0.208.0/assert/assert_is_error.ts": "c21113094a51a296ffaf036767d616a78a2ae5f9f7bbd464cd0197476498b94b",
-    "https://deno.land/std@0.208.0/assert/assert_less.ts": "aec695db57db42ec3e2b62e97e1e93db0063f5a6ec133326cc290ff4b71b47e4",
-    "https://deno.land/std@0.208.0/assert/assert_less_or_equal.ts": "5fa8b6a3ffa20fd0a05032fe7257bf985d207b85685fdbcd23651b70f928c848",
-    "https://deno.land/std@0.208.0/assert/assert_match.ts": "c4083f80600bc190309903c95e397a7c9257ff8b5ae5c7ef91e834704e672e9b",
-    "https://deno.land/std@0.208.0/assert/assert_not_equals.ts": "9f1acab95bd1f5fc9a1b17b8027d894509a745d91bac1718fdab51dc76831754",
-    "https://deno.land/std@0.208.0/assert/assert_not_instance_of.ts": "0c14d3dfd9ab7a5276ed8ed0b18c703d79a3d106102077ec437bfe7ed912bd22",
-    "https://deno.land/std@0.208.0/assert/assert_not_match.ts": "3796a5b0c57a1ce6c1c57883dd4286be13a26f715ea662318ab43a8491a13ab0",
-    "https://deno.land/std@0.208.0/assert/assert_not_strict_equals.ts": "4cdef83df17488df555c8aac1f7f5ec2b84ad161b6d0645ccdbcc17654e80c99",
-    "https://deno.land/std@0.208.0/assert/assert_object_match.ts": "d8fc2867cfd92eeacf9cea621e10336b666de1874a6767b5ec48988838370b54",
-    "https://deno.land/std@0.208.0/assert/assert_rejects.ts": "45c59724de2701e3b1f67c391d6c71c392363635aad3f68a1b3408f9efca0057",
-    "https://deno.land/std@0.208.0/assert/assert_strict_equals.ts": "b1f538a7ea5f8348aeca261d4f9ca603127c665e0f2bbfeb91fa272787c87265",
-    "https://deno.land/std@0.208.0/assert/assert_string_includes.ts": "b821d39ebf5cb0200a348863c86d8c4c4b398e02012ce74ad15666fc4b631b0c",
-    "https://deno.land/std@0.208.0/assert/assert_throws.ts": "63784e951475cb7bdfd59878cd25a0931e18f6dc32a6077c454b2cd94f4f4bcd",
-    "https://deno.land/std@0.208.0/assert/assertion_error.ts": "4d0bde9b374dfbcbe8ac23f54f567b77024fb67dbb1906a852d67fe050d42f56",
-    "https://deno.land/std@0.208.0/assert/equal.ts": "9f1a46d5993966d2596c44e5858eec821859b45f783a5ee2f7a695dfc12d8ece",
-    "https://deno.land/std@0.208.0/assert/fail.ts": "c36353d7ae6e1f7933d45f8ea51e358c8c4b67d7e7502028598fe1fea062e278",
-    "https://deno.land/std@0.208.0/assert/mod.ts": "37c49a26aae2b254bbe25723434dc28cd7532e444cf0b481a97c045d110ec085",
-    "https://deno.land/std@0.208.0/assert/unimplemented.ts": "d56fbeecb1f108331a380f72e3e010a1f161baa6956fd0f7cf3e095ae1a4c75a",
-    "https://deno.land/std@0.208.0/assert/unreachable.ts": "4600dc0baf7d9c15a7f7d234f00c23bca8f3eba8b140286aaca7aa998cf9a536",
-    "https://deno.land/std@0.208.0/fmt/colors.ts": "34b3f77432925eb72cf0bfb351616949746768620b8e5ead66da532f93d10ba2",
-    "https://deno.land/std@0.208.0/testing/_test_suite.ts": "30f018feeb3835f12ab198d8a518f9089b1bcb2e8c838a8b615ab10d5005465c",
-    "https://deno.land/std@0.208.0/testing/bdd.ts": "c41f019786c4a9112aadb7e5a7bbcc711f58429ac5904b3855fa248ba5fa0ba6",
     "https://deno.land/x/spdy_transport@v0.1/hpack/compressor.ts": "ad8e603b71a150bbb573c19946f4b03af6eab239d6a10eed6fb4e0cae190581f",
     "https://deno.land/x/spdy_transport@v0.1/hpack/decoder.ts": "1e9d1e16af949620275651c007eb6289897d2a9684576b1f48b7c5a496f72333",
     "https://deno.land/x/spdy_transport@v0.1/hpack/decompressor.ts": "3626bb8a0f51eaf39e3c58113b1610ca02c54d0b8fff18094dea9a175cae5e62",
@@ -4695,7 +4730,42 @@
     "https://deno.land/x/spdy_transport@v0.1/wbuf.ts": "a7098c9fe1227de3f6bc4c0bbcaa17bfd03f54d3797d19717483941c1e14badf",
     "https://deno.land/x/stream_observables@v1.3/combiners/merge.ts": "84cc8873f9c42b72d29ba4dbca6f7d4579276d7e8467856ae6cd22f8ffa149ff",
     "https://deno.land/x/stream_observables@v1.3/transforms/map.ts": "40f9e305a0425d0ee48c17b3268757ce5030cc9c45ba537e0242bd95dfcedd21",
-    "https://deno.land/x/stream_observables@v1.3/types.ts": "3933df0a0e584ff35a596157834eebf0bc2844d0b96bf3e4349e6fd3c4bd27a6"
+    "https://deno.land/x/stream_observables@v1.3/types.ts": "3933df0a0e584ff35a596157834eebf0bc2844d0b96bf3e4349e6fd3c4bd27a6",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/compressor.ts": "ad8e603b71a150bbb573c19946f4b03af6eab239d6a10eed6fb4e0cae190581f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/decoder.ts": "1e9d1e16af949620275651c007eb6289897d2a9684576b1f48b7c5a496f72333",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/decompressor.ts": "3626bb8a0f51eaf39e3c58113b1610ca02c54d0b8fff18094dea9a175cae5e62",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/encoder.ts": "85de61af30aed9ecda31880385da6eefbe59fb042df095d0af9c5eac4a37b16d",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/huffman.ts": "75c0baffdeba85e3cddaba1374452613febafaabaafb207f92b4d18adc2b052f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/static-table.ts": "03abe3374e45ef37cdf9276e255a69f9b0bd28ab8303988019b6d4a570a26071",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/table.ts": "57ba39adfbab66a1164be710f937b047dd5b8448160294603e306e0a13fee371",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/types.ts": "79771fbac0a76cdafa15c799aa03a1657a13bf6315d464cbfd93311a612ef8b8",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/utils.ts": "f6726bd9717f0a95d7d2cd053ce76f29472e1af75f6c276a85566f726c219d25",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/mod.ts": "2e3a83f8edae9547d1f4df58098c6940a6acc081f8098567323d214ece210f3b",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/obuf.ts": "876af791cf5d353c44b091369dd7c174e1b4fe0c418c9ce04972f234365112dd",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/connection.ts": "96c0860dcbe1443a26812d2432b362329a0790382aec1792f5ed8c27fd4ae38e",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/priority.ts": "9b68b64126785ac2d6f306c54b58fafeba0655fc272a74309e546e44c768e0eb",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/constants.ts": "dcf2a0309495d3107cd0c6f385066f939bf2f9ccfb6c16eb58bd3210924bc5fe",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/framer.ts": "25a4d7ac826a17a2968f7d27c34f06d49474dd68ecec4fbccff8f094fdfb9ec6",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/index.ts": "829baa72552b19acc9e6e27a0504ecab0b0643bec3da3a62a346eb84a30a9492",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/parser.ts": "1c17702f971c70c80c3dfb7b9aba0dfddb83c79993612bb6058c362a14e7e2d9",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/scheduler.ts": "2ca4acbaadb49eaed31830d7625f6c7162fea59795c7f23d9f7d5f9e2cae274f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/utils.ts": "f8e020654d8fe875d0e856b226c47f8bfbe1cadc98a37fdc7eecbbc0fc09cd5d",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/constants.ts": "7f811e5445143882888b0675b06f054c1c036dd38bd593e46ae8ed7f056270ae",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/framer.ts": "e560d424445d0ed7be43fb3bb6a71f09745a423c0c1d45862e607ccd7e2f13b6",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/index.ts": "9d7b74814cc122289d9d18035fb77c91b3db0653187e83b21721c8960f7584f1",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/parser.ts": "feba6f6b2ab68d917d8fcd33feda9f29134341568be9c849bcf21e6b4ea5df0f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/index.ts": "f53c5f225599b1ef0fdbe4817e323b12110705c0f4b8c2bfcc6bbe5274390c6a",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/constants.ts": "a01145e57d328e186696dc5e73f08c804297d69d1d025b77dce2cac065f51733",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/dictionary.ts": "712fc58534f804f0f16b57c51528051c866c8e1855ac4051da42feedb4ed2a7d",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/framer.ts": "1a6169515d056463e0c940e781ab6e7f194a3269f66ebb7a987960d407742844",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/index.ts": "7119e035e6018a72ce3809a409cb4c9f5b283e77202bb8d7c4e04b2a7202d816",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/parser.ts": "1f6a9288325a0a10fe7badf0fb31208e9f9d8433c447b154389d6c4ef0846fc3",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/zlib-pool.ts": "5bf111cf42d6499d563ccdb0a6f39789bc2bfa0fe84d696de271f664f3b2bc58",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/types.ts": "c06c817ef3fabe2090cba5f5966628acf452deebbd447ae90fbca5762efc6add",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/stream.ts": "5c27f82525b40f55d914c67db69894584616b65a5b34ebb68ec309d78cb444ca",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/utils.ts": "d87132d91dedea9c9fec268ca8dd8661dcac56f61497c75b0fe9466e124df551",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/window.ts": "5ca21eea580321a464b2944426c69625194b49c1d62eae100b660baa8d8196d7",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/wbuf.ts": "a7098c9fe1227de3f6bc4c0bbcaa17bfd03f54d3797d19717483941c1e14badf"
   },
   "workspace": {
     "dependencies": [

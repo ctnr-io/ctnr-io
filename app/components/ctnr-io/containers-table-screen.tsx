@@ -13,8 +13,6 @@ interface ContainerData {
   status: 'running' | 'stopped' | 'restarting'
   created: string
   ports: string[]
-  cpu: string
-  memory: string
   replicas: {
     max: number
     min: number
@@ -33,8 +31,6 @@ const containers: ContainerData[] = [
     status: 'running',
     created: '2024-01-15T10:30:00Z',
     ports: ['web:80/tcp', 'https:443/tcp'],
-    cpu: '0.5%',
-    memory: '128MB',
     replicas: {
       max: 5,
       min: 2,
@@ -50,8 +46,6 @@ const containers: ContainerData[] = [
     status: 'running',
     created: '2024-01-15T09:15:00Z',
     ports: ['api:8080/tcp'],
-    cpu: '2.1%',
-    memory: '256MB',
     replicas: {
       max: 3,
       min: 1,
@@ -67,8 +61,6 @@ const containers: ContainerData[] = [
     status: 'stopped',
     created: '2024-01-14T16:45:00Z',
     ports: ['5432/tcp'],
-    cpu: '0%',
-    memory: '0MB',
     replicas: {
       max: 1,
       min: 1,
@@ -84,8 +76,6 @@ const containers: ContainerData[] = [
     status: 'running',
     created: '2024-01-15T08:20:00Z',
     ports: ['6379/tcp'],
-    cpu: '0.8%',
-    memory: '64MB',
     replicas: {
       max: 2,
       min: 1,
@@ -101,8 +91,6 @@ const containers: ContainerData[] = [
     status: 'restarting',
     created: '2024-01-15T11:00:00Z',
     ports: [],
-    cpu: '1.2%',
-    memory: '192MB',
     replicas: {
       max: 6,
       min: 2,
@@ -136,7 +124,13 @@ function formatDate(dateString: string) {
   })
 }
 
-export default function ContainersTableScreen({ data }: { data: ContainerData[] }) {
+export default function ContainersTableScreen({
+  data,
+  isLoading = false,
+}: {
+  data: ContainerData[]
+  isLoading?: boolean
+}) {
   const router = useRouter()
 
   const handleRowClick = (container: ContainerData) => {
@@ -202,16 +196,6 @@ export default function ContainersTableScreen({ data }: { data: ContainerData[] 
       key: 'ports',
       label: 'Ports',
       render: (value: string[]) => value.length > 0 ? value.join(', ') : '-',
-      className: 'font-mono text-sm',
-    },
-    {
-      key: 'cpu',
-      label: 'CPU',
-      className: 'font-mono text-sm',
-    },
-    {
-      key: 'memory',
-      label: 'Memory',
       className: 'font-mono text-sm',
     },
     {
@@ -352,8 +336,9 @@ export default function ContainersTableScreen({ data }: { data: ContainerData[] 
       searchPlaceholder='Search containers by name, image, status, or clusters...'
       searchKeys={['name', 'image', 'status', 'clusters']}
       columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'ports', 'cpu', 'memory']}
+      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'clusters', 'ports']}
       emptyMessage='No containers found. Create your first container to get started.'
+      loading={isLoading}
     />
   )
 }

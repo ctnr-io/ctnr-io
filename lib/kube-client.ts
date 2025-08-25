@@ -12,17 +12,14 @@ import { match } from 'ts-pattern'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
-export async function getKubeClient() {
+export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
   let client: RestClient
-  try {
-    client = await SpdyEnabledRestClient.forInCluster()
-  } catch {
-    const decoder = new TextDecoder('utf-8')
-    const kubeconfigFile = decoder.decode(await Deno.readFile(kubeconfig))
-    client = await SpdyEnabledRestClient.forKubeConfig(
-      new KubeConfig(YAML.parse(kubeconfigFile.toString()) as RawKubeConfig) as any,
-    )
-  }
+  const decoder = new TextDecoder('utf-8')
+  const kubeconfigFile = decoder.decode(await Deno.readFile(kubeconfig))
+  client = await SpdyEnabledRestClient.forKubeConfig(
+    new KubeConfig(YAML.parse(kubeconfigFile.toString()) as RawKubeConfig) as any,
+    context,
+  )
   return {
     performRequest: client.performRequest.bind(client),
     get CoreV1() {

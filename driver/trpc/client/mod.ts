@@ -1,6 +1,6 @@
 import 'lib/utils.ts'
 import { createTRPCClient, createWSClient, TRPCClient, wsLink } from '@trpc/client'
-import { ServerRouter } from 'driver/trpc/server/router.ts'
+import { TRPCServerRouter } from 'driver/trpc/server/router.ts'
 
 export async function createTRPCWebSocketClient({
   url,
@@ -12,7 +12,7 @@ export async function createTRPCWebSocketClient({
   refreshToken?: string
 }): Promise<{
   websocket: ReturnType<typeof createWSClient>
-  trpc: TRPCClient<ServerRouter>
+  trpc: TRPCClient<TRPCServerRouter>
 }> {
   const { promise, resolve, reject } = Promise.withResolvers<void>()
 
@@ -49,11 +49,11 @@ export async function createTRPCWebSocketClient({
 
   await promise
 
-  const trpcClient = createTRPCClient<ServerRouter>({
+  const trpcClient = createTRPCClient<TRPCServerRouter>({
     links: [wsLink({
       client: wsClient,
     })],
-  }) as TRPCClient<ServerRouter>
+  }) as TRPCClient<TRPCServerRouter>
   return {
     websocket: wsClient,
     trpc: trpcClient,

@@ -61,7 +61,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     follow: input.follow,
   })
   if (ctx.stdio) {
-    await logs.pipeTo(ctx.stdio.stdout, {
+    await logs.pipeTo(ctx.stdio?.stdout, {
       signal: ctx.signal,
     })
   } else {

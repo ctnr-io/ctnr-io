@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@react-native-async-storage/async-storage": "npm:@react-native-async-storage/async-storage@^2.2.0",
+    "@tanstack/react-query": "npm:@tanstack/react-query@^5.85.5",
+    "@trpc/client": "npm:@trpc/client@^11.5.0",
+    "@trpc/server": "npm:@trpc/server@^11.5.0",
+    "@trpc/tanstack-react-query": "npm:@trpc/tanstack-react-query@^11.5.0",
+    "react": "npm:react@^19.1.1",
+    "react-native": "npm:react-native@^0.81.0",
+    "expo-splash-screen": "npm:expo-splash-screen@^0.30.10",
+		"driver/": "../../../../driver/"
+  }
+}

@@ -15,12 +15,21 @@ export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
   name: z.string().optional(), // Filter by specific container name
   cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2']).optional(), // Select specific cluster
+  fields: z.array(z.enum([
+    'basic',      // id, name, image, status, createdAt
+    'resources',  // cpu, memory, ports
+    'replicas',   // replicas with instances
+    'routes',     // routes
+    'clusters',   // clusters
+    'config',     // restartPolicy, command, workingDir, environment, volumes
+    'metrics',    // real-time metrics (expensive)
+    'all'         // all fields (default behavior)
+  ])).optional(),
 })
 
 export type Input = z.infer<typeof Input>
 
 export type Container = {
-  id: string
   name: string
   image: any
   status: string
@@ -33,7 +42,6 @@ export type Container = {
     min: number
     current: number
     instances: {
-      id: string
       name: string
       status: string
       createdAt: Date
@@ -59,7 +67,19 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
 }[Type]
 
 export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Output<NonNullable<typeof input['output']>>> {
-  const { output = 'raw', name, cluster = 'eu' } = input
+  const { output = 'raw', name, cluster = 'eu', fields = ['basic'] } = input
+
+  // Determine which fields to fetch based on input - be very specific
+  const requestedFields = new Set(fields)
+  const fetchAll = requestedFields.has('all')
+  
+  // Optimize field detection - only fetch what's absolutely needed
+  const needsRealTimeMetrics = requestedFields.has('metrics')
+  const needsResourceInfo = fetchAll || requestedFields.has('resources')
+  const needsReplicaInstances = fetchAll || requestedFields.has('replicas')
+  const needsRoutes = fetchAll || requestedFields.has('routes')
+  const needsClusters = fetchAll || requestedFields.has('clusters')
+  const needsConfig = fetchAll || requestedFields.has('config')
 
   // Use the specified cluster or default to 'eu'
   const kubeClient = ctx.kube.client[cluster]
@@ -70,143 +90,126 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     labelSelector = `ctnr.io/name=${name}`
   }
 
-  // List deployments with label ctnr.io/name (optionally filtered by name)
+  // Always fetch deployments first (this is the core data)
   const deployments = await kubeClient.AppsV1.namespace(ctx.kube.namespace).getDeploymentList({
     labelSelector,
   })
 
-  // Get metrics for all pods in the namespace
-  let podMetrics: any[] = []
-  if (cluster === 'eu') {
-    // For abstract 'eu' cluster, fetch metrics from all concrete clusters
-    const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
-    
-    for (const concreteCluster of concreteClusters) {
-      try {
-        const clusterClient = ctx.kube.client[concreteCluster]
-        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
-        const clusterMetrics = metricsResponse.items || []
-        
-        // Add cluster information to each metric for identification
-        const enrichedMetrics = clusterMetrics.map((metric: any) => ({
-          ...metric,
-          _cluster: concreteCluster
-        }))
-        
-        podMetrics.push(...enrichedMetrics)
-      } catch (error) {
-        console.warn(`Failed to fetch pod metrics from cluster ${concreteCluster}:`, error)
-        // Continue with other clusters
-      }
-    }
-  } else {
-    // For specific clusters, fetch metrics only from that cluster
-    try {
-      const metricsResponse = await kubeClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
-      podMetrics = metricsResponse.items || []
-    } catch (error) {
-      console.warn(`Failed to fetch pod metrics from cluster ${cluster}:`, error)
-      // Continue without metrics
-    }
+  // Early return for simple cases (name-only queries, basic info)
+  if (output === 'name') {
+    return deployments.items.map((deployment) => deployment.metadata?.name || '').join('\n')
   }
 
-  // Get all pods for replica instances information
-  let allPods: any[] = []
-  if (cluster === 'eu') {
-    // For abstract 'eu' cluster, fetch pods from all concrete clusters
-    const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
-    
-    for (const concreteCluster of concreteClusters) {
-      try {
-        const clusterClient = ctx.kube.client[concreteCluster]
-        const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
-          labelSelector: 'ctnr.io/name',
-        })
-        const clusterPods = podsResponse.items || []
-        
-        // Add cluster information to each pod for identification
-        const enrichedPods = clusterPods.map((pod: any) => ({
-          ...pod,
-          _cluster: concreteCluster
-        }))
-        
-        allPods.push(...enrichedPods)
-      } catch (error) {
-        console.warn(`Failed to fetch pods from cluster ${concreteCluster}:`, error)
-        // Continue with other clusters
-      }
-    }
-  } else {
-    // For specific clusters, fetch pods only from that cluster
-    try {
-      const podsResponse = await kubeClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
-        labelSelector: 'ctnr.io/name',
-      })
-      allPods = podsResponse.items || []
-    } catch (error) {
-      console.warn(`Failed to fetch pods from cluster ${cluster}:`, error)
-      allPods = []
-    }
+  // Parallel fetch expensive operations only when needed
+  const fetchPromises: Promise<any>[] = []
+  let promiseIndex = 0
+  let podMetricsIndex = -1
+  let allPodsIndex = -1
+  let routesIndex = -1
+  
+  // Fetch metrics only if real-time metrics are explicitly requested
+  if (needsRealTimeMetrics || (needsResourceInfo && needsRealTimeMetrics)) {
+    podMetricsIndex = promiseIndex++
+    fetchPromises.push(fetchPodMetricsOptimized(ctx, cluster))
   }
 
-  // Get all routes for containers
-  let httpRoutes: any[] = []
-  let ingressRoutes: any[] = []
-  try {
-    const httpRoutesResponse = await kubeClient.GatewayNetworkingV1(ctx.kube.namespace).listHTTPRoutes() as any
-    httpRoutes = httpRoutesResponse?.items || []
-  } catch (error) {
-    console.warn('Failed to fetch HTTP routes:', error)
+  // Fetch pods only if replica instances are needed
+  if (needsReplicaInstances) {
+    allPodsIndex = promiseIndex++
+    fetchPromises.push(fetchAllPodsOptimized(ctx, cluster))
   }
 
-  try {
-    const ingressRoutesResponse = await kubeClient.TraefikV1Alpha1(ctx.kube.namespace).listIngressRoutes() as any
-    ingressRoutes = ingressRoutesResponse?.items || []
-  } catch (error) {
-    console.warn('Failed to fetch Ingress routes:', error)
+  // Fetch routes only if routes are needed
+  if (needsRoutes) {
+    routesIndex = promiseIndex++
+    fetchPromises.push(fetchRoutesOptimized(kubeClient, ctx.kube.namespace))
   }
 
-  // Transform deployments to container data (hide Kubernetes internals)
-  const containers = await Promise.all(deployments.items.map(async (deployment) => {
+  // Wait for all parallel operations to complete
+  const results = await Promise.allSettled(fetchPromises)
+  
+  // Extract results with fallbacks
+  const podMetrics = podMetricsIndex >= 0 && results[podMetricsIndex]?.status === 'fulfilled' 
+    ? (results[podMetricsIndex] as PromiseFulfilledResult<any>).value : []
+  const allPods = allPodsIndex >= 0 && results[allPodsIndex]?.status === 'fulfilled' 
+    ? (results[allPodsIndex] as PromiseFulfilledResult<any>).value : []
+  const routes = routesIndex >= 0 && results[routesIndex]?.status === 'fulfilled' 
+    ? (results[routesIndex] as PromiseFulfilledResult<any>).value : { httpRoutes: [], ingressRoutes: [] }
+
+  // Transform deployments to container data with maximum efficiency
+  const containers = deployments.items.map((deployment) => {
     const annotations = deployment.metadata?.annotations || {}
     const labels = deployment.metadata?.labels || {}
     const spec = deployment.spec || {}
     const status = deployment.status || {}
-
-    // Extract replica information from deployment spec and status
-    const replicaInfo = await extractReplicaInfoWithInstances(deployment, allPods, podMetrics)
-
-    // Get real resource usage from metrics API
-    const resources = await extractResourceUsageFromMetrics(deployment, podMetrics, annotations)
-
-    // Get routes for this container
-    const routes = extractRoutesForContainer(deployment.metadata?.name || '', httpRoutes, ingressRoutes)
-
-    // Extract cluster information from labels
-    const clusters = extractClustersFromLabels(labels)
-
-    // Get container info from deployment template
     const container = (spec as any).template?.spec?.containers?.[0]
 
-    return {
-      id: deployment.metadata?.uid || '',
-      name: deployment.metadata?.name || '',
-      image: container?.image || '',
-      status: mapDeploymentStatusToContainerStatus(status),
-      createdAt: new Date(deployment.metadata?.creationTimestamp || ''),
-      ports: extractPortMappingsFromContainer(container?.ports || undefined),
-      cpu: resources.cpu,
-      memory: resources.memory,
-      replicas: replicaInfo,
-      routes: routes,
-      clusters: clusters,
-      restartPolicy: (spec as any).template?.spec?.restartPolicy || 'Always',
-      command: container?.command || [],
-      workingDir: container?.workingDir || '/',
-      environment: extractEnvironmentVariables(container?.env || []),
-      volumes: extractVolumeMounts(container?.volumeMounts || []),
+    // Build container object with only requested fields - avoid unnecessary processing
+    const containerData: Partial<Container> = {}
+
+    // Basic fields (always included for core functionality)
+    containerData.name = deployment.metadata?.name || ''
+    containerData.image = container?.image || ''
+    containerData.status = mapDeploymentStatusToContainerStatus(status)
+    containerData.createdAt = new Date(deployment.metadata?.creationTimestamp || '')
+
+    // Resource fields - only if requested
+    if (needsResourceInfo) {
+      containerData.ports = extractPortMappingsFromContainer(container?.ports)
+      const resources = needsRealTimeMetrics && podMetrics.length > 0
+        ? extractResourceUsageFromMetrics(deployment, podMetrics, annotations)
+        : extractResourceUsageFromDeployment(deployment, annotations)
+      containerData.cpu = resources.cpu
+      containerData.memory = resources.memory
     }
-  }))
+
+    // Replica fields - only if requested
+    if (needsReplicaInstances) {
+      containerData.replicas = extractReplicaInfoWithInstances(deployment, allPods, podMetrics)
+    }
+
+    // Routes fields - only if requested
+    if (needsRoutes && routes) {
+      containerData.routes = extractRoutesForContainer(
+        deployment.metadata?.name || '', 
+        routes.httpRoutes, 
+        routes.ingressRoutes
+      )
+    }
+
+    // Clusters fields - only if requested
+    if (needsClusters) {
+      containerData.clusters = extractClustersFromLabels(labels)
+    }
+
+    // Config fields - only if requested
+    if (needsConfig) {
+      containerData.restartPolicy = (spec as any).template?.spec?.restartPolicy || 'Always'
+      containerData.command = container?.command || []
+      containerData.workingDir = container?.workingDir || '/'
+      containerData.environment = extractEnvironmentVariables(container?.env || [])
+      containerData.volumes = extractVolumeMounts(container?.volumeMounts || [])
+    }
+
+    // Return with defaults for missing fields to maintain type compatibility
+    return {
+      name: containerData.name!,
+      image: containerData.image!,
+      status: containerData.status!,
+      createdAt: containerData.createdAt!,
+      ports: containerData.ports || [],
+      cpu: containerData.cpu || '',
+      memory: containerData.memory || '',
+      replicas: containerData.replicas || { max: 0, min: 0, current: 0, instances: [] },
+      routes: containerData.routes || [],
+      clusters: containerData.clusters || [],
+      restartPolicy: containerData.restartPolicy || 'Always',
+      command: containerData.command || [],
+      workingDir: containerData.workingDir || '/',
+      environment: containerData.environment || {},
+      volumes: containerData.volumes || [],
+    }
+  })
   
 
   switch (output) {
@@ -218,9 +221,6 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
 
     case 'yaml':
       return YAML.stringify(containers)
-
-    case 'name':
-      return containers.map((container) => container.name).join('\n')
 
     case 'wide':
     default:
@@ -357,7 +357,6 @@ function extractReplicaInfoWithInstances(
     }
 
     return {
-      id: pod.metadata?.uid || '',
       name: podName,
       status: podStatus.toLowerCase(),
       created: createdAt,
@@ -441,32 +440,52 @@ function extractResourceUsageFromDeployment(deployment: any, annotations: any): 
   // Extract resource usage from annotations or calculate from container resources
   const container = deployment.spec?.template?.spec?.containers?.[0]
   const resources = container?.resources
+  const deploymentName = deployment.metadata?.name
 
   // Try annotations first, then fall back to resource requests/limits
   let cpu = annotations['ctnr.io/cpu-usage']
   let memory = annotations['ctnr.io/memory-usage']
 
   if (!cpu && resources?.requests?.cpu) {
-    cpu = String(resources.requests.cpu)
+    cpu = normalizeKubernetesResourceValue(resources.requests.cpu)
   } else if (!cpu && resources?.limits?.cpu) {
-    cpu = String(resources.limits.cpu)
+    cpu = normalizeKubernetesResourceValue(resources.limits.cpu)
   } else if (!cpu) {
-    cpu = '0.1%'
+    cpu = '100m'
   }
 
   if (!memory && resources?.requests?.memory) {
-    memory = String(resources.requests.memory)
+    memory = normalizeKubernetesResourceValue(resources.requests.memory)
   } else if (!memory && resources?.limits?.memory) {
-    memory = String(resources.limits.memory)
+    memory = normalizeKubernetesResourceValue(resources.limits.memory)
   } else if (!memory) {
-    memory = '64MB'
+    memory = '128Mi'
   }
 
-  // Ensure we always return strings
   return {
-    cpu: String(cpu || '0.1%'),
-    memory: String(memory || '64MB'),
+    cpu: String(cpu || '100m'),
+    memory: String(memory || '128Mi'),
   }
+}
+
+function normalizeKubernetesResourceValue(value: any): string {
+  // Handle different formats that Kubernetes API can return
+  if (typeof value === 'string') {
+    return value
+  }
+  
+  if (typeof value === 'object' && value !== null) {
+    // Handle structured format like {"number": 250, "suffix": "m"}
+    if (typeof value.number !== 'undefined' && typeof value.suffix !== 'undefined') {
+      return `${value.number}${value.suffix}`
+    }
+    
+    // Handle other object formats by converting to JSON (fallback)
+    return JSON.stringify(value)
+  }
+  
+  // Handle numbers or other primitive types
+  return String(value)
 }
 
 function extractRoutesForContainer(containerName: string, httpRoutes: any[], ingressRoutes: any[]): string[] {
@@ -577,4 +596,113 @@ function formatAge(createdAt?: Date): string {
   if (hours > 0) return `${hours}h`
   if (minutes > 0) return `${minutes}m`
   return `${seconds}s`
+}
+
+// Optimized helper functions for parallel data fetching
+async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2'): Promise<any[]> {
+  const podMetrics: any[] = []
+  
+  if (cluster === 'eu') {
+    // For abstract 'eu' cluster, fetch metrics from all concrete clusters in parallel
+    const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
+    const promises = concreteClusters.map(async (concreteCluster) => {
+      try {
+        const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
+        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
+        const clusterMetrics = metricsResponse.items || []
+        
+        // Add cluster information to each metric for identification
+        return clusterMetrics.map((metric: any) => ({
+          ...metric,
+          _cluster: concreteCluster
+        }))
+      } catch (error) {
+        console.warn(`Failed to fetch pod metrics from cluster ${concreteCluster}:`, error)
+        return []
+      }
+    })
+    
+    const results = await Promise.all(promises)
+    results.forEach(clusterMetrics => podMetrics.push(...clusterMetrics))
+  } else {
+    // For specific clusters, fetch metrics only from that cluster
+    try {
+      const clusterClient = ctx.kube.client[cluster]
+      const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
+      podMetrics.push(...(metricsResponse.items || []))
+    } catch (error) {
+      console.warn(`Failed to fetch pod metrics from cluster ${cluster}:`, error)
+    }
+  }
+  
+  return podMetrics
+}
+
+async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2'): Promise<any[]> {
+  const allPods: any[] = []
+  
+  if (cluster === 'eu') {
+    // For abstract 'eu' cluster, fetch pods from all concrete clusters in parallel
+    const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
+    const promises = concreteClusters.map(async (concreteCluster) => {
+      try {
+        const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
+        const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
+          labelSelector: 'ctnr.io/name',
+        })
+        const clusterPods = podsResponse.items || []
+        
+        // Add cluster information to each pod for identification
+        return clusterPods.map((pod: any) => ({
+          ...pod,
+          _cluster: concreteCluster
+        }))
+      } catch (error) {
+        console.warn(`Failed to fetch pods from cluster ${concreteCluster}:`, error)
+        return []
+      }
+    })
+    
+    const results = await Promise.all(promises)
+    results.forEach(clusterPods => allPods.push(...clusterPods))
+  } else {
+    // For specific clusters, fetch pods only from that cluster
+    try {
+      const clusterClient = ctx.kube.client[cluster]
+      const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
+        labelSelector: 'ctnr.io/name',
+      })
+      allPods.push(...(podsResponse.items || []))
+    } catch (error) {
+      console.warn(`Failed to fetch pods from cluster ${cluster}:`, error)
+    }
+  }
+  
+  return allPods
+}
+
+async function fetchRoutesOptimized(kubeClient: any, namespace: string): Promise<{ httpRoutes: any[], ingressRoutes: any[] }> {
+  // Fetch both route types in parallel
+  const [httpRoutesResult, ingressRoutesResult] = await Promise.allSettled([
+    kubeClient.GatewayNetworkingV1(namespace).listHTTPRoutes(),
+    kubeClient.TraefikV1Alpha1(namespace).listIngressRoutes()
+  ])
+  
+  const httpRoutes = httpRoutesResult.status === 'fulfilled' 
+    ? (httpRoutesResult.value as any)?.items || []
+    : []
+    
+  const ingressRoutes = ingressRoutesResult.status === 'fulfilled'
+    ? (ingressRoutesResult.value as any)?.items || []
+    : []
+  
+  if (httpRoutesResult.status === 'rejected') {
+    console.warn('Failed to fetch HTTP routes:', httpRoutesResult.reason)
+  }
+  
+  if (ingressRoutesResult.status === 'rejected') {
+    console.warn('Failed to fetch Ingress routes:', ingressRoutesResult.reason)
+  }
+  
+  return { httpRoutes, ingressRoutes }
 }

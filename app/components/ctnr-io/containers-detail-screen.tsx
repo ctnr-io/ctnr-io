@@ -536,10 +536,6 @@ export function ContainersDetailScreen(props: {
                         </div>
                         <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
                           <div>
-                            <div className='text-muted-foreground'>Instance ID</div>
-                            <Skeleton className='h-3 w-20 mt-1' />
-                          </div>
-                          <div>
                             <div className='text-muted-foreground'>CPU</div>
                             <Skeleton className='h-4 w-12 mt-1' />
                           </div>
@@ -555,7 +551,7 @@ export function ContainersDetailScreen(props: {
                     ))
                   ) : (
                     data.replicas.instances.map((instance: any) => (
-                      <div key={instance.id} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
+                      <div key={instance.name} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
                       <div className='flex items-center justify-between mb-3'>
                         <div className='flex items-center gap-3'>
                           <div className='flex items-center gap-2'>
@@ -581,7 +577,7 @@ export function ContainersDetailScreen(props: {
                           <button
                             type='button'
                             onClick={() =>
-                              navigator.clipboard.writeText(instance.id)}
+                              navigator.clipboard.writeText(instance.name)}
                             className='p-1 hover:bg-muted rounded'
                             title='Copy instance ID'
                           >
@@ -591,10 +587,6 @@ export function ContainersDetailScreen(props: {
                       </div>
 
                       <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
-                        <div>
-                          <div className='text-muted-foreground'>Instance ID</div>
-                          <div className='font-mono text-xs'>{instance.id}</div>
-                        </div>
                         <div>
                           <div className='text-muted-foreground'>CPU</div>
                           <div className='font-mono'>{instance.cpu}</div>

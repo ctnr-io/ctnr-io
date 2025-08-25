@@ -45,6 +45,9 @@ export const setupSignalHandling = (
   terminal: boolean,
   interactive: boolean,
 ) => {
+  if (!ctx.stdio) {
+    return
+  }
   if (terminal) {
     const signalChanAsyncGenerator = ctx.stdio.signalChan()
     ctx.defer(() => signalChanAsyncGenerator.return())
@@ -73,6 +76,9 @@ export const setupTerminalHandling = (
   terminal: boolean,
   interactive: boolean,
 ) => {
+  if (!ctx.stdio) {
+    return
+  }
   if (terminal) {
     const terminalSizeAsyncGenerator = ctx.stdio.terminalSizeChan()
     ctx.defer(() => terminalSizeAsyncGenerator.return())
@@ -85,7 +91,7 @@ export const setupTerminalHandling = (
 
   if (terminal && interactive) {
     ctx.stdio.setRaw(true)
-    ctx.defer(() => ctx.stdio.setRaw(false))
+    ctx.defer(() => ctx.stdio?.setRaw(false))
   }
 }
 
@@ -95,6 +101,10 @@ export const handleStreams = async (
   interactive: boolean,
   terminal: boolean,
 ): Promise<void> => {
+  if (!ctx.stdio) {
+    return
+  }
+
   const stdioController = new AbortController()
   ctx.signal?.addEventListener('abort', () => {
     stdioController.abort()

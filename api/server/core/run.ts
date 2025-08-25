@@ -331,7 +331,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       abortSignal: ctx.signal,
     })
     if (ctx.stdio) {
-      await logs.pipeTo(ctx.stdio.stdout, {
+      await logs.pipeTo(ctx.stdio?.stdout, {
         signal: ctx.signal,
       })
     } else {

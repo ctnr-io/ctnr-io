@@ -48,50 +48,55 @@ if (!session) {
   throw new Error('No active session found. Please log in first.')
 }
 
-export const ctnr = createCli({
-  router,
-  context: await createServerContext({
-    accessToken: session.access_token,
-    refreshToken: session.refresh_token,
-    stdio: {
-      stdin: Deno.stdin.readable,
-      stdout,
-      stderr,
-      exit: Deno.exit.bind(Deno),
-      setRaw: Deno.stdin.setRaw.bind(Deno.stdin),
-      signalChan: function* () {
-        // if (!Deno.stdin.isTerminal()) {
-        //   return;
-        // }
-        // TODO: Implement signal handling when needed
-        // Currently disabled to avoid linting issues
-        // yield; // This will never be reached but satisfies the linter
-        // yield* createAsyncGeneratorListener(
-        //   [
-        //     "SIGINT",
-        //     "SIGQUIT",
-        //   ] as const,
-        //   Deno.addSignalListener,
-        //   Deno.removeSignalListener,
-        //   (eventType) => eventType,
-        // );
-      } as any,
-      terminalSizeChan: async function* () {
-        if (!Deno.stdin.isTerminal()) {
-          return
-        }
-        // Send the initial terminal size
-        yield Deno.consoleSize()
-        // Send terminal size updates
-        yield* createAsyncGeneratorListener(
-          ['SIGWINCH'],
-          Deno.addSignalListener,
-          Deno.removeSignalListener,
-          Deno.consoleSize,
-        )
+try {
+  // Create the CLI
+  const ctnr = createCli({
+    router,
+    context: await createServerContext({
+      accessToken: session.access_token,
+      refreshToken: session.refresh_token,
+      stdio: {
+        stdin: Deno.stdin.readable,
+        stdout,
+        stderr,
+        exit: Deno.exit.bind(Deno),
+        setRaw: Deno.stdin.setRaw.bind(Deno.stdin),
+        signalChan: function* () {
+          // if (!Deno.stdin.isTerminal()) {
+          //   return;
+          // }
+          // TODO: Implement signal handling when needed
+          // Currently disabled to avoid linting issues
+          // yield; // This will never be reached but satisfies the linter
+          // yield* createAsyncGeneratorListener(
+          //   [
+          //     "SIGINT",
+          //     "SIGQUIT",
+          //   ] as const,
+          //   Deno.addSignalListener,
+          //   Deno.removeSignalListener,
+          //   (eventType) => eventType,
+          // );
+        } as any,
+        terminalSizeChan: async function* () {
+          if (!Deno.stdin.isTerminal()) {
+            return
+          }
+          // Send the initial terminal size
+          yield Deno.consoleSize()
+          // Send terminal size updates
+          yield* createAsyncGeneratorListener(
+            ['SIGWINCH'],
+            Deno.addSignalListener,
+            Deno.removeSignalListener,
+            Deno.consoleSize,
+          )
+        },
       },
-    },
-  }),
-})
+    }),
+  })
 
-ctnr.run()
+  ctnr.run()
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error)
+}

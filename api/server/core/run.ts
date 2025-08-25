@@ -56,7 +56,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input }: ServerRequest<Input>): ServerResponse<Input> {
+export default async function* ({ ctx, input }: ServerRequest<Input>): ServerResponse<void> {
   const {
     name,
     image,
@@ -330,9 +330,15 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       container: name,
       abortSignal: ctx.signal,
     })
-    await logs.pipeTo(ctx.stdio.stdout, {
-      signal: ctx.signal,
-    })
+    if (ctx.stdio) {
+      await logs.pipeTo(ctx.stdio.stdout, {
+        signal: ctx.signal,
+      })
+    } else {
+      for await (const chunk of logs) {
+        yield chunk
+      }
+    }
   }
 }
 

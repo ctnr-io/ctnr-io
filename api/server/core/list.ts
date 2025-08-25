@@ -17,18 +17,40 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
-  const { output = 'wide' } = input
+export type Container = {
+  id: string
+  name: string
+  image: any
+  status: string
+  createdAt: Date
+  ports: string[]
+  cpu: string
+  memory: string
+  replicas: {
+    max: number
+    min: number
+    current: number
+    instances: any[]
+  }
+  routes: string[]
+  clusters: string[]
+}
+
+type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
+  'raw': Container[]
+  'json': string
+  'yaml': string
+  'name': string
+  'wide': void
+}[Type]
+
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Output<NonNullable<typeof input['output']>>> {
+  const { output = 'raw' } = input
 
   // List deployments with label ctnr.io/name
   const deployments = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).getDeploymentList({
     labelSelector: 'ctnr.io/name',
   })
-
-  if (deployments.items.length === 0) {
-    yield 'No containers found.'
-    return
-  }
 
   // Get metrics for all pods in the namespace
   let podMetrics: any[] = []
@@ -98,23 +120,20 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       clusters: clusters,
     }
   }))
+  
 
   switch (output) {
-    case 'raw':
+    case 'raw': 
       return containers
-      break
 
     case 'json':
       return JSON.stringify(containers, null, 2)
-      break
 
     case 'yaml':
       return YAML.stringify(containers)
-      break
 
     case 'name':
-      return containers.map(container => container.name).join('\n')
-      break
+      return containers.map((container) => container.name).join('\n')
 
     case 'wide':
     default:
@@ -141,7 +160,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
 
         yield name + image + status + replicas + cpu + memory + age + ports
       }
-      break
+      return
   }
 }
 

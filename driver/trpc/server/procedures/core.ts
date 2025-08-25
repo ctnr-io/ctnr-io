@@ -14,7 +14,7 @@ export type SubscribeProcedureOutput<Output> = {
   value: string
 } | {
   type: 'return'
-  value: Output
+  value?: Output
 }
 
 function transformSubscribeProcedure<Input, Output, Opts extends { ctx: ServerContext; input: Input }>(

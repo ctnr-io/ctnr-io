@@ -28,7 +28,7 @@ export type Input = z.infer<typeof Input>
 
 const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
   try {
     // First, try to find the deployment
     const deployment = await ctx.kube.client.AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(() =>
@@ -89,7 +89,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       const domain = input.domain.split('.').slice(-2).join('.')
       // Check that the user owns the domain
       const txtRecordName = `ctnr-io-ownership-${userIdShort}.${domain}`
-      const txtRecordValue = hash('sha256', ctx.auth.user.created_at + domain)
+      const txtRecordValue = hash('sha256', ctx.auth.user.createdAt.toString() + domain)
       const values = await resolveTxt(txtRecordName).catch(() => [])
       if (values.flat().includes(txtRecordValue)) {
         yield `Domain ownership for ${domain} already verified.`

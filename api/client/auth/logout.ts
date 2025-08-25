@@ -1,5 +1,4 @@
 import { AuthClientContext } from 'ctx/mod.ts'
-import { createAuthClientContext } from 'ctx/client/auth.ts'
 
 export default async ({ ctx }: { ctx: AuthClientContext }) => {
   try {

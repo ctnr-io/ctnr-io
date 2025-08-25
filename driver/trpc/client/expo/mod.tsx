@@ -8,7 +8,6 @@ import { createTRPCContext } from '@trpc/tanstack-react-query'
 import { createTrpcClientContext, TrpcClientContext } from 'driver/trpc/client/context.ts'
 import { ServerRouter } from '../../server/router.ts'
 import { TRPCClient } from '@trpc/client'
-import { createAuthClientContext } from 'ctx/client/auth.ts'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -78,7 +77,7 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
     })
     setState({
       ctx,
-      server: await (ctx.connect(async ({ server }) => server).catch(() => null)),
+      server: await (ctx.connect(async (server) => server).catch(() => null)),
     })
   }
 

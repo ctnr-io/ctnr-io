@@ -29,6 +29,7 @@ export async function createAuthClientContext(
         email: user.email || '',
         name: user.user_metadata.name || '',
         avatar: user.user_metadata.avatar_url || '',
+        createdAt: new Date(user.created_at) || '',
       },
     },
   }

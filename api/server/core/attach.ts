@@ -20,7 +20,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Input> {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
   const { name, interactive = false, terminal = false } = input
 
   // First, try to find the deployment
@@ -80,7 +80,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   ctx.defer(async () => {
     // Exit with the command's exit code
     const status = await tunnel.status.then((status) => status)
-    ctx.stdio.exit(status.exitCode || 0)
+    ctx.stdio?.exit(status.exitCode || 0)
   })
 
   await handleStreams(ctx, tunnel, interactive, terminal)

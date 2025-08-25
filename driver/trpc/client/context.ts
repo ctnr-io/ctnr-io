@@ -11,9 +11,7 @@ export type TrpcClientContext = ClientContext & {
    * This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
    */
   connect: <R>(
-    callback: ({ server }: {
-      server: TRPCClient<ServerRouter>
-    }) => Promise<R>,
+    callback: (server: TRPCClient<ServerRouter>) => Promise<R>,
   ) => Promise<R>
 }
 
@@ -122,9 +120,7 @@ export async function createTrpcClientContext(
           })()
         }
 
-        return await callback({
-          server: client.trpc,
-        })
+        return await callback(client.trpc)
       } catch (error) {
         if (globalThis.Deno) {
           console.error(error instanceof Error ? error.message : 'An error occurred while executing command.')

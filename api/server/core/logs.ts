@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ContainerName } from '../../_common.ts'
+import { ContainerName, ServerResponse } from '../../_common.ts'
 
 export const Meta = {
   aliases: {
@@ -17,7 +17,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
+export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
   const { name } = input
 
   // First, try to find the deployment
@@ -60,7 +60,14 @@ export default async ({ ctx, input }: { ctx: ServerContext; input: Input }) => {
     abortSignal: ctx.signal,
     follow: input.follow,
   })
-  await logs.pipeTo(ctx.stdio.stdout, {
-    signal: ctx.signal,
-  })
+  if (ctx.stdio) {
+    await logs.pipeTo(ctx.stdio.stdout, {
+      signal: ctx.signal,
+    })
+  } else {
+    // Yield output
+    for await (const chunk of logs) {
+      yield chunk
+    }
+  }
 }

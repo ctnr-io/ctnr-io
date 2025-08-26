@@ -2,7 +2,6 @@
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
-import { useRouter } from 'expo-router'
 import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 
 // Container type definition
@@ -138,17 +137,13 @@ function formatDate(dateString: string) {
 
 export default function ContainersTableScreen({ 
   data, 
-  isLoading = false 
+  isLoading = false,
+  onRowClick,
 }: { 
   data: ContainerData[]
-  isLoading?: boolean 
+  isLoading?: boolean
+  onRowClick: (container: ContainerData) => void
 }) {
-  const router = useRouter()
-
-  const handleRowClick = (container: ContainerData) => {
-    router.push(`/containers/${container.name}`)
-  }
-
   // Define table columns
   const columns: TableColumn<ContainerData>[] = [
     {
@@ -334,9 +329,9 @@ export default function ContainersTableScreen({
       description='Manage and monitor your application containers'
       icon={Container}
       primaryAction={{
-        label: 'Deploy Container',
+        label: 'Run Containers',
         icon: Container,
-        onClick: () => console.log('Deploy container'),
+        onClick: () => console.log('Run containers'),
       }}
       infoDescription='View and manage all your containers in one place. Start, stop, restart, and monitor your containers with real-time status updates. You can also view logs, attach to containers, and manage port forwarding.'
       data={data}
@@ -352,7 +347,7 @@ export default function ContainersTableScreen({
         className: getStatusColor(item.status),
       })}
       mobileCardIcon={(item) => <ContainerImageIcon image={item.image} className='h-4 w-4' />}
-      onRowClick={handleRowClick}
+      onRowClick={onRowClick}
       rowClickable
       searchable
       searchPlaceholder='Search containers by name, image, status, or clusters...'

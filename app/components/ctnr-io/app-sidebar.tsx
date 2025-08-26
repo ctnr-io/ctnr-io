@@ -1,7 +1,7 @@
 import { Container } from 'lucide-react'
 import * as React from 'react'
 
-import { NavMain } from 'app/components/shadcn/nav-main.tsx'
+import { NavMain } from 'app/components/ctnr-io/nav-main.tsx'
 import { NavUser } from 'app/components/ctnr-io/nav-user.tsx'
 import {
   Sidebar,
@@ -35,11 +35,11 @@ const data = {
       items: [
         {
           title: 'List',
-          url: '/containers',
+          url: '/containers' as const,
         },
         {
-          title: 'Deploy',
-          url: '/containers/new',
+          title: 'Run',
+          url: '/containers/run' as const,
         },
       ],
     },

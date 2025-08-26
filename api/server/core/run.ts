@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
 import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
-import { Quantity } from '@cloudydeno/kubernetes-apis/common.ts'
+import { Quantity, toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import attach from './attach.ts'
 import { ContainerName, Publish, ServerRequest, ServerResponse } from '../../_common.ts'
 import * as Route from './route.ts'
@@ -22,11 +22,11 @@ const clusterNames = ['eu-0', 'eu-1', 'eu-2'] as const
 export const Input = z.object({
   name: ContainerName,
   image: z.string()
-    .min(1, 'Container image cannot be empty')
+    .min(1, 'Containers image cannot be empty')
     // TODO: Add image tag validation when stricter security is needed
     // .regex(/^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$/, "Container image must include a tag for security")
     // .refine((img) => !img.includes(":latest"), "Using ':latest' tag is not allowed for security reasons")
-    .describe('Container image to run'),
+    .describe('Containers image to run'),
   env: z.array(
     z.string()
       .regex(/^[A-Z_][A-Z0-9_]*=.*$/, 'Environment variables must follow format KEY=value with uppercase keys'),
@@ -51,7 +51,17 @@ export const Input = z.object({
     .optional()
     .default(1)
     .describe('Number of replicas: single number (e.g., 3) or range (e.g., "1-5" for min-max)'),
-  cluster: z.enum(clusterNames).optional().describe('Cluster to run the container on'),
+  cpu: z.union([
+    z.number().min(1).max(4),
+    z.string().regex(/^\d+m$/, 'CPU limit must be in the format <number>m (e.g., "250m") or <number> (e.g., "1")'),
+  ])
+    .default('250m')
+    .describe('CPU limit for the container: single number (e.g., 1) or number followed by "m" (e.g., "250m")'),
+  memory: z.string()
+    .regex(/^\d+[GM]i$/, 'Memory limit must be a positive integer followed by "Mi" or "Gi" (e.g., "128Mi", "1Gi")')
+    .default('256Mi')
+    .describe('Memory limit for the container'),
+  clusters: z.enum(clusterNames).optional().describe('Cluster to run the container on'),
 })
 
 export type Input = z.infer<typeof Input>
@@ -68,7 +78,9 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
     force,
     command,
     replicas,
-    cluster = clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)],
+    cpu,
+    memory,
+    clusters = [clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)]],
   } = input
 
   // Parse replicas parameter
@@ -85,9 +97,22 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   } else {
     // Single number
     replicaCount = replicas as number
-    minReplicas = Math.max(1, replicaCount)
-    maxReplicas = Math.max(replicaCount, replicaCount * 2)
+    minReplicas = replicaCount
+    maxReplicas = replicaCount
   }
+
+  const labels: Record<string, string> = {}
+  labels['ctnr.io/owner-id'] = ctx.auth.user.id
+  labels['ctnr.io/name'] = name
+  for (const cluster of clusters) {
+    labels[`cluster.ctnr.io/${cluster}`] = 'true'
+  }
+
+  const annotations: Record<string, string> = {}
+  annotations['ctnr.io/min-replicas'] = minReplicas.toString()
+  annotations['ctnr.io/max-replicas'] = maxReplicas.toString()
+  annotations['ctnr.io/cpu'] = `${cpu}`
+  annotations['ctnr.io/memory'] = memory
 
   const deploymentResource: Deployment = {
     apiVersion: 'apps/v1',
@@ -95,15 +120,8 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
     metadata: {
       name,
       namespace: ctx.kube.namespace,
-      labels: {
-        'ctnr.io/owner-id': ctx.auth.user.id,
-        'ctnr.io/name': name,
-        [`cluster.ctnr.io/${cluster}`]: 'true',
-      },
-      annotations: {
-        'ctnr.io/min-replicas': minReplicas.toString(),
-        'ctnr.io/max-replicas': maxReplicas.toString(),
-      },
+      labels,
+      annotations,
     },
     spec: {
       replicas: replicaCount,
@@ -187,9 +205,9 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
               resources: {
                 limits: {
                   // CPU & Memory are namespaced scoped
-                  cpu: new Quantity(250, 'm'), // 125 milliCPU (increased from 100m for better performance)
-                  memory: new Quantity(512, 'M'), // 256 MiB (increased from 256Mi)
-                  'ephemeral-storage': new Quantity(1, 'G'), // Limit ephemeral storage
+                  cpu: toQuantity(cpu), // 125 milliCPU (increased from 100m for better performance)
+                  memory: toQuantity(memory), // 256 MiB (increased from 256Mi)
+                  'ephemeral-storage': toQuantity('1G'), // Limit ephemeral storage
                   // TODO: Add GPU limits when GPU resources are available
                   // "nvidia.com/gpu": new Quantity(1, ""),
                 },
@@ -233,11 +251,13 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   }
 
   // Check if the deployment already exists
-  let deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
+  let deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>
+    null
+  )
   if (deployment) {
     if (force) {
-      yield `Container ${name} already exists. Forcing recreation...`
-      yield `Waiting for container ${name} to be deleted...`
+      yield `Containers ${name} already exist. Forcing recreation...`
+      yield `Waiting for containers ${name} to be deleted...`
       await Promise.all([
         // Wait for deployment to be fully deleted
         waitForDeploymentDeletion(ctx, name),
@@ -253,13 +273,13 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
         }),
       ])
     } else {
-      yield `Container ${name} already exists. Use --force to recreate it.`
+      yield `Containers ${name} already exists. Use --force to recreate it.`
       return
     }
   }
 
   // Create the deployment
-  yield `Container ${name} created. Waiting for it to be ready...`
+  yield `Containers ${name} created. Waiting for it to be ready...`
   await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).createDeployment(deploymentResource, {
     abortSignal: ctx.signal,
   })
@@ -271,11 +291,11 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   })
 
   if (!deployment) {
-    yield `Container ${name} failed to start.`
+    yield `Containers ${name} failed to start.`
     return
   }
 
-  yield `Container ${name} is running with ${replicaCount} replica(s).`
+  yield `Containers ${name} is running with ${replicaCount} replica(s).`
 
   // Get the first pod for interactive/terminal operations
   let pod: Pod | null = null
@@ -289,7 +309,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   // Note: Service management is now handled by the route command
   // The --publish flag only affects container port configuration
   if (publish && publish.length > 0) {
-    yield `Container ports are available for routing.`
+    yield `Containers ports are available for routing.`
 
     if (input.route) {
       yield `Route container ports ${name}...`
@@ -312,7 +332,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
 
   if (detach) {
     // If detach is enabled, just return without attaching
-    yield `Container ${name} is running. Detached successfully.`
+    yield `Containers ${name} is running. Detached successfully.`
     return
   } else if (pod?.status?.phase === 'Running') {
     // Logs

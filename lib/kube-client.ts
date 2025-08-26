@@ -9,6 +9,7 @@ import * as YAML from '@std/yaml'
 import { Quantity, RestClient } from '@cloudydeno/kubernetes-apis/common.ts'
 import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import { match } from 'ts-pattern'
+import { yaml } from '@tmpl/core'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
@@ -1019,9 +1020,9 @@ export const ensureUserNamespace = async (
     spec: {
       overall: {
         'limits.cpu': new Quantity(2000, 'm').serialize(),
-        'limits.memory': new Quantity(4, 'G').serialize(),
+        'limits.memory': new Quantity(4, 'Gi').serialize(),
         'requests.cpu': new Quantity(1000, 'm').serialize(),
-        'requests.memory': new Quantity(2, 'G').serialize(),
+        'requests.memory': new Quantity(2, 'Gi').serialize(),
         // "pods": new Quantity("10"),
         // "services": new Quantity("10"),
         // "persistentvolumeclaims": new Quantity("10"),
@@ -1029,65 +1030,65 @@ export const ensureUserNamespace = async (
     },
   })
 
-  // // Ensure the namespace has correct network policies
-  // const networkPolicyName = 'ctnr-user-network-policy'
-  // const networkPolicy = yaml`
-  //   apiVersion: cilium.io/v2
-  //   kind: CiliumNetworkPolicy
-  //   metadata:
-  //     name: ${networkPolicyName}
-  //     namespace: ${namespaceName}
-  //     labels:
-  //       "ctnr.io/owner-id": ${userId}
-  //       "cluster.ctnr.io/all": "true"
-  //   spec:
-  //     endpointSelector:
-  //       matchLabels:
-  //         "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-  //     ingress:
-  //       # Allow from same namespace
-  //       - fromEndpoints:
-  //           - matchLabels:
-  //               "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-  //       # Allow from ctnr-api
-  //       - fromEndpoints:
-  //           - matchLabels:
-  //               "k8s:io.kubernetes.pod.namespace": ctnr-system
-  //       # Allow from traefik
-  //       - fromEndpoints:
-  //           - matchLabels:
-  //               "k8s:io.kubernetes.pod.namespace": traefik
-  //       # Allow from external/public (outside cluster)
-  //       - fromEntities:
-  //           - world
-  //     egress:
-  //       # Allow to same namespace
-  //       - toEndpoints:
-  //           - matchLabels:
-  //               "k8s:io.kubernetes.pod.namespace": ${namespaceName}
-  //       # Allow DNS to kube-dns/CoreDNS in cluster
-  //       - toEndpoints:
-  //           - matchLabels:
-  //               io.kubernetes.pod.namespace: kube-system
-  //               k8s-app: kube-dns
-  //         toPorts:
-  //           - ports:
-  //             - port: "53"
-  //               protocol: TCP
-  //             - port: "53"
-  //               protocol: UDP
-  //             rules:
-  //               dns:
-  //                 - matchPattern: "*"
-  //       # Allow to traefik
-  //       - toEndpoints:
-  //           - matchLabels:
-  //               "k8s:io.kubernetes.pod.namespace": traefik
-  //       # Allow to external/public (outside cluster)
-  //       - toEntities:
-  //           - world
-  // `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
-  // await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy)
+  // Ensure the namespace has correct network policies
+  const networkPolicyName = 'ctnr-user-network-policy'
+  const networkPolicy = yaml`
+    apiVersion: cilium.io/v2
+    kind: CiliumNetworkPolicy
+    metadata:
+      name: ${networkPolicyName}
+      namespace: ${namespaceName}
+      labels:
+        "ctnr.io/owner-id": ${userId}
+        "cluster.ctnr.io/all": "true"
+    spec:
+      endpointSelector:
+        matchLabels:
+          "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+      ingress:
+        # Allow from same namespace
+        - fromEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+        # Allow from ctnr-api
+        - fromEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": ctnr-system
+        # Allow from traefik
+        - fromEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": traefik
+        # Allow from external/public (outside cluster)
+        - fromEntities:
+            - world
+      egress:
+        # Allow to same namespace
+        - toEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+        # Allow DNS to kube-dns/CoreDNS in cluster
+        - toEndpoints:
+            - matchLabels:
+                io.kubernetes.pod.namespace: kube-system
+                k8s-app: kube-dns
+          toPorts:
+            - ports:
+              - port: "53"
+                protocol: TCP
+              - port: "53"
+                protocol: UDP
+              rules:
+                dns:
+                  - matchPattern: "*"
+        # Allow to traefik
+        - toEndpoints:
+            - matchLabels:
+                "k8s:io.kubernetes.pod.namespace": traefik
+        # Allow to external/public (outside cluster)
+        - toEntities:
+            - world
+  `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
+  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy)
 
   return namespaceName
 }

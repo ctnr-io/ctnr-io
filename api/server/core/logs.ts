@@ -1,11 +1,16 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, ServerResponse } from '../../_common.ts'
+import { combineReadableStreamsToGenerator, createReadableStreamFromAsyncGenerator } from 'lib/streams.ts'
+import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
+import { getPodsFromAllClusters } from './_utils.ts'
 
 export const Meta = {
   aliases: {
     options: {
       'follow': 'f',
+      'tail': 'n',
+      'timestamps': 't',
     },
   },
 }
@@ -13,61 +18,56 @@ export const Meta = {
 export const Input = z.object({
   name: ContainerName,
   follow: z.boolean().optional().default(false).describe('Follow the logs of the container'),
+  replica: z.array(z.string()).optional().describe(
+    'Specific replicas name to get logs from. If not provided, logs from all replicas will be merged',
+  ),
+  tail: z.number().min(1).optional().describe('Number of lines to show from the end of the logs'),
+  timestamps: z.boolean().optional().default(false).describe('Show timestamps in the logs'),
 })
 
 export type Input = z.infer<typeof Input>
 
 export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
-  const { name } = input
+  const { name, replica, follow, timestamps, tail } = input
 
-  // First, try to find the deployment
-  const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
+  const pods = await getPodsFromAllClusters(ctx, name, replica)
 
-  let podName: string
-  let containerName: string = name
+  // Create log streams for each pod
+  const logStreams = (await Promise.all(
+    pods.map(async (podInfo) => {
+      try {
+        const clusterClient = ctx.kube.client[podInfo.cluster as keyof typeof ctx.kube.client]
+        const containerName = podInfo.pod.spec?.containers?.[0]?.name!
+        const name = podInfo.pod.metadata?.name!
 
-  if (deployment) {
-    // Find a running pod from the deployment
-    const pods = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPodList({
-      labelSelector: `ctnr.io/name=${name}`,
-    })
+        const stream = await clusterClient.CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
+          container: containerName,
+          follow,
+          tailLines: tail,
+          timestamps,
+          abortSignal: ctx.signal,
+        })
 
-    const runningPod = pods.items.find((pod) => pod.status?.phase === 'Running')
-    if (!runningPod) {
-      throw new Error(`No running pods found for container ${name}.`)
-    }
+        return { stream, name }
+      } catch (error) {
+        console.warn(`Failed to get logs from pod ${name}:`, error)
+        return null
+      }
+    }),
+  )).filter(Boolean) as { stream: ReadableStream<string>; name: string }[]
 
-    podName = runningPod.metadata?.name || ''
-    // Use the first container name from the pod
-    containerName = runningPod.spec?.containers?.[0]?.name || name
-  } else {
-    // Fallback: try to find the pod directly (for backward compatibility)
-    const podResource = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPod(name).catch(() => null)
-    if (!podResource) {
-      throw new Error(`Container ${name} not found.`)
-    }
-
-    if (podResource.status?.phase !== 'Running') {
-      throw new Error(`Container ${name} is not running (status: ${podResource.status?.phase}).`)
-    }
-
-    podName = name
-    containerName = name
+  if (logStreams.length === 0) {
+    throw new Error(`Failed to get logs from any replica for ${name}`)
   }
 
-  const logs = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).streamPodLog(podName, {
-    container: containerName,
-    abortSignal: ctx.signal,
-    follow: input.follow,
-  })
+  const streamGenerator = combineReadableStreamsToGenerator(logStreams)
   if (ctx.stdio) {
-    await logs.pipeTo(ctx.stdio?.stdout, {
-      signal: ctx.signal,
-    })
+    const stream = createReadableStreamFromAsyncGenerator(streamGenerator)
+    await stream.pipeTo(ctx.stdio.stdout)
+    return
   } else {
-    // Yield output
-    for await (const chunk of logs) {
-      yield chunk
+    for await (const chunk of createReadableStreamFromAsyncGenerator(streamGenerator)) {
+      yield chunk.trimEnd() // Trim to avoid extra new lines
     }
   }
 }

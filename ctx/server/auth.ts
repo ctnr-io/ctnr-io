@@ -30,6 +30,7 @@ export async function createAuthServerContext(
           email: user.email!,
           id: user.id,
           name: user.user_metadata.name,
+          createdAt: new Date(user.created_at),
         },
       },
     }

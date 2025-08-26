@@ -6,6 +6,7 @@ import { Quantity, toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import attach from './attach.ts'
 import { ContainerName, Publish, ServerRequest, ServerResponse } from '../../_common.ts'
 import * as Route from './route.ts'
+import logs from './logs.ts'
 
 export const Meta = {
   aliases: {
@@ -346,19 +347,14 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       },
     })
   } else {
-    const logs = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
-      container: name,
-      abortSignal: ctx.signal,
+    yield *logs({
+      ctx,
+      input: {
+        name,
+        follow: true,
+        timestamps: false,
+      },
     })
-    if (ctx.stdio) {
-      await logs.pipeTo(ctx.stdio?.stdout, {
-        signal: ctx.signal,
-      })
-    } else {
-      for await (const chunk of logs) {
-        yield chunk
-      }
-    }
   }
 }
 

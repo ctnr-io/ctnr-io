@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, ServerResponse } from '../../_common.ts'
-import { handleStreams, setupSignalHandling, setupTerminalHandling } from './_stream-utils.ts'
+import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/streams.ts'
 
 export const Meta = {
   aliases: {

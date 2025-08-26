@@ -148,3 +148,91 @@ export const handleStreams = async (
 
   console.debug(`Stream processing completed with result:`, result)
 }
+
+
+export async function* combineReadableStreamsToGenerator(sources: { stream: ReadableStream<string>; name: string }[]): AsyncIterable<string> {
+  // Extended color palette for pod names (like docker-compose)
+  const colors = [
+    '\x1b[36m', // cyan
+    '\x1b[32m', // green
+    '\x1b[33m', // yellow
+    '\x1b[35m', // magenta
+    '\x1b[34m', // blue
+    '\x1b[31m', // red
+    '\x1b[96m', // bright cyan
+    '\x1b[92m', // bright green
+    '\x1b[93m', // bright yellow
+    '\x1b[95m', // bright magenta
+    '\x1b[94m', // bright blue
+    '\x1b[91m', // bright red
+  ]
+  const reset = '\x1b[0m'
+
+  // Shuffle colors for random assignment
+  const shuffledColors = [...colors].sort(() => Math.random() - 0.5)
+
+  // Create readers with colors
+  let readers = sources.map((source, index) => ({
+    reader: source.stream.getReader(),
+    name: source.name,
+    color: shuffledColors[index % shuffledColors.length],
+    lineQueue: [] as string[], // Queue to hold lines from this reader
+    done: false,
+    promise: null as Promise<void> | null,
+  }))
+
+  while (readers.length) {
+    for (const reader of readers) {
+      if (reader.lineQueue.length !== 0) {
+        // If there are lines in the queue, yield the next one
+        const nextLine = reader.lineQueue.shift()!
+        yield `${reader.color}${reader.name}${reset} | ${nextLine}\n`
+        // round robin through readers to ensure fairness
+        readers.push(readers.shift()!)
+        continue
+      }
+    }
+    for (const reader of readers) {
+      if (reader.lineQueue.length === 0 && reader.done) {
+        readers = readers.filter((r) => r !== reader)
+        continue
+      }
+    }
+    for (const reader of readers) {
+      if (!reader.promise) {
+        reader.promise = (async () => {
+          try {
+            const result = await reader.reader.read()
+            if (result.done) {
+              reader.done = true
+              return
+            }
+            const lines = result.value.trimEnd().split('\n')
+            console.log(`Received log lines from ${reader.name}:`, lines)
+            reader.lineQueue.push(...lines)
+          } catch (error) {
+            console.error(`Error reading logs from ${reader.name}:`, error)
+            reader.done = true
+          } finally {
+            reader.promise = null
+          }
+        })()
+      }
+    }
+    if (readers.length > 0 && readers.every((reader) => reader.lineQueue.length === 0 && !reader.done && reader.promise)) {
+      await Promise.race(readers.map((reader) => reader.promise))
+    }
+  }
+}
+
+// Utility function to create a ReadableStream from an AsyncIterable
+export function createReadableStreamFromAsyncGenerator<T>(iterable: AsyncIterable<T>): ReadableStream<T> {
+  return new ReadableStream({
+    async start(controller) {
+      for await (const chunk of iterable) {
+        controller.enqueue(chunk)
+      }
+      controller.close()
+    },
+  })
+}

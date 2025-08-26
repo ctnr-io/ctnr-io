@@ -53,7 +53,9 @@ export function useExpoTrpcClientContext(): TrpcClientContext {
 }
 
 export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
-  const [state, setState] = useState<{ ctx: TrpcClientContext; server: TRPCClient<TRPCServerRouter> | null } | null>(null)
+  const [state, setState] = useState<{ ctx: TrpcClientContext; server: TRPCClient<TRPCServerRouter> | null } | null>(
+    null,
+  )
   const queryClient = getQueryClient()
 
   const updateState = async () => {
@@ -61,23 +63,23 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
       auth: {
         storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
       },
-      // stdio: {
-      //   stdin: new ReadableStream(),
-      //   stdout: new WritableStream(),
-      //   stderr: new WritableStream(),
-      //   exit: () => {},
-      //   setRaw: () => {},
-      //   signalChan: function* () {
-      //     // TODO: Implement signal handling when needed
-      //   } as any,
-      //   terminalSizeChan: async function* () {
-      //     // TODO: Implement terminal size handling when needed
-      //   },
-      // },
+      stdio: {
+        stdin: new ReadableStream(),
+        stdout: new WritableStream(),
+        stderr: new WritableStream(),
+        exit: () => {},
+        setRaw: () => {},
+        signalChan: function* () {
+          // TODO: Implement signal handling when needed
+        } as any,
+        terminalSizeChan: async function* () {
+          // TODO: Implement terminal size handling when needed
+        },
+      },
     })
     setState({
       ctx,
-      server: await (ctx.connect(async (server) => server).catch(() => null)),
+      server: await (ctx.connect((server) => server).catch(() => null)),
     })
   }
 

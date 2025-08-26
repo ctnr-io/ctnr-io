@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import * as fs from '@std/fs'
+import process from 'node:process'
 
 const homeDir = process.env.HOME || process.env.USERPROFILE || ''
 const configDir = join(homeDir, '.ctnr')

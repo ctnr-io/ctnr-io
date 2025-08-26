@@ -3,6 +3,8 @@
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Download, Pause, Play, RotateCcw, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useSubscription } from '@trpc/tanstack-react-query'
 
 interface ContainerInstance {
   name: string
@@ -16,32 +18,51 @@ interface ContainerLogsProps {
 
 export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
   const [selectedReplica, setSelectedReplica] = useState<string>(replicas?.[0]?.name!)
-  const [logs, setLogs] = useState<string[]>([
-    '[2024-01-15 10:30:15] Starting nginx: nginx.',
-    '[2024-01-15 10:30:15] nginx: [warn] the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2',
-    '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: using the "epoll" event method',
-    '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: nginx/1.25.3',
-    '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: built by gcc 12.2.1 20220924 (Alpine 12.2.1_git20220924-r10)',
-    '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: OS: Linux 6.1.0-17-amd64',
-    '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576',
-    '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: start worker processes',
-    '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: start worker process 29',
-    '[2024-01-15 10:30:16] 172.17.0.1 - - [15/Jan/2024:10:30:16 +0000] "GET / HTTP/1.1" 200 615 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"',
-    '[2024-01-15 10:30:17] 172.17.0.1 - - [15/Jan/2024:10:30:17 +0000] "GET /favicon.ico HTTP/1.1" 404 555 "http://localhost:3000/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"',
-  ])
-  const [isStreaming, setIsStreaming] = useState(true)
+  const [logs, setLogs] = useState<string[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
   const logsContainerRef = useRef<HTMLDivElement>(null)
 
+  const trpc = useTRPC()
+
+  // Logs subscription for streaming
+  const logsSubscription = useSubscription(
+    trpc.core.logs.subscriptionOptions({
+      name: containerName,
+      follow: isStreaming,
+      replica: selectedReplica ? [selectedReplica] : undefined,
+      timestamps: true,
+      tail: 100, // Show last 100 lines initially
+    }, {
+      enabled: isStreaming,
+      onData: (data: { type: 'yield' | 'return'; value?: string }) => {
+        if (data.type === 'yield' && data.value) {
+          setLogs((prev) => [...prev, data.value!])
+          setError(null)
+        } else if (data.type === 'return') {
+          setIsStreaming(false)
+        }
+      },
+      onError: (err: any) => {
+        setError(err.message || 'An error occurred while streaming logs')
+        setIsStreaming(false)
+        setIsLoading(false)
+      },
+    }),
+  )
+
   // Reset logs when replica changes
   useEffect(() => {
-    setLogs([
-      `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] Switched to replica: ${selectedReplica}`,
-      '[2024-01-15 10:30:15] Starting nginx: nginx.',
-      '[2024-01-15 10:30:15] nginx: [warn] the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2',
-      '[2024-01-15 10:30:15] 2024/01/15 10:30:15 [notice] 1#1: using the "epoll" event method',
-    ])
+    setLogs([])
+    setError(null)
+    if (selectedReplica && isStreaming) {
+      // Restart streaming with new replica
+      setIsStreaming(false)
+      setTimeout(() => setIsStreaming(true), 100)
+    }
   }, [selectedReplica])
 
   const getSelectedReplicaName = () => {
@@ -70,33 +91,14 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     }
   }, [logs, autoScroll])
 
-  // Simulate streaming logs
-  useEffect(() => {
-    if (!isStreaming) return
-
-    const interval = setInterval(() => {
-      const newLogMessages = [
-        `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] 172.17.0.1 - - [${
-          new Date().toISOString().slice(0, 19).replace('T', ' ')
-        } +0000] "GET /api/health HTTP/1.1" 200 2 "-" "curl/7.68.0"`,
-        `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] Processing request from 172.17.0.1`,
-        `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] Cache hit for key: user_session_abc123`,
-        `[${new Date().toISOString().slice(0, 19).replace('T', ' ')}] Database query executed in 12ms`,
-      ]
-
-      const randomMessage = newLogMessages[Math.floor(Math.random() * newLogMessages.length)]
-      setLogs((prev) => [...prev, randomMessage])
-    }, 3000)
-
-    return () => clearInterval(interval)
-  }, [isStreaming])
-
   const handleToggleStreaming = () => {
+    setError(null)
     setIsStreaming(!isStreaming)
   }
 
   const handleClearLogs = () => {
     setLogs([])
+    setError(null)
   }
 
   const handleDownloadLogs = () => {
@@ -112,9 +114,26 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const handleRefreshLogs = () => {
-    // In a real implementation, this would fetch fresh logs from the API
-    console.log('Refreshing logs...')
+  const handleRefreshLogs = async () => {
+    setIsLoading(true)
+    setError(null)
+    setLogs([])
+    
+    // Restart streaming to get fresh logs
+    if (isStreaming) {
+      setIsStreaming(false)
+      setTimeout(() => {
+        setIsStreaming(true)
+        setIsLoading(false)
+      }, 100)
+    } else {
+      // If not streaming, do a one-time fetch
+      setIsStreaming(true)
+      setTimeout(() => {
+        setIsStreaming(false)
+        setIsLoading(false)
+      }, 2000)
+    }
   }
 
   const handleScroll = () => {
@@ -139,7 +158,9 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                   key={replica.name}
                   onClick={() => setSelectedReplica(replica.name)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedReplica === replica.name ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                    selectedReplica === replica.name
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
                   <div
@@ -167,6 +188,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
             variant='outline'
             size='sm'
             onClick={handleToggleStreaming}
+            disabled={isLoading}
             className='flex items-center gap-2'
           >
             {isStreaming
@@ -188,10 +210,11 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
             variant='outline'
             size='sm'
             onClick={handleRefreshLogs}
+            disabled={isLoading}
             className='flex items-center gap-2'
           >
-            <RotateCcw className='h-4 w-4' />
-            Refresh
+            <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
 
@@ -218,11 +241,23 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
+          <div className='flex items-center gap-2 text-red-800'>
+            <span className='text-sm font-medium'>Error:</span>
+            <span className='text-sm'>{error}</span>
+          </div>
+        </div>
+      )}
+
       {/* Status */}
       <div className='flex items-center justify-between text-sm text-muted-foreground px-2'>
         <div className='flex items-center gap-4'>
           <span>
-            Status: {isStreaming
+            Status: {isLoading
+              ? <span className='text-blue-600 font-medium'>Loading...</span>
+              : isStreaming
               ? <span className='text-green-600 font-medium'>Streaming</span>
               : <span className='text-yellow-600 font-medium'>Paused</span>}
           </span>

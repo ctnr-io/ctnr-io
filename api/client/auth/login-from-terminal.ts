@@ -14,8 +14,8 @@ export default async function* ({ ctx }: { ctx: AuthClientContext }): ClientResp
         ctx,
         input: {
           redirectTo: redirectUri,
-          provider: 'github'
-        }
+          provider: 'github',
+        },
       })
 
       let oauthUrl: string | null = null
@@ -26,10 +26,10 @@ export default async function* ({ ctx }: { ctx: AuthClientContext }): ClientResp
           // Check if this message contains the OAuth URL
           if (message.startsWith('Open this URL: ')) {
             oauthUrl = message.replace('Open this URL: ', '')
-            
+
             // Open browser instead of just yielding the message
             yield '📱 Opening browser for authentication...'
-            
+
             // Check if running in terminal and try to open browser
             if (typeof Deno !== 'undefined' && Deno.stdin?.isTerminal?.()) {
               try {
@@ -51,11 +51,11 @@ export default async function* ({ ctx }: { ctx: AuthClientContext }): ClientResp
             // Exchange the authorization code for a session
             yield '🔄 Completing authentication...'
             const { data, error } = await ctx.auth.client.exchangeCodeForSession(code)
-            
+
             if (error) {
               throw new Error(`Failed to exchange code for session: ${error.message}`)
             }
-            
+
             if (data.session) {
               yield '✅ Authentication successful!'
               return

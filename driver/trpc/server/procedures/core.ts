@@ -6,8 +6,9 @@ import * as Attach from 'api/server/core/attach.ts'
 import * as Exec from 'api/server/core/exec.ts'
 import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
-import { ServerResponse } from 'api/_common.ts'
+import { ServerRequest, ServerResponse } from 'api/_common.ts'
 import { ServerContext } from 'ctx/mod.ts'
+import { createDeferer } from 'lib/defer.ts'
 
 export type SubscribeProcedureOutput<Output> = {
   type: 'yield'
@@ -17,32 +18,60 @@ export type SubscribeProcedureOutput<Output> = {
   value?: Output
 }
 
-function transformSubscribeProcedure<Input, Output, Opts extends { ctx: ServerContext; input: Input }>(
-  procedure: (opts: Opts) => ServerResponse<Output>,
+type TRPCServerRequest<Input> = { ctx: ServerContext; input: Input; signal: AbortSignal | undefined }
+
+function transformSubscribeProcedure<Input, Output>(
+  procedure: (opts: ServerRequest<Input>) => ServerResponse<Output>,
 ) {
-  return async function* (opts: Opts): AsyncGenerator<SubscribeProcedureOutput<Output>, void, unknown> {
-     const gen = procedure(opts)
-    let result = await gen.next();
-    while (!result.done) {
-      yield { type: 'yield', value: result.value };
-      result = await gen.next();
+  return async function* (
+    opts: TRPCServerRequest<Input>,
+  ): AsyncGenerator<SubscribeProcedureOutput<Output>, void, unknown> {
+    if (!opts.signal) {
+      throw new Error('AbortSignal is required')
     }
-    yield { type: 'return', value: result.value };
-    await opts.ctx.defer.run()
+    const defer = createDeferer()
+    try {
+      const gen = procedure({
+        ctx: opts.ctx,
+        input: opts.input,
+        signal: opts.signal,
+        defer,
+      })
+      let result = await gen.next()
+      while (!result.done) {
+        yield { type: 'yield', value: result.value }
+        result = await gen.next()
+      }
+      yield { type: 'return', value: result.value }
+    } finally {
+      await defer.execute()
+    }
   }
 }
 
-function transformQueryProcedure<Input, Output, Opts extends { ctx: ServerContext; input: Input }>(
-  procedure: (opts: Opts) => ServerResponse<Output>,
+function transformQueryProcedure<Input, Output>(
+  procedure: (opts: ServerRequest<Input>) => ServerResponse<Output>,
 ) {
-  return async function (opts: Opts): Promise<Output> {
-     const gen = procedure(opts)
-    let result = await gen.next();
-    while (!result.done) {
-      result = await gen.next();
+  return async function (opts: TRPCServerRequest<Input>): Promise<Output> {
+    if (!opts.signal) {
+      throw new Error('AbortSignal is required')
     }
-    await opts.ctx.defer.run()
-    return result.value
+    const defer = createDeferer()
+    try {
+      const gen = procedure({
+        ctx: opts.ctx,
+        input: opts.input,
+        signal: opts.signal,
+        defer,
+      })
+      let result = await gen.next()
+      while (!result.done) {
+        result = await gen.next()
+      }
+      return result.value
+    } finally {
+      await defer.execute()
+    }
   }
 }
 

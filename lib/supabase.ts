@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient, SupportedStorage } from '@supabase/supabase-js'
+import process from 'node:process'
 
 export interface SupabaseConfig {
   url: string

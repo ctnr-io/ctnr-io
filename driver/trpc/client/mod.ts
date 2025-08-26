@@ -19,6 +19,10 @@ export async function createTRPCWebSocketClient({
 
   const wsClient = createWSClient({
     url,
+    // lazy: {
+    //   closeMs: 0, // Close the connection after 1 minute of inactivity
+    //   enabled: true,
+    // },
     connectionParams: () => {
       return {
         accessToken,
@@ -40,10 +44,14 @@ export async function createTRPCWebSocketClient({
       if (code !== 1000) { // 1000 is normal closure
         console.error(reason || 'Unexpected error')
         reject(new Error(reason))
-        // Deno.exit(code)
+        if (globalThis.Deno) {
+          Deno.exit(code)
+        }
       } else {
         resolve()
-        // Deno.exit(0)
+        if (globalThis.Deno) {
+          Deno.exit(0)
+        }
       }
     },
   })

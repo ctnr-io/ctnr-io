@@ -4,10 +4,12 @@ import { z } from 'zod'
 
 export const Input = z.object({
   redirectTo: z.string().url().describe('The URL to redirect to after authentication'),
-  provider: z.enum(['github']).describe('The OAuth provider to use for authentication')
+  provider: z.enum(['github']).describe('The OAuth provider to use for authentication'),
 })
 
-export default async function* ({ ctx, input }: { ctx: AuthClientContext, input: z.infer<typeof Input> }): ClientResponse {
+export default async function* (
+  { ctx, input }: { ctx: AuthClientContext; input: z.infer<typeof Input> },
+): ClientResponse {
   try {
     const { redirectTo, provider } = input
 
@@ -17,7 +19,7 @@ export default async function* ({ ctx, input }: { ctx: AuthClientContext, input:
       yield `🔑 Authenticated as ${session.user?.email || 'user'}.`
       return
     }
-    
+
     yield '🔑 Starting OAuth flow...'
 
     // Start OAuth flow with GitHub using Supabase
@@ -43,16 +45,16 @@ export default async function* ({ ctx, input }: { ctx: AuthClientContext, input:
     // Wait for the session to be established
     let attempts = 0
     const maxAttempts = 60 // Wait up to 60 seconds
-    
+
     while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       const { data: { session: newSession } } = await ctx.auth.client.getSession()
       if (newSession?.access_token) {
         yield '✅ Authentication successful!'
         return
       }
-      
+
       attempts++
     }
 

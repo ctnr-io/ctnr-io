@@ -132,7 +132,7 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
   } catch (error) {
     if (error instanceof Error) {
       console.error(error)
-      ws.close(1011, "An internal server error occurred")
+      ws.close(1011, 'An internal server error occurred')
     }
     throw error
   }

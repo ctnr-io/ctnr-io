@@ -1,4 +1,5 @@
 import { match } from 'ts-pattern'
+import process from 'node:process'
 
 enum LogLevel {
   Info = 2,

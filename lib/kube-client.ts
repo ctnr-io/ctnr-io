@@ -6,18 +6,18 @@ import { RawKubeConfig } from '@cloudydeno/kubernetes-client/lib/kubeconfig.ts'
 import { ApiextensionsV1Api } from '@cloudydeno/kubernetes-apis/apiextensions.k8s.io/v1'
 import { AutoscalingV1Api } from '@cloudydeno/kubernetes-apis/autoscaling.k8s.io/v1'
 import * as YAML from '@std/yaml'
-import { Quantity, RestClient } from '@cloudydeno/kubernetes-apis/common.ts'
+import { Quantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import { match } from 'ts-pattern'
 import { yaml } from '@tmpl/core'
+import process from 'node:process'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
 export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
-  let client: RestClient
   const decoder = new TextDecoder('utf-8')
   const kubeconfigFile = decoder.decode(await Deno.readFile(kubeconfig))
-  client = await SpdyEnabledRestClient.forKubeConfig(
+  const client = await SpdyEnabledRestClient.forKubeConfig(
     new KubeConfig(YAML.parse(kubeconfigFile.toString()) as RawKubeConfig) as any,
     context,
   )
@@ -646,7 +646,7 @@ async function ensureNamespace(kc: KubeClient, namespace: Namespace): Promise<vo
     )
 }
 
-async function ensureResourceQuota(
+async function _ensureResourceQuota(
   kc: KubeClient,
   namespace: string,
   resourceQuota: ResourceQuota,

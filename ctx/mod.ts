@@ -1,9 +1,5 @@
 import { KubeClient } from 'lib/kube-client.ts'
-import { Session, SupabaseClient, User } from '@supabase/supabase-js'
-
-export type SignalContext = {
-  signal: AbortSignal | undefined
-}
+import { Session, SupabaseClient } from '@supabase/supabase-js'
 
 export type Signals =
   | 'SIGINT'
@@ -27,13 +23,6 @@ export type KubeContext = {
   kube: {
     client: Record<KubeCluster, KubeClient>
     namespace: string
-  }
-}
-
-export type DeferServerContext = {
-  defer: {
-    (fn: () => any): number
-    run(): Promise<void>
   }
 }
 
@@ -72,7 +61,7 @@ export type AuthClientContext =
     }
   })
 
-export type ServerContext = SignalContext & StdioContext & KubeContext & AuthServerContext & DeferServerContext & {
+export type ServerContext = StdioContext & KubeContext & AuthServerContext & {
   __type: 'server'
 }
-export type ClientContext = SignalContext & StdioContext & AuthClientContext & { __type: 'client' }
+export type ClientContext = StdioContext & AuthClientContext & { __type: 'client' }

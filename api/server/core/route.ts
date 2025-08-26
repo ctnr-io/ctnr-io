@@ -31,8 +31,8 @@ const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid2
 export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
   try {
     // First, try to find the deployment
-    const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(() =>
-      null
+    const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(
+      () => null,
     )
 
     let containerPorts: any[] = []

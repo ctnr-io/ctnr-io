@@ -4,6 +4,7 @@ import { createTrpcClientContext } from '../context.ts'
 import { clientRouter } from '../router.ts'
 import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
 import { authStorage } from './storage.ts'
+import process from 'node:process'
 
 try {
   const clientCli = createCli({
@@ -54,8 +55,8 @@ try {
 
   await clientCli.run({
     logger: {
-      info: console.warn
-    }
+      info: console.warn,
+    },
   })
 } catch (error) {
   console.debug(error)

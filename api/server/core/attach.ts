@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ContainerName, ServerResponse } from '../../_common.ts'
+import { ContainerName, ServerRequest, ServerResponse } from '../../_common.ts'
 import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/streams.ts'
+import { getPodsFromAllClusters } from './_utils.ts'
 
 export const Meta = {
   aliases: {
@@ -16,72 +17,50 @@ export const Input = z.object({
   name: ContainerName,
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
+  replica: z.string().optional().describe(
+    'Specific replica name to attach to. If not provided, will attach to the first available replica',
+  ),
 })
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
-  const { name, interactive = false, terminal = false } = input
+export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
+  const { name, interactive = false, terminal = false, replica } = input
 
-  // First, try to find the deployment
-  const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
+  const pods = await getPodsFromAllClusters(ctx, name, replica ? [replica] : undefined)
 
-  let podName: string
-  let containerName: string = name
-
-  if (deployment) {
-    // Find a running pod from the deployment
-    const pods = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPodList({
-      labelSelector: `ctnr.io/name=${name}`,
-    })
-
-    const runningPod = pods.items.find((pod) => pod.status?.phase === 'Running')
-    if (!runningPod) {
-      yield `No running pods found for container ${name}.`
-      return
-    }
-
-    podName = runningPod.metadata?.name || ''
-    // Use the first container name from the pod
-    containerName = runningPod.spec?.containers?.[0]?.name || name
-  } else {
-    // Fallback: try to find the pod directly (for backward compatibility)
-    const podResource = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPod(name).catch(() => null)
-    if (!podResource) {
-      yield `Container ${name} not found.`
-      return
-    }
-
-    if (podResource.status?.phase !== 'Running') {
-      yield `Container ${name} is not running (status: ${podResource.status?.phase}).`
-      return
-    }
-
-    podName = name
-    containerName = name
+  if (pods.length === 0) {
+    yield `No running pods found for container ${name}.`
+    return
   }
 
-  const tunnel = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).tunnelPodAttach(podName, {
+  // Use the first available pod
+  const podInfo = pods[0]
+  const podName = podInfo.pod.metadata?.name!
+  const containerName = podInfo.pod.spec?.containers?.[0]?.name!
+  const clusterClient = ctx.kube.client[podInfo.cluster as keyof typeof ctx.kube.client]
+
+  const tunnel = await clusterClient.CoreV1.namespace(ctx.kube.namespace).tunnelPodAttach(podName, {
     stdin: interactive,
     tty: terminal,
     stdout: true,
     stderr: true,
-    abortSignal: ctx.signal,
+    abortSignal: signal,
     container: containerName,
   })
 
-  setupSignalHandling(ctx, tunnel, terminal, interactive)
-  setupTerminalHandling(ctx, tunnel, terminal, interactive)
+  setupSignalHandling({ ctx, defer, tunnel, terminal, interactive })
+  setupTerminalHandling({ ctx, defer, tunnel, terminal, interactive })
 
   if (interactive) {
     yield `Press ENTER if you don't see a command prompt.`
   }
 
-  ctx.defer(async () => {
+  defer(async () => {
     // Exit with the command's exit code
     const status = await tunnel.status.then((status) => status)
     ctx.stdio?.exit(status.exitCode || 0)
   })
 
-  await handleStreams(ctx, tunnel, interactive, terminal)
+  await handleStreams({ ctx, signal, defer, tunnel, interactive, terminal })
 }

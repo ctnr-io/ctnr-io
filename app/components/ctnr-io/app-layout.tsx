@@ -14,15 +14,14 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from 'app/components/sh
 import { PropsWithChildren } from 'react'
 
 export default function AppLayout({ user, onLogout, children }: PropsWithChildren<{
-	user: {
-		id: string
-		name: string
-		email: string
-		avatar: string
-	}
-	onLogout: () => Promise<void>
+  user: {
+    id: string
+    name: string
+    email: string
+    avatar: string
+  }
+  onLogout: () => Promise<void>
 }>) {
-
   return (
     <SidebarProvider>
       <AppSidebar user={user} onLogout={onLogout} />
@@ -50,7 +49,7 @@ export default function AppLayout({ user, onLogout, children }: PropsWithChildre
           </div>
         </header>
         <div className='flex flex-1 flex-col bg-white'>
-         {children} 
+          {children}
         </div>
       </SidebarInset>
     </SidebarProvider>

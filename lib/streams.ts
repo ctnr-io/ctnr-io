@@ -1,4 +1,5 @@
 import { ServerContext } from 'ctx/mod.ts'
+import { Deferer } from './defer.ts'
 
 export const createCtrlPCtrlQHandler = ({ interactive, terminal, stderr }: {
   interactive: boolean
@@ -40,17 +41,26 @@ export interface StreamTunnel {
 }
 
 export const setupSignalHandling = (
-  ctx: ServerContext,
-  tunnel: { ttyWriteSignal?: (signal: 'INTR' | 'QUIT' | 'SUSP') => Promise<void> },
-  terminal: boolean,
-  interactive: boolean,
+  {
+    ctx,
+    tunnel,
+    defer,
+    terminal,
+    interactive,
+  }: {
+    ctx: ServerContext
+    defer: Deferer
+    tunnel: { ttyWriteSignal?: (signal: 'INTR' | 'QUIT' | 'SUSP') => Promise<void> }
+    terminal: boolean
+    interactive: boolean
+  },
 ) => {
   if (!ctx.stdio) {
     return
   }
   if (terminal) {
     const signalChanAsyncGenerator = ctx.stdio.signalChan()
-    ctx.defer(() => signalChanAsyncGenerator.return())
+    defer(() => signalChanAsyncGenerator.return())
     ;(async () => {
       for await (const signal of signalChanAsyncGenerator) {
         switch (signal) {
@@ -70,18 +80,25 @@ export const setupSignalHandling = (
   }
 }
 
-export const setupTerminalHandling = (
-  ctx: ServerContext,
-  tunnel: StreamTunnel,
-  terminal: boolean,
-  interactive: boolean,
-) => {
+export const setupTerminalHandling = ({
+  ctx,
+  tunnel,
+  defer,
+  terminal,
+  interactive,
+}: {
+  ctx: ServerContext
+  defer: Deferer
+  tunnel: StreamTunnel
+  terminal: boolean
+  interactive: boolean
+}) => {
   if (!ctx.stdio) {
     return
   }
   if (terminal) {
     const terminalSizeAsyncGenerator = ctx.stdio.terminalSizeChan()
-    ctx.defer(() => terminalSizeAsyncGenerator.return())
+    defer(() => terminalSizeAsyncGenerator.return())
     ;(async () => {
       for await (const terminalSize of terminalSizeAsyncGenerator) {
         tunnel.ttySetSize?.(terminalSize)
@@ -91,27 +108,27 @@ export const setupTerminalHandling = (
 
   if (terminal && interactive) {
     ctx.stdio.setRaw(true)
-    ctx.defer(() => ctx.stdio?.setRaw(false))
+    defer(() => ctx.stdio?.setRaw(false))
   }
 }
 
-export const handleStreams = async (
-  ctx: ServerContext,
-  tunnel: StreamTunnel,
-  interactive: boolean,
-  terminal: boolean,
-): Promise<void> => {
+export const handleStreams = async ({
+  ctx,
+  signal,
+  tunnel,
+  interactive,
+  terminal,
+}: {
+  ctx: ServerContext
+  signal: AbortSignal
+  defer: Deferer
+  tunnel: Partial<StreamTunnel>
+  interactive: boolean
+  terminal: boolean
+}): Promise<void> => {
   if (!ctx.stdio) {
     return
   }
-
-  const stdioController = new AbortController()
-  ctx.signal?.addEventListener('abort', () => {
-    stdioController.abort()
-  })
-  ctx.defer(() => {
-    ctx.signal?.removeEventListener('abort', stdioController.abort)
-  })
 
   const handleCtrlPCtrlQStream = new TransformStream({
     transform: createCtrlPCtrlQHandler({
@@ -125,23 +142,39 @@ export const handleStreams = async (
   const streamPromises: Promise<any>[] = []
 
   // Always pipe stdout and stderr from container to local streams
-  streamPromises.push(
-    tunnel.stdout
-      .pipeTo(ctx.stdio.stdout, { signal: stdioController.signal })
-      .catch(console.debug),
-  )
+  if (tunnel.stdout) {
+    streamPromises.push(
+      tunnel.stdout
+        .pipeTo(ctx.stdio.stdout, {
+          signal,
+          preventAbort: true,
+          preventCancel: true,
+          preventClose: true,
+        })
+        .catch(console.debug),
+    )
+  }
 
-  streamPromises.push(
-    tunnel.stderr
-      .pipeTo(ctx.stdio.stderr, { signal: stdioController.signal })
-      .catch(console.debug),
-  )
+  if (tunnel.stderr) {
+    streamPromises.push(
+      tunnel.stderr
+        .pipeTo(ctx.stdio.stderr, {
+          signal,
+          preventAbort: true,
+          preventCancel: true,
+          preventClose: true,
+        })
+        .catch(console.debug),
+    )
+  }
 
-  streamPromises.push(
-    ctx.stdio.stdin
-      .pipeThrough(handleCtrlPCtrlQStream)
-      .pipeTo(interactive ? tunnel.stdin : new WritableStream()).catch(console.debug),
-  )
+  if (tunnel.stdin) {
+    streamPromises.push(
+      ctx.stdio.stdin
+        .pipeThrough(handleCtrlPCtrlQStream)
+        .pipeTo(interactive ? tunnel.stdin : new WritableStream()).catch(console.debug),
+    )
+  }
 
   // Wait for any stream to complete
   const result = await Promise.any(streamPromises)
@@ -149,8 +182,9 @@ export const handleStreams = async (
   console.debug(`Stream processing completed with result:`, result)
 }
 
-
-export async function* combineReadableStreamsToGenerator(sources: { stream: ReadableStream<string>; name: string }[]): AsyncIterable<string> {
+export async function* combineReadableStreamsToGenerator(
+  sources: { stream: ReadableStream<string>; name: string }[],
+): AsyncIterable<string> {
   // Extended color palette for pod names (like docker-compose)
   const colors = [
     '\x1b[36m', // cyan
@@ -208,7 +242,6 @@ export async function* combineReadableStreamsToGenerator(sources: { stream: Read
               return
             }
             const lines = result.value.trimEnd().split('\n')
-            console.log(`Received log lines from ${reader.name}:`, lines)
             reader.lineQueue.push(...lines)
           } catch (error) {
             console.error(`Error reading logs from ${reader.name}:`, error)
@@ -219,7 +252,9 @@ export async function* combineReadableStreamsToGenerator(sources: { stream: Read
         })()
       }
     }
-    if (readers.length > 0 && readers.every((reader) => reader.lineQueue.length === 0 && !reader.done && reader.promise)) {
+    if (
+      readers.length > 0 && readers.every((reader) => reader.lineQueue.length === 0 && !reader.done && reader.promise)
+    ) {
       await Promise.race(readers.map((reader) => reader.promise))
     }
   }

@@ -4,6 +4,7 @@ import { bypassWebSocketMessageHandler } from 'lib/websocket.ts'
 import { ClientContext } from 'ctx/mod.ts'
 import type { TRPCServerRouter } from 'driver/trpc/server/router.ts'
 import { createTRPCWebSocketClient } from './mod.ts'
+import process from 'node:process'
 
 export type TrpcClientContext = ClientContext & {
   /**

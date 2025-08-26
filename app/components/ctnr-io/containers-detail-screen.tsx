@@ -11,7 +11,7 @@ interface ContainerData {
   name: string
   image: any
   status: string
-  createdAt: Date 
+  createdAt: Date
   ports: string[]
   cpu: string
   memory: string
@@ -38,7 +38,7 @@ interface ContainerData {
 }
 
 // Fallback container data for when no data is available
-const fallbackContainerData = {
+const _fallbackContainerData = {
   name: 'web-app-frontend',
   image: 'nginx:alpine',
   status: 'running',
@@ -121,36 +121,38 @@ function formatDate(dateString: string) {
 }
 
 export function ContainersDetailScreen(props: {
-  data: ContainerData,
-  isLoading: boolean,
+  data: ContainerData
+  isLoading: boolean
 }) {
-  const {isLoading } = props
+  const { isLoading } = props
 
   // Create skeleton data for loading state
-  const data = isLoading ? {
-    name: '',
-    image: '',
-    status: '',
-    createdAt: new Date(),
-    ports: [],
-    cpu: '',
-    memory: '',
-    replicas: {
-      max: 0,
-      min: 0,
-      current: 0,
-      instances: []
-    },
-    routes: [],
-    clusters: [],
-    restartPolicy: '',
-    command: [],
-    workingDir: '',
-    environment: {},
-    volumes: [],
-    networks: [],
-    labels: {}
-  } : props.data
+  const data = isLoading
+    ? {
+      name: '',
+      image: '',
+      status: '',
+      createdAt: new Date(),
+      ports: [],
+      cpu: '',
+      memory: '',
+      replicas: {
+        max: 0,
+        min: 0,
+        current: 0,
+        instances: [],
+      },
+      routes: [],
+      clusters: [],
+      restartPolicy: '',
+      command: [],
+      workingDir: '',
+      environment: {},
+      volumes: [],
+      networks: [],
+      labels: {},
+    }
+    : props.data
 
   // // Show error state
   // if (error) {
@@ -363,58 +365,62 @@ export function ContainersDetailScreen(props: {
           key: 'ports',
           label: 'Port Mappings',
           value: data.ports,
-          render: isLoading ? () => (
-            <div className='space-y-1'>
-              <Skeleton className='h-6 w-24' />
-              <Skeleton className='h-6 w-28' />
-            </div>
-          ) : (ports: string[]) => (
-            <div className='space-y-1'>
-              {ports.length === 0 ? <span className='text-muted-foreground'>No ports configured</span> : (
-                ports.map((port, index) => (
-                  <div key={index} className='font-mono text-sm bg-muted px-2 py-1 rounded'>
-                    {port}
-                  </div>
-                ))
-              )}
-            </div>
-          ),
+          render: isLoading
+            ? () => (
+              <div className='space-y-1'>
+                <Skeleton className='h-6 w-24' />
+                <Skeleton className='h-6 w-28' />
+              </div>
+            )
+            : (ports: string[]) => (
+              <div className='space-y-1'>
+                {ports.length === 0 ? <span className='text-muted-foreground'>No ports configured</span> : (
+                  ports.map((port, index) => (
+                    <div key={index} className='font-mono text-sm bg-muted px-2 py-1 rounded'>
+                      {port}
+                    </div>
+                  ))
+                )}
+              </div>
+            ),
         },
         {
           key: 'routes',
           label: 'Routes',
           value: data.routes,
-          render: isLoading ? () => (
-            <div className='space-y-1'>
-              <Skeleton className='h-6 w-48' />
-              <Skeleton className='h-6 w-40' />
-            </div>
-          ) : (routes: string[]) => (
-            <div className='space-y-1'>
-              {routes.length === 0 ? <span className='text-muted-foreground'>No routes configured</span> : (
-                routes.map((route, index) => (
-                  <div key={index} className='flex items-center gap-2'>
-                    <a
-                      href={route}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='text-blue-600 hover:text-blue-800 underline text-sm font-mono bg-muted px-2 py-1 rounded'
-                    >
-                      {route}
-                    </a>
-                    <button
-                      type='button'
-                      onClick={() => navigator.clipboard.writeText(route)}
-                      className='p-1 hover:bg-muted rounded'
-                      title='Copy route URL'
-                    >
-                      <Copy className='h-3 w-3' />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          ),
+          render: isLoading
+            ? () => (
+              <div className='space-y-1'>
+                <Skeleton className='h-6 w-48' />
+                <Skeleton className='h-6 w-40' />
+              </div>
+            )
+            : (routes: string[]) => (
+              <div className='space-y-1'>
+                {routes.length === 0 ? <span className='text-muted-foreground'>No routes configured</span> : (
+                  routes.map((route, index) => (
+                    <div key={index} className='flex items-center gap-2'>
+                      <a
+                        href={route}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-blue-600 hover:text-blue-800 underline text-sm font-mono bg-muted px-2 py-1 rounded'
+                      >
+                        {route}
+                      </a>
+                      <button
+                        type='button'
+                        onClick={() => navigator.clipboard.writeText(route)}
+                        className='p-1 hover:bg-muted rounded'
+                        title='Copy route URL'
+                      >
+                        <Copy className='h-3 w-3' />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            ),
         },
         {
           key: 'workingDir',
@@ -428,17 +434,19 @@ export function ContainersDetailScreen(props: {
     {
       title: 'Environment Variables',
       description: 'Environment variables configured for this container',
-      fields: isLoading ? [
-        { key: 'env1', label: 'Loading...', value: '', render: () => <Skeleton className='h-4 w-24' /> },
-        { key: 'env2', label: 'Loading...', value: '', render: () => <Skeleton className='h-4 w-32' /> },
-        { key: 'env3', label: 'Loading...', value: '', render: () => <Skeleton className='h-4 w-28' /> },
-      ] : Object.entries(data.environment).map(([key, value]) => ({
-        key,
-        label: key,
-        value,
-        copyable: true,
-        className: 'font-mono text-sm',
-      })),
+      fields: isLoading
+        ? [
+          { key: 'env1', label: 'Loading...', value: '', render: () => <Skeleton className='h-4 w-24' /> },
+          { key: 'env2', label: 'Loading...', value: '', render: () => <Skeleton className='h-4 w-32' /> },
+          { key: 'env3', label: 'Loading...', value: '', render: () => <Skeleton className='h-4 w-28' /> },
+        ]
+        : Object.entries(data.environment).map(([key, value]) => ({
+          key,
+          label: key,
+          value,
+          copyable: true,
+          className: 'font-mono text-sm',
+        })),
     },
     {
       title: 'Storage & Networking',
@@ -448,22 +456,24 @@ export function ContainersDetailScreen(props: {
           key: 'volumes',
           label: 'Volume Mounts',
           value: data.volumes,
-          render: isLoading ? () => (
-            <div className='space-y-1'>
-              <Skeleton className='h-6 w-40' />
-              <Skeleton className='h-6 w-36' />
-            </div>
-          ) : (volumes: string[]) => (
-            <div className='space-y-1'>
-              {volumes.length === 0 ? <span className='text-muted-foreground'>No volumes configured</span> : (
-                volumes.map((volume, index) => (
-                  <div key={index} className='font-mono text-sm bg-muted px-2 py-1 rounded'>
-                    {volume}
-                  </div>
-                ))
-              )}
-            </div>
-          ),
+          render: isLoading
+            ? () => (
+              <div className='space-y-1'>
+                <Skeleton className='h-6 w-40' />
+                <Skeleton className='h-6 w-36' />
+              </div>
+            )
+            : (volumes: string[]) => (
+              <div className='space-y-1'>
+                {volumes.length === 0 ? <span className='text-muted-foreground'>No volumes configured</span> : (
+                  volumes.map((volume, index) => (
+                    <div key={index} className='font-mono text-sm bg-muted px-2 py-1 rounded'>
+                      {volume}
+                    </div>
+                  ))
+                )}
+              </div>
+            ),
         },
       ],
     },
@@ -520,88 +530,93 @@ export function ContainersDetailScreen(props: {
               <div className='border-t pt-6'>
                 <h3 className='text-lg font-semibold text-foreground mb-4'>Replica Instances</h3>
                 <div className='space-y-4'>
-                  {isLoading ? (
-                    // Show skeleton instances when loading
-                    [...Array(3)].map((_, index) => (
-                      <div key={`skeleton-instance-${index}`} className='border rounded-lg p-4'>
-                        <div className='flex items-center justify-between mb-3'>
-                          <div className='flex items-center gap-3'>
+                  {isLoading
+                    ? (
+                      // Show skeleton instances when loading
+                      [...Array(3)].map((_, index) => (
+                        <div key={`skeleton-instance-${index}`} className='border rounded-lg p-4'>
+                          <div className='flex items-center justify-between mb-3'>
+                            <div className='flex items-center gap-3'>
+                              <div className='flex items-center gap-2'>
+                                <Skeleton className='w-3 h-3 rounded-full' />
+                                <Skeleton className='h-4 w-32' />
+                              </div>
+                              <Skeleton className='h-5 w-16 rounded-full' />
+                            </div>
+                            <Skeleton className='h-8 w-8' />
+                          </div>
+                          <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
+                            <div>
+                              <div className='text-muted-foreground'>CPU</div>
+                              <Skeleton className='h-4 w-12 mt-1' />
+                            </div>
+                            <div>
+                              <div className='text-muted-foreground'>Memory</div>
+                              <Skeleton className='h-4 w-14 mt-1' />
+                            </div>
+                          </div>
+                          <div className='mt-3'>
+                            <Skeleton className='h-3 w-40' />
+                          </div>
+                        </div>
+                      ))
+                    )
+                    : (
+                      data.replicas.instances.map((instance: any) => (
+                        <div key={instance.name} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
+                          <div className='flex items-center justify-between mb-3'>
+                            <div className='flex items-center gap-3'>
+                              <div className='flex items-center gap-2'>
+                                <div
+                                  className={`w-3 h-3 rounded-full ${
+                                    instance.status === 'running'
+                                      ? 'bg-green-500'
+                                      : instance.status === 'starting'
+                                      ? 'bg-yellow-500'
+                                      : 'bg-red-500'
+                                  }`}
+                                >
+                                </div>
+                                <span className='font-medium'>{instance.name}</span>
+                              </div>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  getStatusColor(instance.status)
+                                }`}
+                              >
+                                {instance.status}
+                              </span>
+                            </div>
                             <div className='flex items-center gap-2'>
-                              <Skeleton className='w-3 h-3 rounded-full' />
-                              <Skeleton className='h-4 w-32' />
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  navigator.clipboard.writeText(instance.name)}
+                                className='p-1 hover:bg-muted rounded'
+                                title='Copy instance ID'
+                              >
+                                <Copy className='h-4 w-4' />
+                              </button>
                             </div>
-                            <Skeleton className='h-5 w-16 rounded-full' />
                           </div>
-                          <Skeleton className='h-8 w-8' />
-                        </div>
-                        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
-                          <div>
-                            <div className='text-muted-foreground'>CPU</div>
-                            <Skeleton className='h-4 w-12 mt-1' />
-                          </div>
-                          <div>
-                            <div className='text-muted-foreground'>Memory</div>
-                            <Skeleton className='h-4 w-14 mt-1' />
-                          </div>
-                        </div>
-                        <div className='mt-3'>
-                          <Skeleton className='h-3 w-40' />
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    data.replicas.instances.map((instance: any) => (
-                      <div key={instance.name} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
-                      <div className='flex items-center justify-between mb-3'>
-                        <div className='flex items-center gap-3'>
-                          <div className='flex items-center gap-2'>
-                            <div
-                              className={`w-3 h-3 rounded-full ${
-                                instance.status === 'running'
-                                  ? 'bg-green-500'
-                                  : instance.status === 'starting'
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
-                              }`}
-                            >
+
+                          <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
+                            <div>
+                              <div className='text-muted-foreground'>CPU</div>
+                              <div className='font-mono'>{instance.cpu}</div>
                             </div>
-                            <span className='font-medium'>{instance.name}</span>
+                            <div>
+                              <div className='text-muted-foreground'>Memory</div>
+                              <div className='font-mono'>{instance.memory}</div>
+                            </div>
                           </div>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(instance.status)}`}
-                          >
-                            {instance.status}
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <button
-                            type='button'
-                            onClick={() =>
-                              navigator.clipboard.writeText(instance.name)}
-                            className='p-1 hover:bg-muted rounded'
-                            title='Copy instance ID'
-                          >
-                            <Copy className='h-4 w-4' />
-                          </button>
-                        </div>
-                      </div>
 
-                      <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
-                        <div>
-                          <div className='text-muted-foreground'>CPU</div>
-                          <div className='font-mono'>{instance.cpu}</div>
+                          <div className='mt-3 text-xs text-muted-foreground'>
+                            Created: {formatDate(instance.created)}
+                          </div>
                         </div>
-                        <div>
-                          <div className='text-muted-foreground'>Memory</div>
-                          <div className='font-mono'>{instance.memory}</div>
-                        </div>
-                      </div>
-
-                      <div className='mt-3 text-xs text-muted-foreground'>
-                        Created: {formatDate(instance.created)}
-                      </div>
-                    </div>
-                  )))}
+                      ))
+                    )}
                 </div>
               </div>
             </div>

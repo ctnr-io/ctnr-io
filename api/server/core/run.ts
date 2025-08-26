@@ -2,11 +2,12 @@ import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
 import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
-import { Quantity, toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
+import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import attach from './attach.ts'
 import { ContainerName, Publish, ServerRequest, ServerResponse } from '../../_common.ts'
 import * as Route from './route.ts'
 import logs from './logs.ts'
+import { getPodsFromAllClusters } from './_utils.ts'
 
 export const Meta = {
   aliases: {
@@ -62,7 +63,7 @@ export const Input = z.object({
     .regex(/^\d+[GM]i$/, 'Memory limit must be a positive integer followed by "Mi" or "Gi" (e.g., "128Mi", "1Gi")')
     .default('256Mi')
     .describe('Memory limit for the container'),
-  clusters: z.enum(clusterNames).optional().describe('Cluster to run the container on'),
+  clusters: z.array(z.enum(clusterNames)).optional().describe('Clusters to run the container on'),
 })
 
 export type Input = z.infer<typeof Input>
@@ -301,10 +302,18 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   // Get the first pod for interactive/terminal operations
   let pod: Pod | null = null
   if (interactive || terminal || !detach) {
-    const pods = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPodList({
-      labelSelector: `ctnr.io/name=${name}`,
-    })
-    pod = pods.items.find((p) => p.status?.phase === 'Running') || null
+    // Use the same multi-cluster approach as logs/attach/exec
+    try {
+      const pods = await getPodsFromAllClusters(ctx, name)
+      pod = pods.length > 0 ? pods[0].pod : null
+    } catch (error) {
+      console.warn(`Failed to get pods from clusters:`, error)
+      // Fallback to checking eu cluster directly
+      const pods = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPodList({
+        labelSelector: `ctnr.io/name=${name}`,
+      })
+      pod = pods.items.find((p) => p.status?.phase === 'Running') || null
+    }
   }
 
   // Note: Service management is now handled by the route command
@@ -347,7 +356,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       },
     })
   } else {
-    yield *logs({
+    yield* logs({
       ctx,
       input: {
         name,

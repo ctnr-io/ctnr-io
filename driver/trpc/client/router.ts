@@ -26,7 +26,7 @@ function transformSubscribeResolver<
     onData?: (data: SubscribeProcedureOutput<Output>) => void
     onStopped?: () => void
   }) => Unsubscribable,
-  { ctx, input, signal }: { ctx: TrpcClientContext; input: Input; signal?: AbortSignal },
+  { input, signal }: { ctx: TrpcClientContext; input: Input; signal?: AbortSignal },
 ): Promise<Output> {
   let result: Output
   return new Promise<Output>((resolve, reject) =>

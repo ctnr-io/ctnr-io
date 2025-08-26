@@ -135,11 +135,11 @@ function formatDate(dateString: string) {
   })
 }
 
-export default function ContainersTableScreen({ 
-  data, 
+export default function ContainersTableScreen({
+  data,
   isLoading = false,
   onRowClick,
-}: { 
+}: {
   data: ContainerData[]
   isLoading?: boolean
   onRowClick: (container: ContainerData) => void

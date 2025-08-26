@@ -194,8 +194,8 @@ export function AppSidebar({ user, onLogout, ...props }: React.ComponentProps<ty
     email: string
     name: string
     avatar: string
-  },
-  onLogout: () => unknown 
+  }
+  onLogout: () => unknown
 }) {
   return (
     <Sidebar collapsible='icon' {...props}>

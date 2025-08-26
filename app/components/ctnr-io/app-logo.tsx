@@ -2,7 +2,7 @@ import Svg, { Path, SvgProps } from 'react-native-svg'
 
 export function AppLogo(props: SvgProps) {
   return (
-    // @ts-expect-error
+    // @ts-expect-error TS2604
     <Svg
       xmlns='http://www.w3.org/2000/svg'
       viewBox={[0, 0, 3162.175, 958.19]}
@@ -10,7 +10,7 @@ export function AppLogo(props: SvgProps) {
       {...props}
     >
       <Path
-        // @ts-expect-error
+        // @ts-expect-error TS2322
         xmlns='http://www.w3.org/2000/svg'
         fill='#f8b500'
         fillRule='evenodd'

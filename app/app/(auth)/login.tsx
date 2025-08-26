@@ -18,7 +18,7 @@ export default function AuthLoginScreen() {
 
       // Process the auth flow
       for await (const message of authGenerator) {
-        console.log(message)
+        console.info(message)
       }
 
       // Redirect to main app after successful auth
@@ -30,14 +30,10 @@ export default function AuthLoginScreen() {
       setIsLoading(false)
     }
   }
-  
+
   if (ctx.auth.session) {
-    return (
-      <Redirect href='/' />
-    )
+    return <Redirect href='/' />
   }
 
-  return (
-    <AuthLoginPage onSignInGithub={handleSignInGithub} isLoading={isLoading} />
-  )
+  return <AuthLoginPage onSignInGithub={handleSignInGithub} isLoading={isLoading} />
 }

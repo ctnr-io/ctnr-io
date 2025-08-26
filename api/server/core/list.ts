@@ -16,14 +16,14 @@ export const Input = z.object({
   name: z.string().optional(), // Filter by specific container name
   cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2']).optional(), // Select specific cluster
   fields: z.array(z.enum([
-    'basic',      // id, name, image, status, createdAt
-    'resources',  // cpu, memory, ports
-    'replicas',   // replicas with instances
-    'routes',     // routes
-    'clusters',   // clusters
-    'config',     // restartPolicy, command, workingDir, environment, volumes
-    'metrics',    // real-time metrics (expensive)
-    'all'         // all fields (default behavior)
+    'basic', // id, name, image, status, createdAt
+    'resources', // cpu, memory, ports
+    'replicas', // replicas with instances
+    'routes', // routes
+    'clusters', // clusters
+    'config', // restartPolicy, command, workingDir, environment, volumes
+    'metrics', // real-time metrics (expensive)
+    'all', // all fields (default behavior)
   ])).optional(),
 })
 
@@ -66,13 +66,15 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
   'wide': void
 }[Type]
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<Output<NonNullable<typeof input['output']>>> {
+export default async function* (
+  { ctx, input }: { ctx: ServerContext; input: Input },
+): ServerResponse<Output<NonNullable<typeof input['output']>>> {
   const { output = 'raw', name, cluster = 'eu', fields = ['basic'] } = input
 
   // Determine which fields to fetch based on input - be very specific
   const requestedFields = new Set(fields)
   const fetchAll = requestedFields.has('all')
-  
+
   // Optimize field detection - only fetch what's absolutely needed
   const needsRealTimeMetrics = requestedFields.has('metrics')
   const needsResourceInfo = fetchAll || requestedFields.has('resources')
@@ -106,7 +108,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
   let podMetricsIndex = -1
   let allPodsIndex = -1
   let routesIndex = -1
-  
+
   // Fetch metrics only if real-time metrics are explicitly requested
   if (needsRealTimeMetrics || (needsResourceInfo && needsRealTimeMetrics)) {
     podMetricsIndex = promiseIndex++
@@ -127,14 +129,17 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
 
   // Wait for all parallel operations to complete
   const results = await Promise.allSettled(fetchPromises)
-  
+
   // Extract results with fallbacks
-  const podMetrics = podMetricsIndex >= 0 && results[podMetricsIndex]?.status === 'fulfilled' 
-    ? (results[podMetricsIndex] as PromiseFulfilledResult<any>).value : []
-  const allPods = allPodsIndex >= 0 && results[allPodsIndex]?.status === 'fulfilled' 
-    ? (results[allPodsIndex] as PromiseFulfilledResult<any>).value : []
-  const routes = routesIndex >= 0 && results[routesIndex]?.status === 'fulfilled' 
-    ? (results[routesIndex] as PromiseFulfilledResult<any>).value : { httpRoutes: [], ingressRoutes: [] }
+  const podMetrics = podMetricsIndex >= 0 && results[podMetricsIndex]?.status === 'fulfilled'
+    ? (results[podMetricsIndex] as PromiseFulfilledResult<any>).value
+    : []
+  const allPods = allPodsIndex >= 0 && results[allPodsIndex]?.status === 'fulfilled'
+    ? (results[allPodsIndex] as PromiseFulfilledResult<any>).value
+    : []
+  const routes = routesIndex >= 0 && results[routesIndex]?.status === 'fulfilled'
+    ? (results[routesIndex] as PromiseFulfilledResult<any>).value
+    : { httpRoutes: [], ingressRoutes: [] }
 
   // Transform deployments to container data with maximum efficiency
   const containers = deployments.items.map((deployment) => {
@@ -171,9 +176,9 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     // Routes fields - only if requested
     if (needsRoutes && routes) {
       containerData.routes = extractRoutesForContainer(
-        deployment.metadata?.name || '', 
-        routes.httpRoutes, 
-        routes.ingressRoutes
+        deployment.metadata?.name || '',
+        routes.httpRoutes,
+        routes.ingressRoutes,
       )
     }
 
@@ -210,10 +215,9 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
       volumes: containerData.volumes || [],
     }
   })
-  
 
   switch (output) {
-    case 'raw': 
+    case 'raw':
       return containers
 
     case 'json':
@@ -440,7 +444,6 @@ function extractResourceUsageFromDeployment(deployment: any, annotations: any): 
   // Extract resource usage from annotations or calculate from container resources
   const container = deployment.spec?.template?.spec?.containers?.[0]
   const resources = container?.resources
-  const deploymentName = deployment.metadata?.name
 
   // Try annotations first, then fall back to resource requests/limits
   let cpu = annotations['ctnr.io/cpu-usage']
@@ -473,17 +476,17 @@ function normalizeKubernetesResourceValue(value: any): string {
   if (typeof value === 'string') {
     return value
   }
-  
+
   if (typeof value === 'object' && value !== null) {
     // Handle structured format like {"number": 250, "suffix": "m"}
     if (typeof value.number !== 'undefined' && typeof value.suffix !== 'undefined') {
       return `${value.number}${value.suffix}`
     }
-    
+
     // Handle other object formats by converting to JSON (fallback)
     return JSON.stringify(value)
   }
-  
+
   // Handle numbers or other primitive types
   return String(value)
 }
@@ -540,9 +543,9 @@ function extractClustersFromLabels(labels: any): string[] {
 
 function extractEnvironmentVariables(envVars: any[]): Record<string, string> {
   const environment: Record<string, string> = {}
-  
+
   if (!envVars || envVars.length === 0) return environment
-  
+
   for (const envVar of envVars) {
     if (envVar.name && envVar.value !== undefined) {
       environment[envVar.name] = envVar.value
@@ -551,7 +554,8 @@ function extractEnvironmentVariables(envVars: any[]): Record<string, string> {
       if (envVar.valueFrom.secretKeyRef) {
         environment[envVar.name] = `<secret:${envVar.valueFrom.secretKeyRef.name}/${envVar.valueFrom.secretKeyRef.key}>`
       } else if (envVar.valueFrom.configMapKeyRef) {
-        environment[envVar.name] = `<configMap:${envVar.valueFrom.configMapKeyRef.name}/${envVar.valueFrom.configMapKeyRef.key}>`
+        environment[envVar.name] =
+          `<configMap:${envVar.valueFrom.configMapKeyRef.name}/${envVar.valueFrom.configMapKeyRef.key}>`
       } else if (envVar.valueFrom.fieldRef) {
         environment[envVar.name] = `<field:${envVar.valueFrom.fieldRef.fieldPath}>`
       } else if (envVar.valueFrom.resourceFieldRef) {
@@ -561,22 +565,22 @@ function extractEnvironmentVariables(envVars: any[]): Record<string, string> {
       }
     }
   }
-  
+
   return environment
 }
 
 function extractVolumeMounts(volumeMounts: any[]): string[] {
   const volumes: string[] = []
-  
+
   if (!volumeMounts || volumeMounts.length === 0) return volumes
-  
+
   for (const mount of volumeMounts) {
     if (mount.name && mount.mountPath) {
       const readOnly = mount.readOnly ? ':ro' : ''
       volumes.push(`${mount.name}:${mount.mountPath}${readOnly}`)
     }
   }
-  
+
   return volumes
 }
 
@@ -601,7 +605,7 @@ function formatAge(createdAt?: Date): string {
 // Optimized helper functions for parallel data fetching
 async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2'): Promise<any[]> {
   const podMetrics: any[] = []
-  
+
   if (cluster === 'eu') {
     // For abstract 'eu' cluster, fetch metrics from all concrete clusters in parallel
     const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
@@ -610,20 +614,20 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
         const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
         const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
         const clusterMetrics = metricsResponse.items || []
-        
+
         // Add cluster information to each metric for identification
         return clusterMetrics.map((metric: any) => ({
           ...metric,
-          _cluster: concreteCluster
+          _cluster: concreteCluster,
         }))
       } catch (error) {
         console.warn(`Failed to fetch pod metrics from cluster ${concreteCluster}:`, error)
         return []
       }
     })
-    
+
     const results = await Promise.all(promises)
-    results.forEach(clusterMetrics => podMetrics.push(...clusterMetrics))
+    results.forEach((clusterMetrics) => podMetrics.push(...clusterMetrics))
   } else {
     // For specific clusters, fetch metrics only from that cluster
     try {
@@ -634,13 +638,13 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
       console.warn(`Failed to fetch pod metrics from cluster ${cluster}:`, error)
     }
   }
-  
+
   return podMetrics
 }
 
 async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2'): Promise<any[]> {
   const allPods: any[] = []
-  
+
   if (cluster === 'eu') {
     // For abstract 'eu' cluster, fetch pods from all concrete clusters in parallel
     const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
@@ -651,20 +655,20 @@ async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' 
           labelSelector: 'ctnr.io/name',
         })
         const clusterPods = podsResponse.items || []
-        
+
         // Add cluster information to each pod for identification
         return clusterPods.map((pod: any) => ({
           ...pod,
-          _cluster: concreteCluster
+          _cluster: concreteCluster,
         }))
       } catch (error) {
         console.warn(`Failed to fetch pods from cluster ${concreteCluster}:`, error)
         return []
       }
     })
-    
+
     const results = await Promise.all(promises)
-    results.forEach(clusterPods => allPods.push(...clusterPods))
+    results.forEach((clusterPods) => allPods.push(...clusterPods))
   } else {
     // For specific clusters, fetch pods only from that cluster
     try {
@@ -677,32 +681,33 @@ async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' 
       console.warn(`Failed to fetch pods from cluster ${cluster}:`, error)
     }
   }
-  
+
   return allPods
 }
 
-async function fetchRoutesOptimized(kubeClient: any, namespace: string): Promise<{ httpRoutes: any[], ingressRoutes: any[] }> {
+async function fetchRoutesOptimized(
+  kubeClient: any,
+  namespace: string,
+): Promise<{ httpRoutes: any[]; ingressRoutes: any[] }> {
   // Fetch both route types in parallel
   const [httpRoutesResult, ingressRoutesResult] = await Promise.allSettled([
     kubeClient.GatewayNetworkingV1(namespace).listHTTPRoutes(),
-    kubeClient.TraefikV1Alpha1(namespace).listIngressRoutes()
+    kubeClient.TraefikV1Alpha1(namespace).listIngressRoutes(),
   ])
-  
-  const httpRoutes = httpRoutesResult.status === 'fulfilled' 
-    ? (httpRoutesResult.value as any)?.items || []
-    : []
-    
+
+  const httpRoutes = httpRoutesResult.status === 'fulfilled' ? (httpRoutesResult.value as any)?.items || [] : []
+
   const ingressRoutes = ingressRoutesResult.status === 'fulfilled'
     ? (ingressRoutesResult.value as any)?.items || []
     : []
-  
+
   if (httpRoutesResult.status === 'rejected') {
     console.warn('Failed to fetch HTTP routes:', httpRoutesResult.reason)
   }
-  
+
   if (ingressRoutesResult.status === 'rejected') {
     console.warn('Failed to fetch Ingress routes:', ingressRoutesResult.reason)
   }
-  
+
   return { httpRoutes, ingressRoutes }
 }

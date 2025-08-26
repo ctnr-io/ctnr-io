@@ -15,15 +15,15 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from 'app/components/shadcn/ui/sidebar.tsx'
 
 export function NavUser({
- user,
- onLogout,
+  user,
+  onLogout,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
-  onLogout: () => unknown 
+  onLogout: () => unknown
 }) {
   const { isMobile } = useSidebar()
 

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Text, View } from 'react-native'
 import { Platform } from 'react-native'
 import * as Linking from 'expo-linking'
@@ -13,7 +13,7 @@ export default function AuthCallback() {
     const processCallback = async () => {
       if (Platform.OS === 'web') {
         // Web environment - extract code from URL parameters
-        const urlParams = new URLSearchParams(window.location.search)
+        const urlParams = new URLSearchParams(globalThis.location.search)
         const code = urlParams.get('code')
         const error = urlParams.get('error')
 
@@ -28,7 +28,7 @@ export default function AuthCallback() {
           // Notify the login-from-app handler about the callback
           const callbackUrl = `ctnr-io://auth/callback?code=${code}`
           handleAuthCallback(callbackUrl)
-          
+
           // Store the code temporarily and redirect to main app
           // The auth handler will pick this up
           sessionStorage.setItem('oauth_code', code)
@@ -53,7 +53,7 @@ export default function AuthCallback() {
           // Construct the callback URL for the handler
           const callbackUrl = `ctnr-io://auth/callback?code=${code}`
           handleAuthCallback(callbackUrl)
-          
+
           // Redirect to the main app
           router.replace('/(main)/containers')
           return

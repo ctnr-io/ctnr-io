@@ -1,10 +1,8 @@
 import { Slot } from 'expo-router'
 import { ExpoTrpcClientProvider, useExpoTrpcClientContext } from 'driver/trpc/client/expo/mod.tsx'
 import logout from 'api/client/auth/logout.ts'
-import { useRouter } from 'expo-router'
 import AppLayout from 'app/components/ctnr-io/app-layout.tsx'
 import { Redirect } from 'expo-router'
-import { router } from 'expo-router'
 
 export default function MainLayout() {
   const ctx = useExpoTrpcClientContext()

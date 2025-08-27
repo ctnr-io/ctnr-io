@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { ServerContext } from 'ctx/mod.ts'
-import { ContainerName, PortName, ServerResponse } from '../../_common.ts'
+import { ContainerName, PortName, ServerRequest, ServerResponse } from '../../_common.ts'
 import { ensureUserRoute } from 'lib/kube-client.ts'
 import { hash } from 'node:crypto'
 import * as shortUUID from '@opensrc/short-uuid'
@@ -28,7 +27,7 @@ export type Input = z.infer<typeof Input>
 
 const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
+export default async function* ({ ctx, input, signal }: ServerRequest<Input>): ServerResponse<void> {
   try {
     // First, try to find the deployment
     const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(
@@ -108,7 +107,7 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
         // Wait for the user to create the TXT record
         while (true) {
           yield `Checking for TXT record...`
-          if (ctx.signal?.aborted) {
+          if (signal.aborted) {
             throw new Error('Domain ownership verification aborted')
           }
           // Check the TXT record every 5 seconds

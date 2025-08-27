@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from '../../_common.ts'
 import * as YAML from '@std/yaml'
 
 export const Meta = {
@@ -67,7 +67,7 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
 }[Type]
 
 export default async function* (
-  { ctx, input }: { ctx: ServerContext; input: Input },
+  { ctx, input, signal }: ServerRequest<Input>,
 ): ServerResponse<Output<NonNullable<typeof input['output']>>> {
   const { output = 'raw', name, cluster = 'eu', fields = ['basic'] } = input
 
@@ -95,6 +95,7 @@ export default async function* (
   // Always fetch deployments first (this is the core data)
   const deployments = await kubeClient.AppsV1.namespace(ctx.kube.namespace).getDeploymentList({
     labelSelector,
+    abortSignal: signal,
   })
 
   // Early return for simple cases (name-only queries, basic info)
@@ -112,13 +113,13 @@ export default async function* (
   // Fetch metrics only if real-time metrics are explicitly requested
   if (needsRealTimeMetrics || (needsResourceInfo && needsRealTimeMetrics)) {
     podMetricsIndex = promiseIndex++
-    fetchPromises.push(fetchPodMetricsOptimized(ctx, cluster))
+    fetchPromises.push(fetchPodMetricsOptimized(ctx, cluster, signal))
   }
 
   // Fetch pods only if replica instances are needed
   if (needsReplicaInstances) {
     allPodsIndex = promiseIndex++
-    fetchPromises.push(fetchAllPodsOptimized(ctx, cluster))
+    fetchPromises.push(fetchAllPodsOptimized(ctx, cluster, signal))
   }
 
   // Fetch routes only if routes are needed
@@ -603,7 +604,7 @@ function formatAge(createdAt?: Date): string {
 }
 
 // Optimized helper functions for parallel data fetching
-async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2'): Promise<any[]> {
+async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2', signal: AbortSignal): Promise<any[]> {
   const podMetrics: any[] = []
 
   if (cluster === 'eu') {
@@ -612,7 +613,7 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
     const promises = concreteClusters.map(async (concreteCluster) => {
       try {
         const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
-        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
+        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({ abortSignal: signal })
         const clusterMetrics = metricsResponse.items || []
 
         // Add cluster information to each metric for identification
@@ -632,7 +633,7 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
     // For specific clusters, fetch metrics only from that cluster
     try {
       const clusterClient = ctx.kube.client[cluster]
-      const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics()
+      const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({ abortSignal: signal })
       podMetrics.push(...(metricsResponse.items || []))
     } catch (error) {
       console.warn(`Failed to fetch pod metrics from cluster ${cluster}:`, error)
@@ -642,7 +643,7 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
   return podMetrics
 }
 
-async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2'): Promise<any[]> {
+async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2', signal: AbortSignal): Promise<any[]> {
   const allPods: any[] = []
 
   if (cluster === 'eu') {
@@ -653,6 +654,7 @@ async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' 
         const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
         const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
           labelSelector: 'ctnr.io/name',
+          abortSignal: signal,
         })
         const clusterPods = podsResponse.items || []
 
@@ -675,6 +677,7 @@ async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' 
       const clusterClient = ctx.kube.client[cluster]
       const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
         labelSelector: 'ctnr.io/name',
+        abortSignal: signal,
       })
       allPods.push(...(podsResponse.items || []))
     } catch (error) {

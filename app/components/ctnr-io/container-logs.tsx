@@ -19,8 +19,8 @@ interface ContainerLogsProps {
 export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
   const [selectedReplica, setSelectedReplica] = useState<string>(replicas?.[0]?.name!)
   const [logs, setLogs] = useState<string[]>([])
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [autoScroll, setAutoScroll] = useState(true)
+  const [isStreaming, setIsStreaming] = useState(true)
+  const [autoScroll, setAutoScroll] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
@@ -114,7 +114,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const handleRefreshLogs = async () => {
+  const handleRefreshLogs = () => {
     setIsLoading(true)
     setError(null)
     setLogs([])

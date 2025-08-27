@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, ServerRequest, ServerResponse } from '../../_common.ts'
 import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/streams.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
@@ -27,7 +26,12 @@ export type Input = z.infer<typeof Input>
 export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
   const { name, interactive = false, terminal = false, replica } = input
 
-  const pods = await getPodsFromAllClusters(ctx, name, replica ? [replica] : undefined)
+  const pods = await getPodsFromAllClusters({
+    ctx,
+    name,
+    replicas: replica ? [replica] : undefined,
+    signal,
+  })
 
   if (pods.length === 0) {
     yield `No running pods found for container ${name}.`

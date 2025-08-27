@@ -1,10 +1,6 @@
 import { z } from 'zod'
 import { ContainerName, ServerRequest, ServerResponse } from '../../_common.ts'
-import {
-  combineReadableStreamsToGenerator,
-  createReadableStreamFromAsyncGenerator,
-  handleStreams,
-} from 'lib/streams.ts'
+import { combineReadableStreamsToGenerator, createReadableStreamFromAsyncGenerator } from 'lib/streams.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 
 export const Meta = {
@@ -29,10 +25,10 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
-  const { name, replica, follow, timestamps, tail } = input
+export default async function* ({ ctx, input, signal }: ServerRequest<Input>): ServerResponse<void> {
+  const { name, replica: replicas, follow, timestamps, tail } = input
 
-  const pods = await getPodsFromAllClusters(ctx, name, replica)
+  const pods = await getPodsFromAllClusters({ ctx, name, replicas, signal: signal })
 
   // Create log streams for each pod
   const logStreams = (await Promise.all(
@@ -65,8 +61,7 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
   const streamGenerator = combineReadableStreamsToGenerator(logStreams)
   if (ctx.stdio) {
     const stream = createReadableStreamFromAsyncGenerator(streamGenerator)
-    // await stream.pipeTo(ctx.stdio.stdout)
-    await handleStreams({ ctx, signal, defer, tunnel: { stdout: stream }, interactive: false, terminal: false })
+    await stream.pipeTo(ctx.stdio.stdout)
     return
   } else {
     for await (const chunk of createReadableStreamFromAsyncGenerator(streamGenerator)) {

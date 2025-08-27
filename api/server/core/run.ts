@@ -68,7 +68,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input }: ServerRequest<Input>): ServerResponse<void> {
+export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
   const {
     name,
     image,
@@ -262,15 +262,15 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
       yield `Waiting for containers ${name} to be deleted...`
       await Promise.all([
         // Wait for deployment to be fully deleted
-        waitForDeploymentDeletion(ctx, name),
+        waitForDeploymentDeletion({ ctx, name, signal }),
         ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
-          abortSignal: ctx.signal,
+          abortSignal: signal,
           gracePeriodSeconds: 0, // Force delete immediately
           propagationPolicy: 'Foreground', // Ensure all resources are cleaned up
         }),
         ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).deletePodList({
           labelSelector: `ctnr.io/name=${name}`,
-          abortSignal: ctx.signal,
+          abortSignal: signal,
           gracePeriodSeconds: 0, // Force delete immediately
         }),
       ])
@@ -283,13 +283,18 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   // Create the deployment
   yield `Containers ${name} created. Waiting for it to be ready...`
   await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).createDeployment(deploymentResource, {
-    abortSignal: ctx.signal,
+    abortSignal: signal,
   })
 
   // Wait for deployment to be ready
-  deployment = await waitForDeployment(ctx, name, (deployment) => {
-    const status = deployment.status
-    return status?.readyReplicas === replicaCount && status?.availableReplicas === replicaCount
+  deployment = await waitForDeployment({
+    ctx,
+    name,
+    predicate: (deployment) => {
+      const status = deployment.status
+      return status?.readyReplicas === replicaCount && status?.availableReplicas === replicaCount
+    },
+    signal,
   })
 
   if (!deployment) {
@@ -304,7 +309,11 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
   if (interactive || terminal || !detach) {
     // Use the same multi-cluster approach as logs/attach/exec
     try {
-      const pods = await getPodsFromAllClusters(ctx, name)
+      const pods = await getPodsFromAllClusters({
+        ctx,
+        name,
+        signal,
+      })
       pod = pods.length > 0 ? pods[0].pod : null
     } catch (error) {
       console.warn(`Failed to get pods from clusters:`, error)
@@ -332,6 +341,8 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
             port: publish.map((p) => p.name || p.port.toString()),
             domain: typeof input.route === 'string' ? input.route : undefined,
           },
+          signal,
+          defer,
         })
       } catch (err) {
         console.error(`Failed to route container ${name}:`, err)
@@ -354,6 +365,8 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
         interactive,
         terminal,
       },
+      signal,
+      defer,
     })
   } else {
     yield* logs({
@@ -363,6 +376,8 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
         follow: true,
         timestamps: false,
       },
+      signal,
+      defer,
     })
   }
 }
@@ -375,7 +390,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
 
 //   const podWatcher = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
 //     labelSelector: `ctnr.io/name=${name}`,
-//     abortSignal: ctx.signal,
+//     abortSignal: signal,
 //   })
 //   const reader = podWatcher.getReader()
 //   while (true) {
@@ -398,7 +413,7 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
 // ): Promise<Pod> {
 //   const podWatcher = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
 //     labelSelector: `ctnr.io/name=${name}`,
-//     abortSignal: ctx.signal,
+//     abortSignal: signal,
 //   })
 //   const reader = podWatcher.getReader()
 //   while (true) {
@@ -413,14 +428,15 @@ export default async function* ({ ctx, input }: ServerRequest<Input>): ServerRes
 //   }
 // }
 
-async function waitForDeployment(
-  ctx: ServerContext,
-  name: string,
-  predicate: (deployment: Deployment) => boolean | Promise<boolean>,
-): Promise<Deployment> {
+async function waitForDeployment({ ctx, name, predicate, signal }: {
+  ctx: ServerContext
+  name: string
+  predicate: (deployment: Deployment) => boolean | Promise<boolean>
+  signal: AbortSignal
+}): Promise<Deployment> {
   const deploymentWatcher = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
     labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: ctx.signal,
+    abortSignal: signal,
   })
   const reader = deploymentWatcher.getReader()
   while (true) {
@@ -435,10 +451,12 @@ async function waitForDeployment(
   }
 }
 
-async function waitForDeploymentDeletion(ctx: ServerContext, name: string): Promise<void> {
+async function waitForDeploymentDeletion(
+  { ctx, name, signal }: { ctx: ServerContext; name: string; signal: AbortSignal },
+): Promise<void> {
   const deploymentWatcher = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
     labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: ctx.signal,
+    abortSignal: signal,
   })
   const reader = deploymentWatcher.getReader()
   while (true) {

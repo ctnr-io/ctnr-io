@@ -1,12 +1,18 @@
 import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { ServerContext } from 'ctx/mod.ts'
 
-export async function getPodsFromAllClusters(ctx: ServerContext, name: string, replicas?: string[]): Promise<{
+export async function getPodsFromAllClusters({
+  ctx, signal, name, replicas
+}: {
+  ctx: ServerContext, signal: AbortSignal, name: string, replicas?: string[]
+}): Promise<{
   cluster: string
   pod: Pod
 }[]> {
   // First, try to find the deployment
-  const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>
+  const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name, {
+    abortSignal: signal,
+  }).catch(() =>
     null
   )
 
@@ -32,6 +38,7 @@ export async function getPodsFromAllClusters(ctx: ServerContext, name: string, r
       const pods = await ctx.kube.client[cluster as keyof typeof ctx.kube.client].CoreV1.namespace(ctx.kube.namespace)
         .getPodList({
           labelSelector: `ctnr.io/name=${name}`,
+          abortSignal: signal,
         })
 
       const runningPods = pods.items

@@ -11,6 +11,7 @@ import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import { match } from 'ts-pattern'
 import { yaml } from '@tmpl/core'
 import process from 'node:process'
+import { DeleteOpts, GetListOpts, GetOpts, PutOpts, PatchOpts } from '@cloudydeno/kubernetes-apis/operations.ts'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
@@ -37,90 +38,102 @@ export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
     },
     MetricsV1Beta1(namespace: string) {
       return {
-        getPodMetrics: (name: string) =>
+        getPodMetrics: (name: string, opts: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<MetricsV1Beta1Pods>,
-        getPodsListMetrics: () =>
+        getPodsListMetrics: (opts: Pick<GetListOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/metrics.k8s.io/v1beta1/namespaces/${namespace}/pods`,
             expectJson: true,
+            ...opts,
           }) as Promise<List<MetricsV1Beta1Pods>>,
       }
     },
     TraefikV1Alpha1(namespace: string) {
       return {
-        getIngressRoute: (name: string) =>
+        getIngressRoute: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<TraefikV1Alpha1IngressRoute>,
-        createIngressRoute: (body: TraefikV1Alpha1IngressRoute) =>
+        createIngressRoute: (body: TraefikV1Alpha1IngressRoute, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        deleteIngressRoute: (name: string) =>
+        deleteIngressRoute: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes/${name}`,
             expectJson: true,
+            ...opts,
           }),
-        listIngressRoutes: () =>
+        listIngressRoutes: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes`,
             expectJson: true,
+            ...opts,
           }) as Promise<List<TraefikV1Alpha1IngressRoute>>,
       }
     },
     GatewayNetworkingV1(namespace: string) {
       return {
-        getGateway: (name: string) =>
+        getGateway: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<GatewayV1>,
-        createGateway: (body: GatewayV1) =>
+        createGateway: (body: GatewayV1, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        patchGateway: (name: string, body: GatewayV1) =>
+        patchGateway: (name: string, body: GatewayV1, opts?: Pick<PatchOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'PATCH',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
             bodyJson: body,
             contentType: 'application/merge-patch+json',
             expectJson: true,
+            ...opts,
           }),
-        deleteGateway: (name: string) =>
+        deleteGateway: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
             expectJson: true,
+            ...opts,
           }),
-        getHTTPRoute: (name: string) =>
+        getHTTPRoute: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<HTTPRoute>,
-        createHTTPRoute: (body: HTTPRoute) =>
+        createHTTPRoute: (body: HTTPRoute, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
         // patchHTTPRoute: (name: string, body: any) =>
         //   client.performRequest({
@@ -129,111 +142,126 @@ export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
         //     body,
         //     expectJson: true,
         //   }),
-        deleteHTTPRoute: (name: string) =>
+        deleteHTTPRoute: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
             expectJson: true,
+            ...opts,
           }),
-        listHTTPRoutes: () =>
+        listHTTPRoutes: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
             expectJson: true,
+            ...opts,
           }),
-        getReferenceGrant: (name: string) =>
+        getReferenceGrant: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<GatewayV1Beta1ReferenceGrant>,
-        createReferenceGrant: (body: GatewayV1Beta1ReferenceGrant) =>
+        createReferenceGrant: (body: GatewayV1Beta1ReferenceGrant, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        deleteReferenceGrant: (name: string) =>
+        deleteReferenceGrant: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants/${name}`,
             expectJson: true,
+            ...opts,
           }),
       }
     },
     GatewayNetworkingV1Alpha2(namespace: string) {
       return {
-        getTLSRoute: (name: string) =>
+        getTLSRoute: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/gateway.networking.k8s.io/v1alpha2/namespaces/${namespace}/tlsroutes/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<TLSRoute>,
-        createTLSRoute: (body: any) =>
+        createTLSRoute: (body: any, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1alpha2/namespaces/${namespace}/tlsroutes`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        deleteTLSRoute: (name: string) =>
+        deleteTLSRoute: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1alpha2/namespaces/${namespace}/tlsroutes/${name}`,
             expectJson: true,
+            ...opts,
           }),
       }
     },
     ExternalDNSV1alpha1(namespace: string) {
       return {
-        getDNSEndpoint: (name: string) =>
+        getDNSEndpoint: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<DNSEndpoint>,
-        createDNSEndpoint: (body: DNSEndpoint) =>
+        createDNSEndpoint: (body: DNSEndpoint, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        deleteDNSEndpoint: (name: string) =>
+        deleteDNSEndpoint: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${name}`,
             expectJson: true,
+            ...opts,
           }),
       }
     },
     CertManagerV1(namespace: string) {
       return {
-        getCertificate: (name: string) =>
+        getCertificate: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<CertManagerV1Certificate>,
-        getCertificatesList: (): Promise<List<CertManagerV1Certificate>> =>
+        getCertificatesList: (opts?: Pick<GetListOpts, 'abortSignal'>): Promise<List<CertManagerV1Certificate>> =>
           client.performRequest({
             method: 'GET',
             path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates`,
             expectJson: true,
+            ...opts,
           }) as Promise<List<CertManagerV1Certificate>>,
-        createCertificate: (body: any) =>
+        createCertificate: (body: any, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        deleteCertificate: (name: string) =>
+        deleteCertificate: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${name}`,
             expectJson: true,
+            ...opts,
           }),
       }
     },
@@ -242,56 +270,64 @@ export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
     },
     KarmadaV1Alpha1(namespace: string) {
       return {
-        getPropagationPolicy: (name: string) =>
+        getPropagationPolicy: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<KarmadaV1Alpha1PropagationPolicy>,
-        getPropagationPolicyList: () =>
+        getPropagationPolicyList: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies`,
             expectJson: true,
+            ...opts,
           }) as Promise<List<KarmadaV1Alpha1PropagationPolicy>>,
-        createPropagationPolicy: (body: KarmadaV1Alpha1PropagationPolicy) =>
+        createPropagationPolicy: (body: KarmadaV1Alpha1PropagationPolicy, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        deletePropagationPolicy: (name: string) =>
+        deletePropagationPolicy: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
             expectJson: true,
+            ...opts,
           }),
 
-        getFederatedResourceQuota: (name: string) =>
+        getFederatedResourceQuota: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas/${name}`,
             expectJson: true,
+            ...opts,
           }) as Promise<KarmadaV1Alpha1FederatedResourceQuota>,
-        getFederatedResourceQuotaList: () =>
+        getFederatedResourceQuotaList: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas`,
             expectJson: true,
+            ...opts,
           }) as Promise<List<KarmadaV1Alpha1FederatedResourceQuota>>,
-        createFederatedResourceQuota: (body: KarmadaV1Alpha1FederatedResourceQuota) =>
+        createFederatedResourceQuota: (body: KarmadaV1Alpha1FederatedResourceQuota, opts?: Pick<PutOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas`,
             bodyJson: body,
             expectJson: true,
+            ...opts,
           }),
-        deleteFederatedResourceQuota: (name: string) =>
+        deleteFederatedResourceQuota: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas/${name}`,
             expectJson: true,
+            ...opts,
           }),
       }
     },

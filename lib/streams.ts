@@ -176,10 +176,16 @@ export const handleStreams = async ({
     )
   }
 
-  // Wait for any stream to complete
-  const result = await Promise.any(streamPromises)
-
-  console.debug(`Stream processing completed with result:`, result)
+  try {
+    // Wait for any stream to complete
+    await Promise.any(streamPromises)
+  } catch (error) {
+    if (signal.aborted) {
+      console.debug(`Stream processing was aborted`)
+    }
+    console.error(error)
+    throw new Error('An error occurred while processing streams')
+  }
 }
 
 export async function* combineReadableStreamsToGenerator(

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ContainerName, ServerResponse } from '../../_common.ts'
+import { ContainerName, ServerRequest, ServerResponse } from '../../_common.ts'
 import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/streams.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 
@@ -29,10 +29,15 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input }: { ctx: ServerContext; input: Input }): ServerResponse<void> {
+export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
   const { name, command = '/bin/sh', interactive = false, terminal = false, replica } = input
 
-  const pods = await getPodsFromAllClusters(ctx, name, replica ? [replica] : undefined)
+  const pods = await getPodsFromAllClusters({
+    ctx,
+    name,
+    replicas: replica ? [replica] : undefined,
+    signal,
+  })
 
   if (pods.length === 0) {
     yield `No running pods found for container ${name}.`
@@ -51,22 +56,22 @@ export default async function* ({ ctx, input }: { ctx: ServerContext; input: Inp
     tty: terminal,
     stdout: true,
     stderr: true,
-    abortSignal: ctx.signal,
+    abortSignal: signal,
     container: containerName,
   })
 
-  setupSignalHandling(ctx, tunnel, terminal, interactive)
-  setupTerminalHandling(ctx, tunnel, terminal, interactive)
+  setupSignalHandling({ ctx, defer, tunnel, terminal, interactive })
+  setupTerminalHandling({ ctx, defer, tunnel, terminal, interactive })
 
   if (interactive) {
     yield `Press ENTER if you don't see a command prompt.`
   }
 
-  ctx.defer(async () => {
+  defer(async () => {
     // Exit with the command's exit code
     const status = await tunnel.status.then((status) => status)
     ctx.stdio?.exit(status.exitCode || 0)
   })
 
-  await handleStreams(ctx, tunnel, interactive, terminal)
+  await handleStreams({ ctx, signal, defer, tunnel, interactive, terminal })
 }

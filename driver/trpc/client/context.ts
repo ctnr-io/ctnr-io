@@ -29,9 +29,9 @@ export async function createTrpcClientContext(
     ...ctx,
     connect: async (callback) => {
       try {
-        const { data: { session } } = await ctx.auth.client.getSession()
+        const { data: { session } } = await ctx.auth.client.refreshSession()
         if (!session) {
-          throw new Error('Failed to retrieve session. Please log in again.')
+          throw new Error('Failed to refresh session. Please log in again.')
         }
 
         const client = await createTRPCWebSocketClient({

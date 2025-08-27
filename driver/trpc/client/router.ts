@@ -39,7 +39,7 @@ function transformSubscribeResolver<
       onData: (data: SubscribeProcedureOutput<Output>) => {
         switch (data.type) {
           case 'yield':
-            console.warn(data.value)
+            console.info(data.value)
             return
           case 'return':
             result = data.value as Output
@@ -52,7 +52,7 @@ function transformSubscribeResolver<
 
 function transformGeneratorToMutation<Input, Opts extends { ctx: ClientContext; input: Input }>(
   procedure: (opts: Opts) => any,
-) {
+) { 
   return async function (opts: Opts) {
     for await (const value of procedure(opts)) {
       console.warn(value)

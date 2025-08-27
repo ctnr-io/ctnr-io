@@ -63,19 +63,19 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
       auth: {
         storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
       },
-      stdio: {
-        stdin: new ReadableStream(),
-        stdout: new WritableStream(),
-        stderr: new WritableStream(),
-        exit: () => {},
-        setRaw: () => {},
-        signalChan: function* () {
-          // TODO: Implement signal handling when needed
-        } as any,
-        terminalSizeChan: async function* () {
-          // TODO: Implement terminal size handling when needed
-        },
-      },
+      // stdio: {
+      //   stdin: new ReadableStream(),
+      //   stdout: new WritableStream(),
+      //   stderr: new WritableStream(),
+      //   exit: () => {},
+      //   setRaw: () => {},
+      //   signalChan: function* () {
+      //     // TODO: Implement signal handling when needed
+      //   } as any,
+      //   terminalSizeChan: async function* () {
+      //     // TODO: Implement terminal size handling when needed
+      //   },
+      // },
     })
     setState({
       ctx,

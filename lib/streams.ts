@@ -1,5 +1,6 @@
 import { ServerContext } from 'ctx/mod.ts'
 import { Deferer } from './defer.ts'
+import { write } from 'node:fs'
 
 export const createCtrlPCtrlQHandler = ({ interactive, terminal, stderr }: {
   interactive: boolean
@@ -144,14 +145,12 @@ export const handleStreams = async ({
   // Always pipe stdout and stderr from container to local streams
   if (tunnel.stdout) {
     streamPromises.push(
-      tunnel.stdout
-        .pipeTo(ctx.stdio.stdout, {
-          signal,
-          preventAbort: true,
-          preventCancel: true,
-          preventClose: true,
-        })
-        .catch(console.debug),
+      tunnel.stdout.pipeTo(ctx.stdio.stdout, {
+        signal,
+        preventAbort: true,
+        preventCancel: true,
+        preventClose: true,
+      }),
     )
   }
 
@@ -163,8 +162,7 @@ export const handleStreams = async ({
           preventAbort: true,
           preventCancel: true,
           preventClose: true,
-        })
-        .catch(console.debug),
+        }),
     )
   }
 
@@ -172,7 +170,12 @@ export const handleStreams = async ({
     streamPromises.push(
       ctx.stdio.stdin
         .pipeThrough(handleCtrlPCtrlQStream)
-        .pipeTo(interactive ? tunnel.stdin : new WritableStream()).catch(console.debug),
+        .pipeTo(interactive ? tunnel.stdin : new WritableStream(), {
+          signal,
+          preventAbort: true,
+          preventCancel: true,
+          preventClose: true,
+        }),
     )
   }
 
@@ -182,42 +185,41 @@ export const handleStreams = async ({
   } catch (error) {
     if (signal.aborted) {
       console.debug(`Stream processing was aborted`)
+    } else {
+      console.error(error)
     }
-    console.error(error)
-    throw new Error('An error occurred while processing streams')
   }
 }
 
-export async function* combineReadableStreamsToGenerator(
+export async function* combineReadableStreamsToAsyncGenerator(
   sources: { stream: ReadableStream<string>; name: string }[],
-): AsyncIterable<string> {
+): AsyncGenerator<string> {
   // Extended color palette for pod names (like docker-compose)
   const colors = [
     '\x1b[36m', // cyan
     '\x1b[32m', // green
+    '\x1b[34m', // blue
     '\x1b[33m', // yellow
     '\x1b[35m', // magenta
-    '\x1b[34m', // blue
     '\x1b[31m', // red
     '\x1b[96m', // bright cyan
+    '\x1b[94m', // bright blue
     '\x1b[92m', // bright green
     '\x1b[93m', // bright yellow
     '\x1b[95m', // bright magenta
-    '\x1b[94m', // bright blue
     '\x1b[91m', // bright red
   ]
-  const reset = '\x1b[0m'
+  const resetColor = '\x1b[0m'
 
   // Shuffle colors for random assignment
-  const shuffledColors = [...colors].sort(() => Math.random() - 0.5)
+  const shuffleIndex = Math.floor(Math.random() * colors.length)
 
   // Create readers with colors
   let readers = sources.map((source, index) => ({
     reader: source.stream.getReader(),
     name: source.name,
-    color: shuffledColors[index % shuffledColors.length],
+    color: colors[(index + shuffleIndex) % colors.length],
     lineQueue: [] as string[], // Queue to hold lines from this reader
-    done: false,
     promise: null as Promise<void> | null,
   }))
 
@@ -226,54 +228,38 @@ export async function* combineReadableStreamsToGenerator(
       if (reader.lineQueue.length !== 0) {
         // If there are lines in the queue, yield the next one
         const nextLine = reader.lineQueue.shift()!
-        yield `${reader.color}${reader.name}${reset} | ${nextLine}\n`
-        // round robin through readers to ensure fairness
-        readers.push(readers.shift()!)
+        yield `${reader.color}${reader.name}${resetColor} | ${nextLine}\n`
         continue
       }
-    }
-    for (const reader of readers) {
-      if (reader.lineQueue.length === 0 && reader.done) {
-        readers = readers.filter((r) => r !== reader)
-        continue
-      }
-    }
-    for (const reader of readers) {
-      if (!reader.promise) {
-        reader.promise = (async () => {
-          try {
-            const result = await reader.reader.read()
-            if (result.done) {
-              reader.done = true
-              return
-            }
-            const lines = result.value.trimEnd().split('\n')
-            reader.lineQueue.push(...lines)
-          } catch (error) {
-            console.error(`Error reading logs from ${reader.name}:`, error)
-            reader.done = true
-          } finally {
-            reader.promise = null
+      reader.promise ??= (async () => {
+        try {
+          const result = await reader.reader.read()
+          if (result.done) {
+            readers = readers.filter((r) => r !== reader)
+            return
           }
-        })()
-      }
+          const lines = result.value.trimEnd().split('\n')
+          reader.lineQueue.push(...lines)
+        } catch (error) {
+          console.error(`Error reading logs from ${reader.name}:`, error)
+          readers = readers.filter((r) => r !== reader)
+        } finally {
+          reader.promise = null
+        }
+      })()
     }
-    if (
-      readers.length > 0 && readers.every((reader) => reader.lineQueue.length === 0 && !reader.done && reader.promise)
-    ) {
-      await Promise.race(readers.map((reader) => reader.promise))
-    }
+    await Promise.any(readers.map((reader) => reader.promise))
   }
 }
 
-// Utility function to create a ReadableStream from an AsyncIterable
-export function createReadableStreamFromAsyncGenerator<T>(iterable: AsyncIterable<T>): ReadableStream<T> {
+// Utility function to create a ReadableStream from an AsyncGenerator
+export function createReadableStreamFromAsyncGenerator<T>(generator: AsyncGenerator<T>): ReadableStream<T> {
   return new ReadableStream({
     async start(controller) {
-      for await (const chunk of iterable) {
+      for await (const chunk of generator) {
         controller.enqueue(chunk)
       }
-      controller.close()
+      // controller.close()
     },
   })
 }

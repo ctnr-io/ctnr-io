@@ -1,10 +1,30 @@
 'use dom'
 
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import { Download, Pause, Play, RotateCcw, Trash2 } from 'lucide-react'
+import { Input } from 'app/components/shadcn/ui/input.tsx'
+import {
+  ArrowDown,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Download,
+  Eraser,
+  Pause,
+  Play,
+  RotateCcw,
+  Search,
+  Trash2,
+  WrapText,
+  X,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useSubscription } from '@trpc/tanstack-react-query'
+// @ts-ignore
+import Ansi from 'ansi-to-react'
+import { SearchableSelect, SearchableSelectOption } from './searchable-select.tsx'
+import { useSidebar } from '../shadcn/ui/sidebar.tsx'
+import { cn } from '../../lib/shadcn/utils.ts'
 
 interface ContainerInstance {
   name: string
@@ -16,58 +36,85 @@ interface ContainerLogsProps {
   replicas?: ContainerInstance[]
 }
 
+interface LogsState {
+  selectedReplicaName: string | null
+  logs: string[]
+  isStreaming: boolean
+  autoScroll: boolean
+  wrapLines: boolean
+  error: string | null
+  isLoading: boolean
+  searchQuery: string
+  searchResults: number[]
+  currentSearchIndex: number
+  showSearch: boolean
+}
+
 export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
-  const [selectedReplica, setSelectedReplica] = useState<string>(replicas?.[0]?.name!)
-  const [logs, setLogs] = useState<string[]>([])
-  const [isStreaming, setIsStreaming] = useState(true)
-  const [autoScroll, setAutoScroll] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [state, setState] = useState<LogsState>({
+    selectedReplicaName: null,
+    logs: [],
+    isStreaming: true,
+    autoScroll: true,
+    wrapLines: true,
+    error: null,
+    isLoading: false,
+    searchQuery: '',
+    searchResults: [],
+    currentSearchIndex: -1,
+    showSearch: false,
+  })
+
   const logsEndRef = useRef<HTMLDivElement>(null)
   const logsContainerRef = useRef<HTMLDivElement>(null)
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null)
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null)
 
   const trpc = useTRPC()
 
+  const sidebar = useSidebar()
+
   // Logs subscription for streaming
-  const logsSubscription = useSubscription(
+  useSubscription(
     trpc.core.logs.subscriptionOptions({
       name: containerName,
-      follow: isStreaming,
-      replica: selectedReplica ? [selectedReplica] : undefined,
+      follow: true,
+      replica: state.selectedReplicaName ? [state.selectedReplicaName] : undefined,
       timestamps: true,
       tail: 100, // Show last 100 lines initially
     }, {
-      enabled: isStreaming,
       onData: (data: { type: 'yield' | 'return'; value?: string }) => {
-        if (data.type === 'yield' && data.value) {
-          setLogs((prev) => [...prev, data.value!])
-          setError(null)
+        if (state.isStreaming && data.type === 'yield' && data.value) {
+          setState((prev) => ({ ...prev, logs: [...prev.logs, data.value!], error: null }))
         } else if (data.type === 'return') {
-          setIsStreaming(false)
+          setState((prev) => ({ ...prev, isStreaming: false }))
         }
       },
       onError: (err: any) => {
-        setError(err.message || 'An error occurred while streaming logs')
-        setIsStreaming(false)
-        setIsLoading(false)
+        setState((prev) => ({
+          ...prev,
+          error: err.message || 'An error occurred while streaming logs',
+          isStreaming: false,
+          isLoading: false,
+        }))
       },
     }),
   )
 
   // Reset logs when replica changes
   useEffect(() => {
-    setLogs([])
-    setError(null)
-    if (selectedReplica && isStreaming) {
-      // Restart streaming with new replica
-      setIsStreaming(false)
-      setTimeout(() => setIsStreaming(true), 100)
+    setState((prev) => ({ ...prev, logs: [], error: null }))
+    if (state.isStreaming) {
+      // Restart streaming with new replica selection
+      setState((prev) => ({ ...prev, isStreaming: false }))
+      setTimeout(() => setState((prev) => ({ ...prev, isStreaming: true })), 100)
     }
-  }, [selectedReplica])
+  }, [state.selectedReplicaName])
 
   const getSelectedReplicaName = () => {
+    if (!state.selectedReplicaName) return 'All Replicas'
     if (!replicas) return containerName
-    const replica = replicas.find((r) => r.name === selectedReplica)
+    const replica = replicas.find((r) => r.name === state.selectedReplicaName)
     return replica?.name || containerName
   }
 
@@ -86,23 +133,21 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
-    if (autoScroll && logsEndRef.current) {
+    if (state.autoScroll && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [logs, autoScroll])
+  }, [state.logs, state.autoScroll])
 
   const handleToggleStreaming = () => {
-    setError(null)
-    setIsStreaming(!isStreaming)
+    setState((prev) => ({ ...prev, error: null, isStreaming: !prev.isStreaming }))
   }
 
   const handleClearLogs = () => {
-    setLogs([])
-    setError(null)
+    setState((prev) => ({ ...prev, logs: [], error: null }))
   }
 
   const handleDownloadLogs = () => {
-    const logsText = logs.join('\n')
+    const logsText = state.logs.join('\n')
     const blob = new Blob([logsText], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -115,24 +160,220 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
   }
 
   const handleRefreshLogs = () => {
-    setIsLoading(true)
-    setError(null)
-    setLogs([])
-    
+    setState((prev) => ({ ...prev, isLoading: true, error: null, logs: [] }))
+
     // Restart streaming to get fresh logs
-    if (isStreaming) {
-      setIsStreaming(false)
+    if (state.isStreaming) {
+      setState((prev) => ({ ...prev, isStreaming: false }))
       setTimeout(() => {
-        setIsStreaming(true)
-        setIsLoading(false)
+        setState((prev) => ({ ...prev, isStreaming: true, isLoading: false }))
       }, 100)
     } else {
       // If not streaming, do a one-time fetch
-      setIsStreaming(true)
+      setState((prev) => ({ ...prev, isStreaming: true }))
       setTimeout(() => {
-        setIsStreaming(false)
-        setIsLoading(false)
+        setState((prev) => ({ ...prev, isStreaming: false, isLoading: false }))
       }, 2000)
+    }
+  }
+
+  // Utility function to strip ANSI escape codes
+  const stripAnsiCodes = (text: string): string => {
+    return text.replace(/\x1b\[[0-9;]*m/g, '')
+  }
+
+  // Search functionality
+  const performSearch = (query: string) => {
+    if (!query.trim()) {
+      setState((prev) => ({ ...prev, searchResults: [], currentSearchIndex: -1 }))
+      return
+    }
+
+    const results: number[] = []
+    const searchTerm = query.toLowerCase()
+
+    state.logs.forEach((log, index) => {
+      const cleanLog = stripAnsiCodes(log).toLowerCase()
+      if (cleanLog.includes(searchTerm)) {
+        results.push(index)
+      }
+    })
+
+    setState((prev) => ({
+      ...prev,
+      searchResults: results,
+      currentSearchIndex: results.length > 0 ? 0 : -1,
+    }))
+
+    // Scroll to first result
+    if (results.length > 0) {
+      scrollToSearchResult(0, results)
+    }
+  }
+
+  const scrollToSearchResult = (resultIndex: number, results: number[]) => {
+    if (resultIndex < 0 || resultIndex >= results.length) return
+
+    const logIndex = results[resultIndex]
+    const logElement = document.querySelector(`[data-log-index="${logIndex}"]`)
+    if (logElement && logsContainerRef.current) {
+      logElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+
+  const handleSearchChange = (query: string) => {
+    setState((prev) => ({ ...prev, searchQuery: query }))
+    performSearch(query)
+  }
+
+  const handleSearchNext = () => {
+    if (state.searchResults.length === 0) return
+
+    const nextIndex = (state.currentSearchIndex + 1) % state.searchResults.length
+    setState((prev) => ({ ...prev, currentSearchIndex: nextIndex }))
+    scrollToSearchResult(nextIndex, state.searchResults)
+  }
+
+  const handleSearchPrevious = () => {
+    if (state.searchResults.length === 0) return
+
+    const prevIndex = state.currentSearchIndex === 0 ? state.searchResults.length - 1 : state.currentSearchIndex - 1
+    setState((prev) => ({ ...prev, currentSearchIndex: prevIndex }))
+    scrollToSearchResult(prevIndex, state.searchResults)
+  }
+
+  const handleToggleSearch = () => {
+    const wasShowingSearch = state.showSearch
+
+    setState((prev) => ({
+      ...prev,
+      showSearch: !prev.showSearch,
+      searchQuery: prev.showSearch ? '' : prev.searchQuery,
+      searchResults: prev.showSearch ? [] : prev.searchResults,
+      currentSearchIndex: prev.showSearch ? -1 : prev.currentSearchIndex,
+    }))
+
+    // Focus search input when opening
+    if (!wasShowingSearch) {
+      setTimeout(() => {
+        // Check if we're on mobile or desktop and focus the appropriate input
+        const isMobile = window.innerWidth < 640 // sm breakpoint
+        const inputRef = isMobile ? mobileSearchInputRef : desktopSearchInputRef
+
+        if (inputRef.current) {
+          inputRef.current.focus()
+          if (state.searchQuery) {
+            inputRef.current.select() // Select existing text if any
+          }
+        }
+      }, 200) // Increased timeout to ensure DOM updates
+    }
+  }
+
+  const transformLogForSearch = (text: string, query: string): string => {
+    if (!query.trim()) return text
+
+    const cleanText = stripAnsiCodes(text)
+    const searchTerm = query.toLowerCase()
+    const cleanTextLower = cleanText.toLowerCase()
+
+    // If line doesn't contain search term, dim it with ANSI codes
+    if (!cleanTextLower.includes(searchTerm)) {
+      return '\x1b[2m' + text + '\x1b[0m' // Dim the entire line
+    }
+
+    // If line contains search term, highlight the matching words
+    let result = text
+    let searchIndex = cleanTextLower.indexOf(searchTerm)
+    let offset = 0
+
+    while (searchIndex !== -1) {
+      // Find the actual position in the original text (accounting for ANSI codes)
+      const beforeMatch = cleanText.substring(0, searchIndex)
+      const match = cleanText.substring(searchIndex, searchIndex + searchTerm.length)
+
+      // Insert highlighting around the match
+      const highlightStart = '\x1b[43m\x1b[30m' // Yellow background, black text
+      const highlightEnd = '\x1b[0m' // Reset
+
+      // Replace in the result string
+      const matchStart = result.indexOf(match, offset)
+      if (matchStart !== -1) {
+        result = result.substring(0, matchStart) +
+          highlightStart + match + highlightEnd +
+          result.substring(matchStart + match.length)
+        offset = matchStart + highlightStart.length + match.length + highlightEnd.length
+      }
+
+      // Find next occurrence
+      searchIndex = cleanTextLower.indexOf(searchTerm, searchIndex + searchTerm.length)
+    }
+
+    return result
+  }
+
+  // Re-run search when logs change
+  useEffect(() => {
+    if (state.searchQuery.trim()) {
+      performSearch(state.searchQuery)
+    }
+  }, [state.logs])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'f') {
+          e.preventDefault()
+          if (!state.showSearch) {
+            handleToggleSearch()
+          }
+        }
+      }
+
+      if (state.showSearch) {
+        if (e.key === 'Escape') {
+          handleToggleSearch()
+        } else if (e.key === 'Enter') {
+          if (e.shiftKey) {
+            handleSearchPrevious()
+          } else {
+            handleSearchNext()
+          }
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [state.showSearch, state.searchResults, state.currentSearchIndex])
+
+  const handleCopyAllLogs = async () => {
+    try {
+      // Strip ANSI codes and join logs
+      const cleanLogs = state.logs.map(stripAnsiCodes).join('\n')
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(cleanLogs)
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea')
+        textArea.value = cleanLogs
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand('copy')
+        textArea.remove()
+      }
+
+      // Could add a toast notification here if available
+      console.log('Logs copied to clipboard')
+    } catch (err) {
+      console.error('Failed to copy logs:', err)
+      setState((prev) => ({ ...prev, error: 'Failed to copy logs to clipboard' }))
     }
   }
 
@@ -141,161 +382,303 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
     const { scrollTop, scrollHeight, clientHeight } = logsContainerRef.current
     const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10
-    setAutoScroll(isAtBottom)
+    setState((prev) => ({ ...prev, autoScroll: isAtBottom }))
+  }
+
+  const replica = replicas?.find((replica) => replica.name === state.selectedReplicaName)
+
+  // Create options for the SearchableSelect
+  const replicaOptions: SearchableSelectOption[] = [
+    {
+      value: 'all',
+      label: 'All Replicas',
+      icon: <div className='w-2 h-2 rounded-full bg-blue-500' />,
+    },
+    ...(replicas?.map((replica) => ({
+      value: replica.name,
+      label: replica.name.split(containerName + '-')[1] || replica.name,
+      icon: (
+        <div
+          className={`w-2 h-2 rounded-full ${
+            replica.status === 'running'
+              ? 'bg-green-500'
+              : replica.status === 'starting'
+              ? 'bg-yellow-500'
+              : 'bg-red-500'
+          }`}
+        />
+      ),
+    })) || []),
+  ]
+
+  const handleReplicaChange = (value: string) => {
+    setState((prev) => ({
+      ...prev,
+      selectedReplicaName: value === 'all' ? null : value,
+    }))
   }
 
   return (
-    <div className='space-y-4'>
-      {/* Replica Selector */}
-      {replicas && replicas.length > 0 && (
-        <div className='p-4 bg-muted/10 rounded-lg border'>
-          <div className='flex items-center gap-4 flex-wrap'>
-            <span className='text-sm font-medium text-muted-foreground'>Select Replica:</span>
-            <div className='flex items-center gap-2 flex-wrap'>
-              {replicas.map((replica) => (
-                <button
-                  type='button'
-                  key={replica.name}
-                  onClick={() => setSelectedReplica(replica.name)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedReplica === replica.name
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80'
-                  }`}
-                >
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      replica.status === 'running'
-                        ? 'bg-green-500'
-                        : replica.status === 'starting'
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                    }`}
-                  >
-                  </div>
-                  <span>{replica.name}</span>
-                </button>
-              ))}
+    <div className='space-y-4 relative'>
+      {/* Enhanced Controls Bar */}
+      <div
+        className={cn(
+          'bg-card md:rounded-lg border sticky',
+          sidebar.open ? 'top-14' : 'top-10',
+          // add transition like sidebar,
+          'transition-all duration-300',
+        )}
+      >
+        {/* Main Controls Row */}
+        <div className='flex flex-row lg:items-center gap-4 p-4'>
+          {/* Left Section - Replica Selection */}
+          {replicas && replicas.length > 0 && (
+            <SearchableSelect
+              options={replicaOptions}
+              value={state.selectedReplicaName || 'all'}
+              onValueChange={handleReplicaChange}
+              placeholder='Select replica...'
+              searchPlaceholder='Search replicas...'
+              emptyMessage='No replica found.'
+              buttonClassName='min-w-[160px] sm:min-w-[200px]'
+              popoverClassName='w-[200px]'
+              className='w-full md:w-auto'
+            />
+          )}
+
+          {/* Center Section - Stream Controls */}
+          <div className='flex items-center gap-2'>
+            <Button
+              variant={state.isStreaming ? 'default' : 'ghost'}
+              size='sm'
+              onClick={handleToggleStreaming}
+              disabled={state.isLoading}
+              className='h-8 px-3'
+              title={state.isStreaming ? 'Pause streaming' : 'Resume streaming'}
+            >
+              {state.isStreaming ? <Pause className='h-4 w-4' /> : <Play className='h-4 w-4' />}
+              <span className='ml-1 hidden xl:inline'>
+                {state.isStreaming ? 'Pause' : 'Resume'}
+              </span>
+            </Button>
+
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={handleRefreshLogs}
+              disabled={state.isLoading}
+              className='h-8 px-3'
+              title='Refresh logs'
+            >
+              <RotateCcw className={`h-4 w-4 ${state.isLoading ? 'animate-spin' : ''}`} />
+              <span className='ml-1 hidden xl:inline'>
+                {state.isLoading ? 'Refreshing' : 'Refresh'}
+              </span>
+            </Button>
+            <Button
+              variant={state.autoScroll ? 'default' : 'ghost'}
+              size='sm'
+              onClick={() => setState((prev) => ({ ...prev, autoScroll: !prev.autoScroll }))}
+              className='h-8 px-3'
+              title='Toggle auto-scroll'
+            >
+              <ArrowDown className='h-4 w-4' />
+              <span className='ml-1 hidden lg:inline'>Auto-scroll</span>
+            </Button>
+
+            <Button
+              variant={state.wrapLines ? 'default' : 'ghost'}
+              size='sm'
+              onClick={() => setState((prev) => ({ ...prev, wrapLines: !prev.wrapLines }))}
+              className='h-8 px-3'
+              title='Toggle line wrapping'
+            >
+              <WrapText className='h-4 w-4' />
+              <span className='ml-1 hidden lg:inline'>Wrap</span>
+            </Button>
+          </div>
+
+          {/* Right Section - Actions */}
+          <div className='flex items-center gap-2 ml-auto'>
+            <Button
+              variant={state.showSearch ? 'default' : 'outline'}
+              size='sm'
+              onClick={handleToggleSearch}
+              className='h-8 px-3'
+              title='Search in logs (Ctrl+F)'
+            >
+              <Search className='h-4 w-4' />
+              <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Search</span>
+            </Button>
+
+            <div className='flex items-center gap-1'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleCopyAllLogs}
+                className='h-8 px-3'
+                title='Copy all logs'
+              >
+                <Copy className='h-4 w-4' />
+                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Copy</span>
+              </Button>
+
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleDownloadLogs}
+                className='h-8 px-3'
+                title='Download logs'
+              >
+                <Download className='h-4 w-4' />
+                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Download</span>
+              </Button>
+
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleClearLogs}
+                className='h-8 px-3'
+                title='Clear all logs'
+              >
+                <Eraser className='h-4 w-4' />
+                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Clear</span>
+              </Button>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Controls */}
-      <div className='flex flex-wrap items-center justify-between gap-4 p-4 bg-muted/20 rounded-lg border'>
-        <div className='flex items-center gap-2'>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={handleToggleStreaming}
-            disabled={isLoading}
-            className='flex items-center gap-2'
-          >
-            {isStreaming
-              ? (
+        {/* Search Bar - Expanded when active (Desktop only) */}
+        {state.showSearch && (
+          <div className='border-t bg-muted/30 p-4 hidden sm:block'>
+            <div className='flex items-center gap-3'>
+              <div className='relative flex-1 max-w-md'>
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+                <Input
+                  ref={desktopSearchInputRef}
+                  type='text'
+                  placeholder='Search in logs... (Enter: next, Shift+Enter: previous, Esc: close)'
+                  value={state.searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className='pl-10 pr-4 h-9'
+                />
+              </div>
+
+              <div className='flex items-center gap-1'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={handleSearchPrevious}
+                  disabled={state.searchResults.length === 0}
+                  className='h-9 px-3'
+                  title='Previous match (Shift+Enter)'
+                >
+                  <ChevronUp className='h-4 w-4' />
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={handleSearchNext}
+                  disabled={state.searchResults.length === 0}
+                  className='h-9 px-3'
+                  title='Next match (Enter)'
+                >
+                  <ChevronDown className='h-4 w-4' />
+                </Button>
+              </div>
+
+              {state.searchQuery && (
+                <div className='text-sm text-muted-foreground font-medium min-w-fit'>
+                  {state.searchResults.length > 0
+                    ? `${state.currentSearchIndex + 1} of ${state.searchResults.length}`
+                    : 'No matches'}
+                </div>
+              )}
+
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={handleToggleSearch}
+                className='h-9 px-3'
+                title='Close search (Esc)'
+              >
+                <X className='h-4 w-4' />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Status Bar */}
+        <div className='border-t bg-muted/20 px-4 py-2'>
+          <div className='flex items-center justify-between text-xs text-muted-foreground'>
+            <div className='flex items-center gap-4'>
+              <div className='flex items-center gap-2'>
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    state.isLoading ? 'bg-blue-500 animate-pulse' : state.isStreaming ? 'bg-green-500' : 'bg-yellow-500'
+                  }`}
+                />
+                <span className='font-medium'>
+                  {state.isLoading ? 'Loading' : state.isStreaming ? 'Live' : 'Paused'}
+                </span>
+              </div>
+              <span>Lines: {state.logs.length.toLocaleString()}</span>
+              {state.searchQuery && <span>Matches: {state.searchResults.length}</span>}
+            </div>
+            <div className='hidden sm:block'>
+              Container: <span className='font-medium'>{containerName}</span>
+              {state.selectedReplicaName && (
                 <>
-                  <Pause className='h-4 w-4' />
-                  Pause Stream
-                </>
-              )
-              : (
-                <>
-                  <Play className='h-4 w-4' />
-                  Resume Stream
+                  | Replica: <span className='font-medium'>{state.selectedReplicaName}</span>
                 </>
               )}
-          </Button>
-
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={handleRefreshLogs}
-            disabled={isLoading}
-            className='flex items-center gap-2'
-          >
-            <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-
-        <div className='flex items-center gap-2'>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={handleDownloadLogs}
-            className='flex items-center gap-2'
-          >
-            <Download className='h-4 w-4' />
-            Download
-          </Button>
-
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={handleClearLogs}
-            className='flex items-center gap-2 text-destructive hover:text-destructive'
-          >
-            <Trash2 className='h-4 w-4' />
-            Clear
-          </Button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Error Display */}
-      {error && (
-        <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
+      {state.error && (
+        <div className='p-3 bg-red-50 border border-red-200 md:rounded-lg'>
           <div className='flex items-center gap-2 text-red-800'>
             <span className='text-sm font-medium'>Error:</span>
-            <span className='text-sm'>{error}</span>
+            <span className='text-sm'>{state.error}</span>
           </div>
         </div>
       )}
 
-      {/* Status */}
-      <div className='flex items-center justify-between text-sm text-muted-foreground px-2'>
-        <div className='flex items-center gap-4'>
-          <span>
-            Status: {isLoading
-              ? <span className='text-blue-600 font-medium'>Loading...</span>
-              : isStreaming
-              ? <span className='text-green-600 font-medium'>Streaming</span>
-              : <span className='text-yellow-600 font-medium'>Paused</span>}
-          </span>
-          <span>Lines: {logs.length}</span>
-        </div>
-        <div className='flex items-center gap-2'>
-          <label className='flex items-center gap-2 cursor-pointer'>
-            <input
-              type='checkbox'
-              checked={autoScroll}
-              onChange={(e) => setAutoScroll(e.target.checked)}
-              className='rounded'
-            />
-            Auto-scroll
-          </label>
-        </div>
-      </div>
-
       {/* Logs Container */}
-      <div className='bg-card border rounded-lg overflow-hidden'>
+      <div className='bg-card border md:rounded-lg overflow-hidden'>
         <div
           ref={logsContainerRef}
           onScroll={handleScroll}
-          className='h-96 overflow-y-auto p-4 bg-black text-green-400 font-mono text-sm'
+          className={`min-h-96 overflow-y-auto p-4 bg-gray-900 text-gray-100 font-mono text-sm border-slate-700 ${
+            state.wrapLines ? '' : 'overflow-x-auto'
+          }`}
         >
-          {logs.length === 0
+          {state.logs.length === 0
             ? (
-              <div className='text-muted-foreground text-center py-8'>
+              <div className='text-slate-400 text-center py-8'>
                 No logs available
               </div>
             )
             : (
               <>
-                {logs.map((log, index) => (
-                  <div key={index} className='whitespace-pre-wrap break-words mb-1'>
-                    {log}
-                  </div>
-                ))}
+                {state.logs.map((log: string, index: number) => {
+                  const isCurrentSearchResult = state.searchResults[state.currentSearchIndex] === index
+                  return (
+                    <div
+                      key={index}
+                      data-log-index={index}
+                      className={`mb-1 leading-relaxed ${
+                        state.wrapLines ? 'whitespace-pre-wrap break-words overflow-wrap-anywhere' : 'whitespace-pre'
+                      } ${isCurrentSearchResult ? 'bg-blue-900/30 border-l-4 border-blue-400 pl-2 -ml-2' : ''}`}
+                    >
+                      {/* @ts-ignore */}
+                      <Ansi>{transformLogForSearch(log, state.searchQuery)}</Ansi>
+                    </div>
+                  )
+                })}
                 <div ref={logsEndRef} />
               </>
             )}
@@ -304,8 +687,65 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
       {/* Footer Info */}
       <div className='text-xs text-muted-foreground px-2'>
-        Container: {getSelectedReplicaName()} ({selectedReplica})
+        Container: {containerName} | Viewing: {getSelectedReplicaName()}
       </div>
+
+      {/* Mobile-Only Search Bar - Fixed at bottom */}
+      {state.showSearch && (
+        <div className='fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-50 sm:hidden'>
+          <div className='flex items-center gap-2'>
+            <div className='relative flex-1'>
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+              <Input
+                ref={mobileSearchInputRef}
+                type='text'
+                placeholder='Search in logs...'
+                value={state.searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className='pl-10 pr-4'
+              />
+            </div>
+            <div className='flex items-center gap-1'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleSearchPrevious}
+                disabled={state.searchResults.length === 0}
+                className='px-2'
+                title='Previous match'
+              >
+                <ChevronUp className='h-4 w-4' />
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleSearchNext}
+                disabled={state.searchResults.length === 0}
+                className='px-2'
+                title='Next match'
+              >
+                <ChevronDown className='h-4 w-4' />
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleToggleSearch}
+                className='px-2'
+                title='Close search'
+              >
+                <X className='h-4 w-4' />
+              </Button>
+            </div>
+          </div>
+          {state.searchQuery && (
+            <div className='text-sm text-muted-foreground mt-2 text-center'>
+              {state.searchResults.length > 0
+                ? `${state.currentSearchIndex + 1} of ${state.searchResults.length} matches`
+                : 'No matches found'}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -241,9 +241,9 @@ export function DataItemScreen({
   }
 
   return (
-    <div className='flex flex-col gap-4 p-4 md:gap-6 md:p-6'>
+    <div className='flex flex-col gap-4 py-4 px-0 md:px-4 md:gap-6 md:p-6'>
       {/* Header Section */}
-      <div className=''>
+      <div className='px-4 md:px-0'>
         <div className='flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between'>
           <div className='flex items-start gap-4'>
             <div className='flex-shrink-0 p-3 bg-primary/10 rounded-xl'>
@@ -306,7 +306,7 @@ export function DataItemScreen({
       {tabs && tabs.length > 0
         ? (
           <Tabs defaultValue={defaultTab || tabs[0].id} className='w-full overflow-visible'>
-            <TabsList className='flex w-full overflow-auto no-scrollbar'>
+            <TabsList className='flex w-full overflow-auto no-scrollbar rounded-none md:rounded-lg'>
               {tabs.map((tab) => (
                 <TabsTrigger key={tab.id} value={tab.id} className='flex-1 flex items-center gap-2'>
                   {tab.icon && <tab.icon className='h-4 w-4' />}

@@ -1,6 +1,5 @@
 import { ServerContext } from 'ctx/mod.ts'
 import { Deferer } from './defer.ts'
-import { write } from 'node:fs'
 
 export const createCtrlPCtrlQHandler = ({ interactive, terminal, stderr }: {
   interactive: boolean

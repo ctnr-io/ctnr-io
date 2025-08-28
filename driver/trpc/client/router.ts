@@ -52,7 +52,7 @@ function transformSubscribeResolver<
 
 function transformGeneratorToMutation<Input, Opts extends { ctx: ClientContext; input: Input }>(
   procedure: (opts: Opts) => any,
-) { 
+) {
   return async function (opts: Opts) {
     for await (const value of procedure(opts)) {
       console.warn(value)

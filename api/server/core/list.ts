@@ -604,7 +604,11 @@ function formatAge(createdAt?: Date): string {
 }
 
 // Optimized helper functions for parallel data fetching
-async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2', signal: AbortSignal): Promise<any[]> {
+async function fetchPodMetricsOptimized(
+  ctx: ServerContext,
+  cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2',
+  signal: AbortSignal,
+): Promise<any[]> {
   const podMetrics: any[] = []
 
   if (cluster === 'eu') {
@@ -613,7 +617,9 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
     const promises = concreteClusters.map(async (concreteCluster) => {
       try {
         const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
-        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({ abortSignal: signal })
+        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({
+          abortSignal: signal,
+        })
         const clusterMetrics = metricsResponse.items || []
 
         // Add cluster information to each metric for identification
@@ -633,7 +639,9 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
     // For specific clusters, fetch metrics only from that cluster
     try {
       const clusterClient = ctx.kube.client[cluster]
-      const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({ abortSignal: signal })
+      const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({
+        abortSignal: signal,
+      })
       podMetrics.push(...(metricsResponse.items || []))
     } catch (error) {
       console.warn(`Failed to fetch pod metrics from cluster ${cluster}:`, error)
@@ -643,7 +651,11 @@ async function fetchPodMetricsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-
   return podMetrics
 }
 
-async function fetchAllPodsOptimized(ctx: ServerContext, cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2', signal: AbortSignal): Promise<any[]> {
+async function fetchAllPodsOptimized(
+  ctx: ServerContext,
+  cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2',
+  signal: AbortSignal,
+): Promise<any[]> {
   const allPods: any[] = []
 
   if (cluster === 'eu') {

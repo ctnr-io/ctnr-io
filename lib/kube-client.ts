@@ -11,7 +11,7 @@ import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import { match } from 'ts-pattern'
 import { yaml } from '@tmpl/core'
 import process from 'node:process'
-import { DeleteOpts, GetListOpts, GetOpts, PutOpts, PatchOpts } from '@cloudydeno/kubernetes-apis/operations.ts'
+import { DeleteOpts, GetListOpts, GetOpts, PatchOpts, PutOpts } from '@cloudydeno/kubernetes-apis/operations.ts'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
@@ -314,7 +314,10 @@ export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
             expectJson: true,
             ...opts,
           }) as Promise<List<KarmadaV1Alpha1FederatedResourceQuota>>,
-        createFederatedResourceQuota: (body: KarmadaV1Alpha1FederatedResourceQuota, opts?: Pick<PutOpts, 'abortSignal'>) =>
+        createFederatedResourceQuota: (
+          body: KarmadaV1Alpha1FederatedResourceQuota,
+          opts?: Pick<PutOpts, 'abortSignal'>,
+        ) =>
           client.performRequest({
             method: 'POST',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas`,

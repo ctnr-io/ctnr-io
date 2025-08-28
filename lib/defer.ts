@@ -1,11 +1,11 @@
 export interface Deferer {
-	(fn: DefererCallback): void
-	execute: () => Promise<void>
-	// [Symbol.iterator](): Iterator<() => void | Promise<void>>;
+  (fn: DefererCallback): void
+  execute: () => Promise<void>
+  // [Symbol.iterator](): Iterator<() => void | Promise<void>>;
 }
 
 interface DefererCallback {
-	(): unknown | Promise<unknown>
+  (): unknown | Promise<unknown>
 }
 
 export function createDeferer(): Deferer {
@@ -21,5 +21,5 @@ export function createDeferer(): Deferer {
     }
     deferFns.length = 0 // Clear the array after running
   }
-  return defer 
+  return defer
 }

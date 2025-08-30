@@ -1,4 +1,4 @@
-import { ensureUserNamespace, getKubeClient } from 'lib/kube-client.ts'
+import { ensureUserNamespace, getKubeClient } from 'lib/kubernetes/kube-client.ts'
 import { KubeContext } from '../mod.ts'
 
 const contexts = ['eu', 'eu-0', 'eu-1', 'eu-2'] as const

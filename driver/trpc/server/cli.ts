@@ -3,7 +3,7 @@ import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
 import { router } from './router.ts'
 import { createCli } from 'trpc-cli'
 import { createServerContext } from 'ctx/server/mod.ts'
-import { getSupabaseClient } from 'lib/supabase.ts'
+import { getSupabaseClient } from 'lib/auth/supabase.ts'
 import { authStorage } from '../client/terminal/storage.ts'
 
 // Override Deno Streams to permit to send string directly to stdout and stderr

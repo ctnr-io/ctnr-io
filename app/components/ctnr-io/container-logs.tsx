@@ -13,7 +13,6 @@ import {
   Play,
   RotateCcw,
   Search,
-  Trash2,
   WrapText,
   X,
 } from 'lucide-react'
@@ -24,7 +23,7 @@ import { useSubscription } from '@trpc/tanstack-react-query'
 import Ansi from 'ansi-to-react'
 import { SearchableSelect, SearchableSelectOption } from './searchable-select.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
-import { cn } from '../../lib/shadcn/utils.ts'
+import { cn } from 'lib/shadcn/utils.ts'
 
 interface ContainerInstance {
   name: string
@@ -179,6 +178,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
   // Utility function to strip ANSI escape codes
   const stripAnsiCodes = (text: string): string => {
+    // @deno-lint-ignore
     return text.replace(/\x1b\[[0-9;]*m/g, '')
   }
 
@@ -257,7 +257,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     if (!wasShowingSearch) {
       setTimeout(() => {
         // Check if we're on mobile or desktop and focus the appropriate input
-        const isMobile = window.innerWidth < 640 // sm breakpoint
+        const isMobile = globalThis.innerWidth < 640 // sm breakpoint
         const inputRef = isMobile ? mobileSearchInputRef : desktopSearchInputRef
 
         if (inputRef.current) {
@@ -289,7 +289,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
     while (searchIndex !== -1) {
       // Find the actual position in the original text (accounting for ANSI codes)
-      const beforeMatch = cleanText.substring(0, searchIndex)
       const match = cleanText.substring(searchIndex, searchIndex + searchTerm.length)
 
       // Insert highlighting around the match
@@ -353,7 +352,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       // Strip ANSI codes and join logs
       const cleanLogs = state.logs.map(stripAnsiCodes).join('\n')
 
-      if (navigator.clipboard && window.isSecureContext) {
+      if (navigator.clipboard && globalThis.isSecureContext) {
         await navigator.clipboard.writeText(cleanLogs)
       } else {
         // Fallback for older browsers
@@ -384,8 +383,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10
     setState((prev) => ({ ...prev, autoScroll: isAtBottom }))
   }
-
-  const replica = replicas?.find((replica) => replica.name === state.selectedReplicaName)
 
   // Create options for the SearchableSelect
   const replicaOptions: SearchableSelectOption[] = [

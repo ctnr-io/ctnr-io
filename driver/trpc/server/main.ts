@@ -2,16 +2,20 @@ import 'lib/utils.ts'
 
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import * as ws from 'ws'
+import { createServer, Server } from 'node:http'
 import { router } from './router.ts'
 import { createTrpcServerContext } from './context.ts'
 import process from 'node:process'
 // import { verifySupabaseToken } from "lib/supabase.ts";
 
-const wss = new ws.WebSocketServer({
-  port: 3000,
+const httpServer = createServer()
+
+const websocketServer = new ws.WebSocketServer({
+  server: httpServer,
 })
-const handler = applyWSSHandler({
-  wss,
+
+const websocketHandler = applyWSSHandler({
+  wss: websocketServer,
   router,
   createContext: createTrpcServerContext,
   // Enable heartbeat messages to keep connection open (disabled by default)
@@ -24,17 +28,20 @@ const handler = applyWSSHandler({
   },
 })
 
-wss.on('connection', (ws) => {
-  console.info(`➕➕ Connection (${wss.clients.size})`)
+websocketServer.on('connection', (ws) => {
+  console.info(`➕➕ Websocket Connection (${websocketServer.clients.size})`)
   ws.once('close', () => {
-    console.info(`➖➖ Connection (${wss.clients.size})`)
+    console.info(`➖➖ Websocket Connection (${websocketServer.clients.size})`)
   })
 })
 
-console.info('✅ WebSocket Server listening on ws://localhost:3000')
-
 process.on('SIGTERM', () => {
   console.info('SIGTERM')
-  handler.broadcastReconnectNotification()
-  wss.close()
+  websocketHandler.broadcastReconnectNotification()
+  websocketServer.close()
 })
+
+
+httpServer.listen(3000)
+
+console.info(`✅ HTTP Server listening on http://localhost:3000`)

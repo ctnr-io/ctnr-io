@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ContainerName, ServerRequest, ServerResponse } from '../../_common.ts'
-import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/streams.ts'
+import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/api/streams.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 
 export const Meta = {

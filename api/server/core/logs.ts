@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ContainerName, ServerRequest, ServerResponse } from '../../_common.ts'
 import {
   combineReadableStreamsToAsyncGenerator,
-} from 'lib/streams.ts'
+} from 'lib/api/streams.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 
 export const Meta = {

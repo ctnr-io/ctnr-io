@@ -1,4 +1,4 @@
-import { getSupabaseConfig } from 'lib/supabase.ts'
+import { getSupabaseConfig } from 'lib/auth/supabase.ts'
 import { createClient } from '@supabase/supabase-js'
 import { AuthServerContext } from '../mod.ts'
 

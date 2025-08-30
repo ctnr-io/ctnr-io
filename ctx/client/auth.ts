@@ -1,4 +1,4 @@
-import { getSupabaseClient } from 'lib/supabase.ts'
+import { getSupabaseClient } from 'lib/auth/supabase.ts'
 import type { AuthClientContext } from '../mod.ts'
 
 export async function createAuthClientContext(

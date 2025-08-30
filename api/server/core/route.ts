@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ContainerName, PortName, ServerRequest, ServerResponse } from '../../_common.ts'
-import { ensureUserRoute } from 'lib/kube-client.ts'
+import { ensureUserRoute } from 'lib/kubernetes/kube-client.ts'
 import { hash } from 'node:crypto'
 import * as shortUUID from '@opensrc/short-uuid'
 import { resolveTxt } from 'node:dns/promises'

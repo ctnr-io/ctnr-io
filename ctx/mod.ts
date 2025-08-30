@@ -1,4 +1,5 @@
-import { KubeClient } from 'lib/kube-client.ts'
+import { MollieClient } from '@mollie/api-client'
+import { KubeClient } from 'lib/kubernetes/kube-client.ts'
 import { Session, SupabaseClient } from '@supabase/supabase-js'
 
 export type Signals =
@@ -61,7 +62,36 @@ export type AuthClientContext =
     }
   })
 
-export type ServerContext = StdioContext & KubeContext & AuthServerContext & {
+/**
+ * TODO: Project context for managing user projects.
+ */
+export type ProjectContext = {
+  project: {
+    id: string
+    namespace: string
+    ownerId: string
+  }
+}
+
+/**
+ * Billing context for managing user billing information.
+ */
+export type BillingContext = {
+  billing: {
+    client: MollieClient
+    webhookUrl: string
+    // tier: 'free' | 'paid'
+    // credits: number
+    // rates: {
+    //   cpu: number
+    //   memory: number
+    //   storage: number
+    //   network: number
+    // }
+  }
+}
+
+export type ServerContext = StdioContext & KubeContext & AuthServerContext & ProjectContext & BillingContext & {
   __type: 'server'
 }
 export type ClientContext = StdioContext & AuthClientContext & { __type: 'client' }

@@ -8,7 +8,7 @@ import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
 import { ServerRequest, ServerResponse } from 'api/_common.ts'
 import { ServerContext } from 'ctx/mod.ts'
-import { createDeferer } from 'lib/defer.ts'
+import { createDeferer } from 'lib/api/defer.ts'
 
 export type SubscribeProcedureOutput<Output> = {
   type: 'yield'

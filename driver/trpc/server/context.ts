@@ -3,7 +3,7 @@ import { CreateWSSContextFnOptions } from '@trpc/server/adapters/ws'
 
 import * as ws from 'ws'
 import { Buffer } from 'node:buffer'
-import { bypassWsWebSocketMessageHandler } from 'lib/websocket.ts'
+import { bypassWsWebSocketMessageHandler } from 'lib/api/websocket.ts'
 import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
 import { ServerContext, Signals } from 'ctx/mod.ts'
 import { createServerContext } from 'ctx/server/mod.ts'

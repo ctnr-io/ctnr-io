@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ClientContext, ServerContext } from 'ctx/mod.ts'
-import { Deferer } from 'lib/defer.ts'
+import { Deferer } from 'lib/api/defer.ts'
 
 export const gatewayListeners = [
   'http',
@@ -44,7 +44,7 @@ export const Publish = z.string().transform((value) => {
   `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
 )
 
-export type ServerRequest<Input> = { ctx: ServerContext; input: Input; signal: AbortSignal; defer: Deferer }
+export type ServerRequest<Input = unknown> = { ctx: ServerContext; input: Input; signal: AbortSignal; defer: Deferer }
 
 export type ServerResponse<Output> = AsyncGenerator<
   string,

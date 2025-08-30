@@ -12,6 +12,7 @@
   "imports": {
     "@cloudydeno/kubernetes-apis": "jsr:@cloudydeno/kubernetes-apis@^0.5.2",
     "@cloudydeno/kubernetes-client": "jsr:@cloudydeno/kubernetes-client@^0.7.5",
+    "@mollie/api-client": "npm:@mollie/api-client@^4.3.3",
     "@opensrc/short-uuid": "jsr:@opensrc/short-uuid@^1.0.0",
     "@std/assert": "jsr:@std/assert@^1.0.12",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.5",

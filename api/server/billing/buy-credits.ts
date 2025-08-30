@@ -1,3 +1,4 @@
+import { createServerContext } from 'ctx/server/mod.ts'
 import { ServerRequest, ServerResponse } from '../../_common.ts'
 import { z } from 'zod'
 
@@ -14,7 +15,7 @@ export type Output = {
   paymentId: string
 }
 
-export async function* BuyCredits({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<Output> {
+export default async function* BuyCredits({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<Output> {
 
   yield `Initiating payment for ${input.amount} credits`
 
@@ -35,8 +36,6 @@ export async function* BuyCredits({ ctx, input, signal, defer }: ServerRequest<I
   if (!payment.id || !payment._links?.checkout?.href) {
     throw new Error('Failed to create payment')
   }
-
-  yield `Payment created successfully`
 
   return {
     paymentUrl: payment._links.checkout.href,

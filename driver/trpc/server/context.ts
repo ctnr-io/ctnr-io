@@ -5,10 +5,17 @@ import * as ws from 'ws'
 import { Buffer } from 'node:buffer'
 import { bypassWsWebSocketMessageHandler } from 'lib/api/websocket.ts'
 import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
-import { ServerContext, Signals } from 'ctx/mod.ts'
-import { createServerContext } from 'ctx/server/mod.ts'
+import { Signals, StdioContext } from 'ctx/mod.ts'
 
-export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): Promise<ServerContext> {
+export type TrpcServerContext = {
+  auth: {
+    accessToken: string | undefined
+    refreshToken: string | undefined
+  }
+  stdio: StdioContext['stdio']
+}
+
+export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): Promise<TrpcServerContext> {
   const ws = opts.res as ws.WebSocket
   try {
     // Create a generator for terminal size events
@@ -122,13 +129,13 @@ export async function createTrpcServerContext(opts: CreateWSSContextFnOptions): 
       terminalSizeChan: () => terminalSizeGenerator,
     }
 
-    const context = await createServerContext({
-      accessToken: opts.info.connectionParams?.accessToken,
-      refreshToken: opts.info.connectionParams?.refreshToken,
+    return {
+      auth: {
+        accessToken: opts.info.connectionParams?.accessToken,
+        refreshToken: opts.info.connectionParams?.refreshToken,
+      },
       stdio,
-    })
-
-    return context
+    }
   } catch (error) {
     if (error instanceof Error) {
       console.error(error)

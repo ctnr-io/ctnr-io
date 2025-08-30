@@ -2,13 +2,46 @@ import 'lib/utils.ts'
 
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import * as ws from 'ws'
-import { createServer, Server } from 'node:http'
+import { createServer } from 'node:http'
 import { router } from './router.ts'
 import { createTrpcServerContext } from './context.ts'
 import process from 'node:process'
-// import { verifySupabaseToken } from "lib/supabase.ts";
+import { createOpenApiHttpHandler } from 'trpc-to-openapi';
 
-const httpServer = createServer()
+// Create tRPC HTTP handler
+const httpHandler = createOpenApiHttpHandler({
+  router,
+  createContext: createTrpcServerContext,
+})
+
+const httpServer = createServer((req, res) => {
+  console.info(`➕➕ HTTP Request: ${req.method} ${req.url}`)
+  
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  
+  // Handle preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200)
+    res.end()
+    return
+  }
+  
+  // Handle health check
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ status: 'ok', service: 'ctnr-io-trpc-server' }))
+    return
+  }
+
+  httpHandler(req, res)
+  
+  res.on('finish', () => {
+    console.info(`➖➖ HTTP Response: ${res.statusCode}`)
+  })
+})
 
 const websocketServer = new ws.WebSocketServer({
   server: httpServer,

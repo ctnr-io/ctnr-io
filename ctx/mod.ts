@@ -20,10 +20,16 @@ export type StdioContext = {
 
 type KubeCluster = 'eu' | 'eu-0' | 'eu-1' | 'eu-2'
 
-export type KubeContext = {
+export type KubeServerContext = {
   kube: {
     client: Record<KubeCluster, KubeClient>
     namespace: string
+  }
+}
+
+export type KubeWebhookContext = {
+  kube: {
+    client: Record<KubeCluster, KubeClient>
   }
 }
 
@@ -91,7 +97,10 @@ export type BillingContext = {
   }
 }
 
-export type ServerContext = StdioContext & KubeContext & AuthServerContext & ProjectContext & BillingContext & {
+export type ServerContext = StdioContext & KubeServerContext & AuthServerContext & ProjectContext & BillingContext & {
   __type: 'server'
+}
+export type WebhookContext = KubeWebhookContext & BillingContext & {
+  __type: 'webhook'
 }
 export type ClientContext = StdioContext & AuthClientContext & { __type: 'client' }

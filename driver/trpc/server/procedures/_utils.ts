@@ -1,0 +1,116 @@
+import { ServerRequest, ServerResponse, WebhookRequest, WebhookResponse } from 'api/_common.ts'
+import { ServerContext, WebhookContext } from 'ctx/mod.ts'
+import { createDeferer } from 'lib/api/defer.ts'
+import {
+  MiddlewareResult,
+} from '@trpc/server/unstable-core-do-not-import'
+import { TrpcServerContext } from '../context.ts'
+import { createServerContext } from 'ctx/server/mod.ts'
+import { createWebhookContext } from 'ctx/webhook/mod.ts'
+
+export type SubscribeProcedureOutput<Output> = {
+  type: 'yield'
+  value: string
+} | {
+  type: 'return'
+  value?: Output
+}
+
+type TRPCServerRequest<Input> = { ctx: ServerContext; input: Input; signal: AbortSignal | undefined }
+
+type TRPCWebhookRequest<Input> = { ctx: WebhookContext; input: Input; }
+
+export function transformSubscribeProcedure<Input, Output>(
+  procedure: (opts: ServerRequest<Input>) => ServerResponse<Output>,
+) {
+  return async function* (
+    opts: TRPCServerRequest<Input>,
+  ): AsyncGenerator<SubscribeProcedureOutput<Output>, void, unknown> {
+    if (!opts.signal) {
+      throw new Error('AbortSignal is required')
+    }
+    const defer = createDeferer()
+    try {
+      const gen = procedure({
+        ctx: opts.ctx,
+        input: opts.input,
+        signal: opts.signal,
+        defer,
+      })
+      let result = await gen.next()
+      while (!result.done) {
+        yield { type: 'yield', value: result.value }
+        result = await gen.next()
+      }
+      yield { type: 'return', value: result.value }
+    } finally {
+      await defer.execute()
+    }
+  }
+}
+
+export function transformQueryProcedure<Input, Output>(
+  procedure: (opts: ServerRequest<Input>) => ServerResponse<Output>,
+) {
+  return async function (opts: TRPCServerRequest<Input>): Promise<Output> {
+    if (!opts.signal) {
+      throw new Error('AbortSignal is required')
+    }
+    const defer = createDeferer()
+    try {
+      const gen = procedure({
+        ctx: opts.ctx,
+        input: opts.input,
+        signal: opts.signal,
+        defer,
+      })
+      let result = await gen.next()
+      while (!result.done) {
+        result = await gen.next()
+      }
+      return result.value
+    } finally {
+      await defer.execute()
+    }
+  }
+}
+
+export async function withServerContext({ ctx, next }: {
+  ctx: TrpcServerContext
+  next: (opts: {
+    ctx: ServerContext
+  }) => Promise<MiddlewareResult<ServerContext>>
+}) {
+  return next({ ctx: await createServerContext(ctx) })
+}
+
+export async function withWebhookContext({ ctx, next }: {
+  ctx: TrpcServerContext
+  next: (opts: {
+    ctx: WebhookContext
+  }) => Promise<MiddlewareResult<WebhookContext>>
+}) {
+  return next({ ctx: await createWebhookContext(ctx) })
+}
+
+export function transformWebhookRequest<Input, Output>(
+  procedure: (opts: WebhookRequest<Input>) => WebhookResponse<Output>,
+) {
+  return async function (opts: TRPCWebhookRequest<Input>): Promise<Output> {
+    const defer = createDeferer()
+    try {
+      const gen = procedure({
+        ctx: opts.ctx,
+        input: opts.input,
+        defer,
+      })
+      let result = await gen.next()
+      while (!result.done) {
+        result = await gen.next()
+      }
+      return result.value
+    } finally {
+      await defer.execute()
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ClientContext, ServerContext } from 'ctx/mod.ts'
+import { ClientContext, ServerContext, WebhookContext } from 'ctx/mod.ts'
 import { Deferer } from 'lib/api/defer.ts'
 
 export const gatewayListeners = [
@@ -51,6 +51,10 @@ export type ServerResponse<Output> = AsyncGenerator<
   Output,
   unknown
 >
+
+export type WebhookRequest<Input = unknown> = { ctx: WebhookContext; input: Input; defer: Deferer }
+
+export type WebhookResponse<Output> = AsyncGenerator<string, Output, unknown>
 
 export type ClientRequest<Input> = { ctx: ClientContext; input: Input }
 

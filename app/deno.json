@@ -8,7 +8,7 @@
     "app/": "../app/",
     "cli/": "../cli/",
     "driver/": "../driver/",
-    "lib/": "lib/",
+    "lib/": "../app/lib/",
     "ctx/": "../ctx/"
   },
   "compilerOptions": {

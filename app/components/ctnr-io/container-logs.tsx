@@ -23,7 +23,7 @@ import { useSubscription } from '@trpc/tanstack-react-query'
 import Ansi from 'ansi-to-react'
 import { SearchableSelect, SearchableSelectOption } from './searchable-select.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
-import { cn } from 'lib/shadcn/utils.ts'
+import { cn } from '../../lib/shadcn/utils.ts'
 
 interface ContainerInstance {
   name: string

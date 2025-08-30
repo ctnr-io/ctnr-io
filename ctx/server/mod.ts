@@ -6,8 +6,10 @@ import { createBillingContext } from './billing.ts'
 import { createProjectContext } from './project.ts'
 
 export async function createServerContext(opts: {
-  accessToken: string | undefined
-  refreshToken: string | undefined
+  auth: {
+    accessToken: string | undefined
+    refreshToken: string | undefined
+  };
   stdio: StdioContext['stdio']
 }): Promise<ServerContext> {
   const authContext = await createAuthServerContext(opts)

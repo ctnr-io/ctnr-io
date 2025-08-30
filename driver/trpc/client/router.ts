@@ -10,7 +10,7 @@ import login from 'api/client/auth/login-from-terminal.ts'
 import logout from 'api/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'ctx/mod.ts'
-import { SubscribeProcedureOutput } from 'driver/trpc/server/procedures/core.ts'
+import { SubscribeProcedureOutput } from '../server/procedures/_utils.ts'
 
 export const trpc = initTRPC.context<TrpcClientContext>().create()
 

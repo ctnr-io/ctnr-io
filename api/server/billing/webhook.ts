@@ -1,17 +1,22 @@
 import { getMollieClient } from 'lib/billing/mollie.ts'
+import { WebhookRequest, WebhookResponse } from '../../_common.ts'
+import z from 'zod'
 
-export type Input = {
-  id: string
+export const Meta = {
+  title: 'Billing Webhook',
+  description: 'Handles billing webhooks from Mollie',
 }
 
-export type Output = {
-  status: string
-}
+export const Input = z.object({
+  id: z.string(),
+})
 
-export default async function BillingWebhookHandler({ input }: ServerRequest<Input>): ServerResponse<Output> {
+export type Input = z.infer<typeof Input>
+
+export type Output = Response
+
+export default async function* ({ input }: WebhookRequest<Input>): WebhookResponse<Output> {
   try {
-    const input = { id: '' }
-
     // Get payment ID from the request body
     const paymentId = input.id
 

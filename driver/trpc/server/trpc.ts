@@ -1,8 +1,9 @@
 import { initTRPC } from '@trpc/server'
-import { ServerContext } from 'ctx/mod.ts'
 import SuperJSON from 'superjson'
+import { TrpcServerContext } from './context.ts'
+import { OpenApiMeta } from 'trpc-to-openapi'
 
-export const trpc = initTRPC.context<ServerContext>().create({
+export const trpc = initTRPC.meta<OpenApiMeta>().context<TrpcServerContext>().create({
   transformer: SuperJSON,
 })
 // Create a new tRPC instance

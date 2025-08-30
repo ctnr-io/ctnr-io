@@ -25,6 +25,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     if (moduleName.startsWith(importKey)) {
       const resolvedPath = moduleName.replace(importKey, importPath)
       const fullPath = path.resolve(__dirname, resolvedPath)
+      console.log(`Resolving ${moduleName} to ${fullPath}`)
       return context.resolveRequest(context, fullPath, platform)
     }
   }

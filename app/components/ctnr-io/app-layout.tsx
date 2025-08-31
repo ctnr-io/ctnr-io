@@ -1,6 +1,7 @@
 'use dom'
 
 import { AppSidebar } from 'app/components/ctnr-io/app-sidebar.tsx'
+import CreditsDisplay from 'app/components/ctnr-io/credits-display.tsx'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,7 +28,7 @@ export default function AppLayout({ user, onLogout, children }: PropsWithChildre
       <AppSidebar user={user} onLogout={onLogout} />
       <SidebarInset className='overflow-auto'>
         <header className='sticky top-0 z-10 bg-white border-b flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12'>
-          <div className='flex items-center gap-2 px-4'>
+          <div className='flex items-center gap-2 px-4 flex-1'>
             <SidebarTrigger className='-ml-1' />
             <Separator
               orientation='vertical'
@@ -46,6 +47,9 @@ export default function AppLayout({ user, onLogout, children }: PropsWithChildre
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+          <div className='flex items-center gap-2 px-4'>
+            <CreditsDisplay />
           </div>
         </header>
         <div className='flex flex-1 flex-col bg-white'>

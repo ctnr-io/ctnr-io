@@ -4,6 +4,11 @@ import * as Attach from 'api/server/core/attach.ts'
 import * as Exec from 'api/server/core/exec.ts'
 import * as Route from 'api/server/core/route.ts'
 import * as Logs from 'api/server/core/logs.ts'
+import * as BuyCredits from 'api/server/billing/buy-credits.ts'
+import * as GetUsage from 'api/server/billing/get-usage.ts'
+import * as DeductCredits from 'api/server/billing/deduct-credits.ts'
+import * as GetInvoices from 'api/server/billing/get-invoices.ts'
+import * as GetPayments from 'api/server/billing/get-payments.ts'
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from './context.ts'
 import login from 'api/client/auth/login-from-terminal.ts'
@@ -106,6 +111,33 @@ export const clientRouter = trpc.router({
   logs: trpc.procedure.meta(Logs.Meta).input(Logs.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
       (server) => transformSubscribeResolver(server.core.logs.subscribe, { ctx, input, signal }),
+    )
+  ),
+
+  // Billing procedures
+  buyCredits: trpc.procedure.meta(BuyCredits.Meta).input(BuyCredits.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.billing.buyCredits.subscribe, { ctx, input, signal }),
+    )
+  ),
+  getUsage: trpc.procedure.meta(GetUsage.Meta).input(GetUsage.Input).query(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => server.billing.getUsage.query(input, { signal, context: ctx }),
+    )
+  ),
+  deductCredits: trpc.procedure.meta(DeductCredits.Meta).input(DeductCredits.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => server.billing.deductCredits.mutate(input, { signal, context: ctx }),
+    )
+  ),
+  getInvoices: trpc.procedure.meta(GetInvoices.Meta).input(GetInvoices.Input).query(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => server.billing.getInvoices.query(input, { signal, context: ctx }),
+    )
+  ),
+  getPayments: trpc.procedure.meta(GetPayments.Meta).input(GetPayments.Input).query(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => server.billing.getPayments.query(input, { signal, context: ctx }),
     )
   ),
 })

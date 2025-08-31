@@ -99,9 +99,9 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {state && (
-        <ExpoTrpcClientContext.Provider value={state?.ctx}>
-          <TRPCProvider queryClient={queryClient} trpcClient={state?.server!}>{children}</TRPCProvider>
+      {state && state.server && (
+        <ExpoTrpcClientContext.Provider value={state.ctx}>
+          <TRPCProvider queryClient={queryClient} trpcClient={state.server}>{children}</TRPCProvider>
         </ExpoTrpcClientContext.Provider>
       )}
     </QueryClientProvider>

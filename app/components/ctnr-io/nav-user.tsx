@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from 'app/components/shadcn/ui/dropdown-menu.tsx'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from 'app/components/shadcn/ui/sidebar.tsx'
+import { Link } from 'expo-router'
 
 export function NavUser({
   user,
@@ -78,10 +79,12 @@ export function NavUser({
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
+              <Link href="/billing">
               <DropdownMenuItem>
                 <CreditCard />
                 Billing
               </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem>
                 <Bell />
                 Notifications

@@ -42,7 +42,6 @@ interface LogsState {
   autoScroll: boolean
   wrapLines: boolean
   error: string | null
-  isLoading: boolean
   searchQuery: string
   searchResults: number[]
   currentSearchIndex: number
@@ -57,7 +56,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     autoScroll: true,
     wrapLines: true,
     error: null,
-    isLoading: false,
     searchQuery: '',
     searchResults: [],
     currentSearchIndex: -1,
@@ -74,7 +72,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
   const sidebar = useSidebar()
 
   // Logs subscription for streaming
-  useSubscription(
+  const { reset, status } = useSubscription(
     trpc.core.logs.subscriptionOptions({
       name: containerName,
       follow: true,
@@ -82,7 +80,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       timestamps: true,
       tail: 100, // Show last 100 lines initially
     }, {
-      onData: (data: { type: 'yield' | 'return'; value?: string }) => {
+      onData: (data) => {
         if (state.isStreaming && data.type === 'yield' && data.value) {
           setState((prev) => ({ ...prev, logs: [...prev.logs, data.value!], error: null }))
         } else if (data.type === 'return') {
@@ -94,11 +92,12 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
           ...prev,
           error: err.message || 'An error occurred while streaming logs',
           isStreaming: false,
-          isLoading: false,
         }))
       },
     }),
   )
+
+  const isLoading = status === 'connecting'
 
   // Reset logs when replica changes
   useEffect(() => {
@@ -158,21 +157,13 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const handleRefreshLogs = () => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null, logs: [] }))
-
+  const handleRefreshLogs = async () => {
+    setState((state) => ({ ...state, logs: [], error: null }))
     // Restart streaming to get fresh logs
     if (state.isStreaming) {
-      setState((prev) => ({ ...prev, isStreaming: false }))
-      setTimeout(() => {
-        setState((prev) => ({ ...prev, isStreaming: true, isLoading: false }))
-      }, 100)
+      reset()
     } else {
-      // If not streaming, do a one-time fetch
-      setState((prev) => ({ ...prev, isStreaming: true }))
-      setTimeout(() => {
-        setState((prev) => ({ ...prev, isStreaming: false, isLoading: false }))
-      }, 2000)
+      reset()
     }
   }
 
@@ -449,7 +440,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               variant={state.isStreaming ? 'default' : 'ghost'}
               size='sm'
               onClick={handleToggleStreaming}
-              disabled={state.isLoading}
               className='h-8 px-3'
               title={state.isStreaming ? 'Pause streaming' : 'Resume streaming'}
             >
@@ -463,13 +453,12 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               variant='ghost'
               size='sm'
               onClick={handleRefreshLogs}
-              disabled={state.isLoading}
               className='h-8 px-3'
               title='Refresh logs'
             >
-              <RotateCcw className={`h-4 w-4 ${state.isLoading ? 'animate-spin' : ''}`} />
+              <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-[spin_reverse_1s_linear_infinite]' : ''}`} />
               <span className='ml-1 hidden xl:inline'>
-                {state.isLoading ? 'Refreshing' : 'Refresh'}
+                {isLoading ? 'Refreshing' : 'Refresh'}
               </span>
             </Button>
             <Button
@@ -612,11 +601,14 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               <div className='flex items-center gap-2'>
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    state.isLoading ? 'bg-blue-500 animate-pulse' : state.isStreaming ? 'bg-green-500' : 'bg-yellow-500'
+                    isLoading
+                      ? 'bg-blue-500 animate-pulse'
+                      : state.isStreaming
+                      ? 'bg-green-500'
+                      : 'bg-yellow-500'
                   }`}
                 />
                 <span className='font-medium'>
-                  {state.isLoading ? 'Loading' : state.isStreaming ? 'Live' : 'Paused'}
                 </span>
               </div>
               <span>Lines: {state.logs.length.toLocaleString()}</span>

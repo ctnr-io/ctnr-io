@@ -3,6 +3,7 @@
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
+import { calculateCost } from '../../../lib/billing/utils.ts'
 
 // Container type definition
 interface ContainerData {
@@ -21,9 +22,14 @@ interface ContainerData {
   }
   routes: string[]
   clusters: string[]
+  cost: {
+    hourly: number
+    daily: number
+    monthly: number
+  }
 }
 
-// Mock data for containers
+// Mock data for containers with calculated costs
 const containers: ContainerData[] = [
   {
     id: 'cont_1a2b3c4d',
@@ -41,6 +47,7 @@ const containers: ContainerData[] = [
     },
     routes: ['https://web-app-frontend-user123.ctnr.io', 'https://myapp.example.com'],
     clusters: ['eu-0', 'us-west-2'],
+    cost: calculateCost('250m', '512Mi', 3),
   },
   {
     id: 'cont_5e6f7g8h',
@@ -58,6 +65,7 @@ const containers: ContainerData[] = [
     },
     routes: ['https://api-backend-user123.ctnr.io'],
     clusters: ['eu-0'],
+    cost: calculateCost('500m', '512Mi', 2),
   },
   {
     id: 'cont_9i0j1k2l',
@@ -75,6 +83,7 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['eu-2', 'us-east-1'],
+    cost: calculateCost('250m', '512Mi', 0),
   },
   {
     id: 'cont_3m4n5o6p',
@@ -92,6 +101,7 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['eu-0', 'eu-2', 'us-east-1'],
+    cost: calculateCost('250m', '512Mi', 1),
   },
   {
     id: 'cont_7q8r9s0t',
@@ -109,6 +119,7 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['development'],
+    cost: calculateCost('300m', '512Mi', 3),
   },
 ]
 
@@ -134,6 +145,7 @@ function formatDate(dateString: string) {
     minute: '2-digit',
   })
 }
+
 
 export default function ContainersTableScreen({
   data,
@@ -214,6 +226,16 @@ export default function ContainersTableScreen({
       key: 'memory',
       label: 'Memory',
       className: 'font-mono text-sm',
+    },
+    {
+      key: 'cost',
+      label: 'Cost / Month',
+      render: (_value, item) => (
+        <div className='text-sm'>
+          {item.cost.monthly} credits
+        </div>
+      ),
+      className: 'text-sm',
     },
     {
       key: 'clusters',
@@ -353,7 +375,7 @@ export default function ContainersTableScreen({
       searchPlaceholder='Search containers by name, image, status, or clusters...'
       searchKeys={['name', 'image', 'status', 'clusters']}
       columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'ports', 'cpu', 'memory']}
+      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory', 'cost']}
       emptyMessage='No containers found. Create your first container to get started.'
       loading={isLoading}
     />

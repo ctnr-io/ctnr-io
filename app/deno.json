@@ -1,9 +1,12 @@
 {
   "imports": {
     "@trpc/server": "npm:@trpc/server@^11.5.0",
+    "@trpc/client": "npm:@trpc/client@^11.5.0",
     "@trpc/react-query": "npm:@trpc/react-query@^11.5.0",
     "@tanstack/react-query": "npm:@tanstack/react-query@^5.85.5",
     "@trpc/tanstack-react-query": "npm:@trpc/tanstack-react-query@^11.5.0",
+    "superjson": "npm:superjson@^2.2.1",
+    "zod": "npm:zod@^4.1.5",
     "api/": "../api/",
     "app/": "../app/",
     "cli/": "../cli/",

@@ -1,4 +1,3 @@
-import { createServerContext } from 'ctx/server/mod.ts'
 import { ServerRequest, ServerResponse } from '../../_common.ts'
 import { z } from 'zod'
 
@@ -15,7 +14,7 @@ export type Output = {
   paymentId: string
 }
 
-export default async function* BuyCredits({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<Output> {
+export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
 
   yield `Initiating payment for ${input.amount} credits`
 

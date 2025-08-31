@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
 import { ServerRequest, ServerResponse } from '../../_common.ts'
 import * as YAML from '@std/yaml'
+import { calculateCost } from 'lib/billing/utils.ts'
+import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 
 export const Meta = {
   aliases: {
@@ -37,6 +39,7 @@ export type Container = {
   ports: string[]
   cpu: string
   memory: string
+  storage: string
   replicas: {
     max: number
     min: number
@@ -56,6 +59,11 @@ export type Container = {
   workingDir: string
   environment: Record<string, string>
   volumes: string[]
+  cost: {
+    hourly: number
+    daily: number
+    monthly: number
+  }
 }
 
 type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
@@ -144,11 +152,10 @@ export default async function* (
 
   // Transform deployments to container data with maximum efficiency
   const containers = deployments.items.map((deployment) => {
-    const annotations = deployment.metadata?.annotations || {}
     const labels = deployment.metadata?.labels || {}
     const spec = deployment.spec || {}
     const status = deployment.status || {}
-    const container = (spec as any).template?.spec?.containers?.[0]
+    const container = deployment.spec?.template?.spec?.containers?.[0]
 
     // Build container object with only requested fields - avoid unnecessary processing
     const containerData: Partial<Container> = {}
@@ -161,12 +168,13 @@ export default async function* (
 
     // Resource fields - only if requested
     if (needsResourceInfo) {
-      containerData.ports = extractPortMappingsFromContainer(container?.ports)
+      containerData.ports = extractPortMappingsFromContainer(container?.ports ?? [])
       const resources = needsRealTimeMetrics && podMetrics.length > 0
-        ? extractResourceUsageFromMetrics(deployment, podMetrics, annotations)
-        : extractResourceUsageFromDeployment(deployment, annotations)
+        ? extractResourceUsageFromMetrics(deployment, podMetrics)
+        : extractResourceUsageFromDeployment(deployment)
       containerData.cpu = resources.cpu
       containerData.memory = resources.memory
+      containerData.storage = resources.storage
     }
 
     // Replica fields - only if requested
@@ -197,6 +205,13 @@ export default async function* (
       containerData.volumes = extractVolumeMounts(container?.volumeMounts || [])
     }
 
+    // Calculate cost based on CPU, memory, and current replicas
+    const cpu = containerData.cpu || '100m'
+    const memory = containerData.memory || '128Mi'
+    const storage = containerData.storage || '1Gi'
+    const currentReplicas = containerData.replicas?.current || 0
+    const cost = calculateCost(cpu, memory, storage, currentReplicas)
+
     // Return with defaults for missing fields to maintain type compatibility
     return {
       name: containerData.name!,
@@ -204,8 +219,9 @@ export default async function* (
       status: containerData.status!,
       createdAt: containerData.createdAt!,
       ports: containerData.ports || [],
-      cpu: containerData.cpu || '',
-      memory: containerData.memory || '',
+      cpu: cpu,
+      memory: memory,
+      storage: storage,
       replicas: containerData.replicas || { max: 0, min: 0, current: 0, instances: [] },
       routes: containerData.routes || [],
       clusters: containerData.clusters || [],
@@ -214,6 +230,7 @@ export default async function* (
       workingDir: containerData.workingDir || '/',
       environment: containerData.environment || {},
       volumes: containerData.volumes || [],
+      cost: cost,
     }
   })
 
@@ -379,10 +396,9 @@ function extractReplicaInfoWithInstances(
 }
 
 function extractResourceUsageFromMetrics(
-  deployment: any,
+  deployment: Deployment,
   podMetrics: any[],
-  annotations: any,
-): { cpu: string; memory: string } {
+): { cpu: string; memory: string; storage: string } {
   const deploymentName = deployment.metadata?.name
 
   // Find pods that belong to this deployment
@@ -393,12 +409,13 @@ function extractResourceUsageFromMetrics(
 
   if (deploymentPods.length === 0) {
     // Fallback to resource limits/requests if no metrics available
-    return extractResourceUsageFromDeployment(deployment, annotations)
+    return extractResourceUsageFromDeployment(deployment)
   }
 
   // Aggregate CPU and memory usage across all pods for this deployment
   let totalCpuNano = 0
   let totalMemoryBytes = 0
+  let totalStorageGB = 0
   let podCount = 0
 
   for (const podMetric of deploymentPods) {
@@ -426,6 +443,15 @@ function extractResourceUsageFromMetrics(
         } else {
           totalMemoryBytes += parseInt(memoryUsage)
         }
+
+        // Parse Storage (format: "123Gi", etc.)
+        const storageUsage = deployment.spec?.template?.spec?.containers?.[0]?.resources?.limits?.['ephemeral-storage'].serialize() || '0'
+        if (storageUsage.endsWith('Gi')) {
+          totalStorageGB += parseInt(storageUsage.slice(0, -2))
+        } else {
+          totalStorageGB += parseInt(storageUsage)
+        }
+
         podCount++
       }
     }
@@ -434,21 +460,24 @@ function extractResourceUsageFromMetrics(
   // Convert back to readable format
   const cpuMillicores = Math.round(totalCpuNano / 1000000)
   const memoryMB = Math.round(totalMemoryBytes / (1024 * 1024))
+  const storageGB = Math.round(totalStorageGB)
 
   return {
     cpu: `${cpuMillicores}m`,
     memory: `${memoryMB}Mi`,
+    storage: `${storageGB}Gi`,
   }
 }
 
-function extractResourceUsageFromDeployment(deployment: any, annotations: any): { cpu: string; memory: string } {
+function extractResourceUsageFromDeployment(deployment: Deployment): { cpu: string; memory: string; storage: string } {
   // Extract resource usage from annotations or calculate from container resources
   const container = deployment.spec?.template?.spec?.containers?.[0]
   const resources = container?.resources
 
   // Try annotations first, then fall back to resource requests/limits
-  let cpu = annotations['ctnr.io/cpu-usage']
-  let memory = annotations['ctnr.io/memory-usage']
+  let cpu
+  let memory
+  let storage
 
   if (!cpu && resources?.requests?.cpu) {
     cpu = normalizeKubernetesResourceValue(resources.requests.cpu)
@@ -466,9 +495,18 @@ function extractResourceUsageFromDeployment(deployment: any, annotations: any): 
     memory = '128Mi'
   }
 
+  if (!storage && resources?.requests?.['ephemeral-storage']) {
+    storage = normalizeKubernetesResourceValue(resources.requests['ephemeral-storage'])
+  } else if (!storage && resources?.limits?.['ephemeral-storage']) {
+    storage = normalizeKubernetesResourceValue(resources.limits['ephemeral-storage'])
+  } else if (!storage) {
+    storage = '1Gi'
+  }
+
   return {
     cpu: String(cpu || '100m'),
     memory: String(memory || '128Mi'),
+    storage: String(storage || '1Gi'),
   }
 }
 

@@ -8,6 +8,8 @@
     "react": "npm:react@^19.1.1",
     "react-native": "npm:react-native@^0.81.0",
     "expo-splash-screen": "npm:expo-splash-screen@^0.30.10",
-    "driver/": "../../../../driver/"
+    "driver/": "../../../../driver/",
+    "@trpc/react-query": "npm:@trpc/react-query@^11.5.0",
+    "superjson": "npm:superjson@^2.2.1"
   }
 }

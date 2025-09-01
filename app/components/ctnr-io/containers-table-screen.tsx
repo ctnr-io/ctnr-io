@@ -2,7 +2,7 @@
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
-import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
+import { Coins, Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 import { calculateCost } from '../../../lib/billing/utils.ts'
 
 // Container type definition
@@ -229,10 +229,10 @@ export default function ContainersTableScreen({
     },
     {
       key: 'cost',
-      label: 'Cost / Month',
+      label: 'Cost / hr',
       render: (_value, item) => (
-        <div className='text-sm'>
-          {item.cost.monthly} credits
+        <div className='text-sm inline-flex gap-1'>
+          <Coins className="h-3 w-3 text-gray-600 self-center" /> {item.cost.hourly}
         </div>
       ),
       className: 'text-sm',

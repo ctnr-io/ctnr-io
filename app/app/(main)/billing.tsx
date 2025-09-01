@@ -1,30 +1,18 @@
 'use dom'
 
-import React, { useEffect, useState } from 'react'
-import {
-  Calendar,
-  Cpu,
-  CreditCard,
-  Crown,
-  DollarSign,
-  Download,
-  HardDrive,
-  MemoryStick,
-  Plus,
-  Receipt,
-  Rocket,
-  Star,
-  TrendingUp,
-  Wallet,
-  Zap,
-} from 'lucide-react'
+import React, { useState } from 'react'
+import { CreditCard, Plus, Receipt, Download, DollarSign, TrendingUp, Wallet, Settings, Zap, Shield, AlertTriangle } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import { Card, CardContent, CardFooter, CardHeader } from 'app/components/shadcn/ui/card.tsx'
+import { Card } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
-import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from 'app/components/shadcn/ui/dialog.tsx'
+import { Input } from 'app/components/shadcn/ui/input.tsx'
+import { Label } from 'app/components/shadcn/ui/label.tsx'
+import { Switch } from 'app/components/shadcn/ui/switch.tsx'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
+import { DataTableScreen, TableColumn, TableAction } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
-import { Tier } from '../../../lib/billing/utils.ts'
-import { useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 
 interface Invoice {
   id: string
@@ -42,164 +30,307 @@ interface Invoice {
   downloadUrl?: string
 }
 
-export default function BillingScreen() {
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [loading, setLoading] = useState(false)
-  const [purchasing, setPurchasing] = useState(false)
-  const [subscribing, setSubscribing] = useState<string | null>(null)
-  const [currentBalance] = useState(1250) // Mock current balance
-  const [currentTier] = useState<Tier>('free') // Mock current tier
-
+// Credit Purchase Dialog Component
+function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [formData, setFormData] = useState({ amount: '500', customAmount: '' })
   const trpc = useTRPC()
 
-  const loadInvoices = async () => {
-    setLoading(true)
-    try {
-      // Mock invoice data - in real implementation, this would use tRPC
-      const mockInvoices: Invoice[] = [
-        {
-          id: 'inv_001',
-          number: 'INV-2024-001',
-          amount: { value: '4.50', currency: 'EUR' },
-          description: '500 Credits Purchase',
-          status: 'paid',
-          createdAt: '2024-01-15T10:30:00Z',
-          paidAt: '2024-01-15T10:31:00Z',
-          dueAt: '2024-01-22T10:30:00Z',
-          credits: 500,
-          downloadUrl: '/invoices/inv_001.pdf',
-        },
-        {
-          id: 'inv_002',
-          number: 'INV-2024-002',
-          amount: { value: '1.00', currency: 'EUR' },
-          description: '100 Credits Purchase',
-          status: 'paid',
-          createdAt: '2024-01-10T14:20:00Z',
-          paidAt: '2024-01-10T14:21:00Z',
-          dueAt: '2024-01-17T14:20:00Z',
-          credits: 100,
-          downloadUrl: '/invoices/inv_002.pdf',
-        },
-        {
-          id: 'inv_003',
-          number: 'INV-2024-003',
-          amount: { value: '8.00', currency: 'EUR' },
-          description: '1000 Credits Purchase',
-          status: 'pending',
-          createdAt: '2024-01-08T09:15:00Z',
-          dueAt: '2024-01-15T09:15:00Z',
-          credits: 1000,
-        },
-      ]
-      setInvoices(mockInvoices)
-    } catch (error) {
-      console.error('Failed to load invoices:', error)
-    } finally {
-      setLoading(false)
+  const buyCredits = useMutation(trpc.billing.buyCredits.mutationOptions({
+    onSuccess: (data) => {
+      // Open payment URL in new tab
+      window.open(data.paymentUrl, '_blank')
+      onOpenChange(false)
+    },
+    onError: (error) => {
+      console.error('Failed to initiate credit purchase:', error)
+      alert('Failed to initiate credit purchase. Please try again.')
+    }
+  }))
+
+  const handlePurchase = async () => {
+    const amount = formData.amount === 'custom' 
+      ? parseInt(formData.customAmount) 
+      : parseInt(formData.amount)
+    
+    if (amount > 0) {
+      await buyCredits.mutateAsync({ amount })
     }
   }
 
-  const purchaseCredits = async () => {
-    setPurchasing(true)
-    try {
-      // In real implementation, this would call the tRPC buyCredits mutation
-      console.log('Opening credit purchase dialog')
+  const presetAmounts = [
+    { value: '100', label: '100 Credits - €1.00' },
+    { value: '500', label: '500 Credits - €5.00' },
+    { value: '1000', label: '1000 Credits - €10.00' },
+    { value: '5000', label: '5000 Credits - €50.00' },
+    { value: 'custom', label: 'Custom Amount' }
+  ]
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Purchase Credits</DialogTitle>
+          <DialogDescription>
+            Select the amount of credits you'd like to purchase. Credits are charged at €0.01 per credit.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="amount">Credit Amount</Label>
+            <Select value={formData.amount} onValueChange={(value) => setFormData(prev => ({ ...prev, amount: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select amount" />
+              </SelectTrigger>
+              <SelectContent>
+                {presetAmounts.map((preset) => (
+                  <SelectItem key={preset.value} value={preset.value}>
+                    {preset.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {formData.amount === 'custom' && (
+            <div>
+              <Label htmlFor="customAmount">Custom Amount</Label>
+              <Input
+                id="customAmount"
+                type="number"
+                placeholder="Enter credit amount"
+                value={formData.customAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, customAmount: e.target.value }))}
+              />
+              {formData.customAmount && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Total: €{(parseInt(formData.customAmount) * 0.01).toFixed(2)}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
-      // Mock success - would redirect to payment URL in real implementation
-      alert('Redirecting to credit purchase page...')
-    } catch (error) {
-      console.error('Failed to initiate purchase:', error)
-      alert('Failed to initiate purchase. Please try again.')
-    } finally {
-      setPurchasing(false)
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handlePurchase} 
+            disabled={buyCredits.isPending || (formData.amount === 'custom' && !formData.customAmount)}
+          >
+            {buyCredits.isPending ? 'Processing...' : 'Purchase Credits'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// Settings Dialog Component
+function BillingSettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const trpc = useTRPC()
+  
+  // Fetch current settings
+  const { data: settingsData, isLoading: settingsLoading } = useQuery(trpc.billing.getSettings.queryOptions({}))
+  
+  // Form state for settings
+  const [settings, setSettings] = useState({
+    autoPurchaseEnabled: false,
+    autoPurchaseThreshold: '100',
+    autoPurchaseAmount: '500',
+    usageLimitsEnabled: false,
+    cpuLimit: '2',
+    memoryLimit: '4',
+    storageLimit: '10',
+    dailySpendLimit: '10'
+  })
+
+  // Update form state when settings data loads
+  React.useEffect(() => {
+    if (settingsData) {
+      setSettings({
+        autoPurchaseEnabled: settingsData.autoPurchase.enabled,
+        autoPurchaseThreshold: settingsData.autoPurchase.threshold.toString(),
+        autoPurchaseAmount: settingsData.autoPurchase.amount.toString(),
+        usageLimitsEnabled: settingsData.usageLimits.enabled,
+        cpuLimit: settingsData.usageLimits.cpu.toString(),
+        memoryLimit: settingsData.usageLimits.memory.toString(),
+        storageLimit: settingsData.usageLimits.storage.toString(),
+        dailySpendLimit: settingsData.usageLimits.dailySpendLimit.toString()
+      })
     }
-  }
+  }, [settingsData])
 
-  const { mutateAsync: subscribeTierMutation } = useMutation(trpc.billing.subscribeTier.mutationOptions())
-
-  const subscribeTier = async (tier: Tier) => {
-    if (tier === 'free' || tier === 'custom') return
-
-    setSubscribing(tier)
-    try {
-      // Use the subscription method correctly
-      const subscription = await subscribeTierMutation({ tier })
-      // Redirect to payment URL
-      window.location.href = subscription.paymentUrl
-    } catch (error) {
-      console.error('Failed to initiate tier subscription:', error)
-      alert('Failed to initiate tier subscription. Please try again.')
-    } finally {
-      setSubscribing(null)
+  const updateSettingsMutation = useMutation(trpc.billing.updateSettings.mutationOptions({
+    onSuccess: () => {
+      onOpenChange(false)
+    },
+    onError: (error) => {
+      console.error('Failed to update billing settings:', error)
+      alert('Failed to update billing settings. Please try again.')
     }
+  }))
+
+  const handleSave = async () => {
+    await updateSettingsMutation.mutateAsync({
+      autoPurchase: {
+        enabled: settings.autoPurchaseEnabled,
+        threshold: parseInt(settings.autoPurchaseThreshold),
+        amount: parseInt(settings.autoPurchaseAmount)
+      },
+      usageLimits: {
+        enabled: settings.usageLimitsEnabled,
+        cpu: parseInt(settings.cpuLimit),
+        memory: parseInt(settings.memoryLimit),
+        storage: parseInt(settings.storageLimit),
+        dailySpendLimit: parseInt(settings.dailySpendLimit)
+      }
+    })
   }
 
-  const getTierIcon = (tier: string) => {
-    switch (tier) {
-      case 'nano':
-        return Zap
-      case 'tiny':
-        return Zap
-      case 'micro':
-        return Star
-      case 'small':
-        return Rocket
-      case 'medium':
-        return Crown
-      case 'large':
-        return Crown
-      case 'huge':
-        return Crown
-      case 'giant':
-        return Crown
-      default:
-        return Star
-    }
-  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Billing Settings</DialogTitle>
+          <DialogDescription>
+            Configure automatic credit purchases and usage limits.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Auto Purchase Settings */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Automatic Credit Purchase</h4>
+                <p className="text-sm text-gray-500">Automatically buy credits when balance is low</p>
+              </div>
+              <Switch 
+                checked={settings.autoPurchaseEnabled}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, autoPurchaseEnabled: checked }))}
+              />
+            </div>
+            
+            {settings.autoPurchaseEnabled && (
+              <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-100">
+                <div>
+                  <Label>Trigger when balance below</Label>
+                  <Input
+                    type="number"
+                    value={settings.autoPurchaseThreshold}
+                    onChange={(e) => setSettings(prev => ({ ...prev, autoPurchaseThreshold: e.target.value }))}
+                    placeholder="100"
+                  />
+                </div>
+                <div>
+                  <Label>Purchase amount</Label>
+                  <Input
+                    type="number"
+                    value={settings.autoPurchaseAmount}
+                    onChange={(e) => setSettings(prev => ({ ...prev, autoPurchaseAmount: e.target.value }))}
+                    placeholder="500"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
-  const getTierColor = (tier: string, isCurrentTier: boolean) => {
-    if (isCurrentTier) {
-      return 'border-gray-900 bg-gray-50'
-    }
-    return 'border-gray-200 hover:bg-gray-50'
-  }
+          {/* Usage Limits */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Usage Limits</h4>
+                <p className="text-sm text-gray-500">Set limits to prevent unexpected charges</p>
+              </div>
+              <Switch 
+                checked={settings.usageLimitsEnabled}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, usageLimitsEnabled: checked }))}
+              />
+            </div>
+            
+            {settings.usageLimitsEnabled && (
+              <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-100">
+                <div>
+                  <Label>Max CPU cores</Label>
+                  <Input
+                    type="number"
+                    value={settings.cpuLimit}
+                    onChange={(e) => setSettings(prev => ({ ...prev, cpuLimit: e.target.value }))}
+                    placeholder="2"
+                  />
+                </div>
+                <div>
+                  <Label>Max Memory (GB)</Label>
+                  <Input
+                    type="number"
+                    value={settings.memoryLimit}
+                    onChange={(e) => setSettings(prev => ({ ...prev, memoryLimit: e.target.value }))}
+                    placeholder="4"
+                  />
+                </div>
+                <div>
+                  <Label>Max Storage (GB)</Label>
+                  <Input
+                    type="number"
+                    value={settings.storageLimit}
+                    onChange={(e) => setSettings(prev => ({ ...prev, storageLimit: e.target.value }))}
+                    placeholder="10"
+                  />
+                </div>
+                <div>
+                  <Label>Daily spend limit (€)</Label>
+                  <Input
+                    type="number"
+                    value={settings.dailySpendLimit}
+                    onChange={(e) => setSettings(prev => ({ ...prev, dailySpendLimit: e.target.value }))}
+                    placeholder="10"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-  const formatTierName = (tier: string) => {
-    return tier.charAt(0).toUpperCase() + tier.slice(1)
-  }
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateSettingsMutation.isPending}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={updateSettingsMutation.isPending}>
+            {updateSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
-  const formatResources = (tierConfig: any) => {
-    return {
-      cpu: `${(tierConfig.cpu / 1000).toFixed(1)} CPU`,
-      memory: `${(tierConfig.memory / 1024).toFixed(1)}GB RAM`,
-      storage: `${(tierConfig.storage / 1024).toFixed(1)}GB Storage`,
-    }
-  }
+export default function BillingScreen() {
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  
+  const trpc = useTRPC()
+
+  // Fetch data using tRPC queries
+  const { data: usageData, isLoading: usageLoading } = useQuery(trpc.billing.getUsage.queryOptions({}))
+  const { data: invoicesData, isLoading: invoicesLoading } = useQuery(trpc.billing.getInvoices.queryOptions({ limit: 50, offset: 0 }))
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
+      day: 'numeric'
     })
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid':
-        return 'text-green-600 bg-green-50'
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-50'
-      case 'failed':
-        return 'text-red-600 bg-red-50'
-      case 'draft':
-        return 'text-gray-600 bg-gray-50'
-      default:
-        return 'text-gray-600 bg-gray-50'
+      case 'paid': return 'text-green-600 bg-green-50'
+      case 'pending': return 'text-yellow-600 bg-yellow-50'
+      case 'failed': return 'text-red-600 bg-red-50'
+      case 'draft': return 'text-gray-600 bg-gray-50'
+      default: return 'text-gray-600 bg-gray-50'
     }
   }
 
@@ -256,13 +387,7 @@ export default function BillingScreen() {
       label: 'Date',
       render: (value) => formatDate(value),
       className: 'text-sm text-muted-foreground',
-    },
-    {
-      key: 'dueAt',
-      label: 'Due Date',
-      render: (value) => formatDate(value),
-      className: 'text-sm text-muted-foreground',
-    },
+    }
   ]
 
   // Define table actions for invoices
@@ -273,243 +398,158 @@ export default function BillingScreen() {
       onClick: (invoice) => {
         if (invoice.downloadUrl) {
           window.open(invoice.downloadUrl, '_blank')
-        } else {
-          alert('Invoice not available for download')
         }
       },
       condition: (invoice) => invoice.status === 'paid' && !!invoice.downloadUrl,
     },
   ]
 
-  useEffect(() => {
-    loadInvoices()
-  }, [])
+  // Use actual data or fallback to mock data
+  const currentBalance = usageData?.credits?.balance 
+  const isPaidPlan = usageData?.tier?.type !== 'free'
+  const invoices = invoicesData?.invoices || []
 
   return (
-    <div className='max-w-7xl p-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900'>Billing</h1>
-        <p className='text-gray-600 mt-2'>Manage your credits, subscriptions, and billing history</p>
+    <div className="max-w-7xl p-6">
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Billing</h1>
+          <p className="text-gray-600 mt-2">Manage your credits and billing history</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setSettingsDialogOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Settings className="h-4 w-4" />
+          Settings
+        </Button>
       </div>
 
-      <Tabs defaultValue='overview' className='space-y-6'>
-        <TabsList className='grid w-full grid-cols-3'>
-          <TabsTrigger value='overview' className='flex items-center gap-2 transition-all duration-500'>
-            <Wallet className='h-4 w-4' />
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value='plans' className='flex items-center gap-2 transition-all duration-500'>
-            <Crown className='h-4 w-4' />
-            Plans
-          </TabsTrigger>
-          <TabsTrigger value='invoices' className='flex items-center gap-2 transition-all duration-500'>
-            <Receipt className='h-4 w-4' />
+          <TabsTrigger value="invoices" className="flex items-center gap-2">
+            <Receipt className="h-4 w-4" />
             Invoices
           </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value='overview' className='space-y-6 '>
-          {/* Current Balance & Quick Actions */}
-          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-            <Card className='lg:col-span-2 p-6'>
-              <div className='flex items-center justify-between'>
+        <TabsContent value="overview" className="space-y-6">
+          {/* Current Balance & Plan Status */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2 p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className='text-gray-600 text-sm font-medium'>Current Balance</p>
-                  <p className='text-4xl font-bold text-gray-900 mt-1'>{currentBalance.toLocaleString()}</p>
-                  <p className='text-gray-500 text-sm mt-1'>Credits available</p>
+                  <p className="text-gray-600 text-sm font-medium">Current Balance</p>
+                  <p className="text-4xl font-bold text-gray-900 mt-1">{currentBalance?.toLocaleString() || '-'}</p>
+                  <p className="text-gray-500 text-sm mt-1">Credits available</p>
                 </div>
-                <div className='text-right'>
+                <div className="text-right">
                   <Button
-                    onClick={purchaseCredits}
-                    disabled={purchasing}
-                    className='bg-gray-900 text-white hover:bg-gray-800'
-                    size='sm'
+                    onClick={() => setPurchaseDialogOpen(true)}
+                    className="bg-gray-900 text-white hover:bg-gray-800"
+                    size="sm"
                   >
-                    {purchasing
-                      ? (
-                        <div className='flex items-center gap-2'>
-                          <div className='animate-spin rounded-full h-3 w-3 border-b-2 border-current'></div>
-                          Loading...
-                        </div>
-                      )
-                      : (
-                        <div className='flex items-center gap-2'>
-                          <Plus className='h-3 w-3' />
-                          Buy Credits
-                        </div>
-                      )}
+                    <Plus className="h-3 w-3 mr-2" />
+                    Buy Credits
                   </Button>
                 </div>
               </div>
             </Card>
 
-            <Card className='p-6'>
+            <Card className="p-6">
               <div>
-                <p className='text-gray-600 text-sm font-medium'>Current Plan</p>
-                <p className='text-2xl font-bold text-gray-900 capitalize mt-1'>{currentTier}</p>
-                {currentTier === 'free' && (
-                  <p className='text-sm text-gray-500 mt-1'>Consider upgrading for better rates</p>
+                <p className="text-gray-600 text-sm font-medium">Current Plan</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{isPaidPlan ? 'Paid' : 'Free'}</p>
+                {!isPaidPlan && (
+                  <p className="text-sm text-gray-500 mt-1">Pay-as-you-go pricing</p>
                 )}
               </div>
             </Card>
           </div>
 
           {/* Usage Stats */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <Card className='p-6'>
-              <div className='flex items-center justify-between'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className='text-gray-600 text-sm font-medium'>This Month</p>
-                  <p className='text-3xl font-bold text-gray-900'>€12.50</p>
-                  <p className='text-gray-500 text-sm'>Total spent</p>
+                  <p className="text-gray-600 text-sm font-medium">This Month</p>
+                  <p className="text-3xl font-bold text-gray-900">{usageData?.costs?.monthly || '-'}</p>
+                  <p className="text-gray-500 text-sm">Total spent credits</p>
                 </div>
-                <DollarSign className='h-8 w-8 text-gray-400' />
+                <CreditCard className="h-8 w-8 text-gray-400" />
               </div>
             </Card>
 
-            <Card className='p-6'>
-              <div className='flex items-center justify-between'>
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className='text-gray-600 text-sm font-medium'>Daily Usage</p>
-                  <p className='text-3xl font-bold text-gray-900'>~50</p>
-                  <p className='text-gray-500 text-sm'>Credits per day</p>
+                  <p className="text-gray-600 text-sm font-medium">Daily Usage</p>
+                  <p className="text-3xl font-bold text-gray-900">~{usageData?.costs?.daily || '-'}</p>
+                  <p className="text-gray-500 text-sm">Credits per day</p>
                 </div>
-                <TrendingUp className='h-8 w-8 text-gray-400' />
+                <TrendingUp className="h-8 w-8 text-gray-400" />
               </div>
             </Card>
           </div>
 
-          {/* How Pricing Works - Simplified */}
-          <Card className='p-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>How Pricing Works</h3>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div className='flex items-start gap-3'>
-                <div className='flex-shrink-0 w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center'>
-                  <CreditCard className='h-4 w-4 text-orange-600' />
-                </div>
-                <div>
-                  <h4 className='font-medium text-gray-900'>Pay-as-you-go</h4>
-                  <p className='text-sm text-gray-600 mt-1'>Higher rates, no commitment. Perfect for testing.</p>
+          {/* How Credits Work */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">How Credits Work</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Purchase credits at €0.01 each and pay only for resources you use. Credits are deducted automatically based on your container usage.
+                </p>
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                  <p className="text-sm text-amber-800">
+                    <strong>Free tier:</strong> Start with 0 credits and get 1 CPU + 2GB RAM to test the platform.
+                  </p>
                 </div>
               </div>
-              <div className='flex items-start gap-3'>
-                <div className='flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center'>
-                  <Crown className='h-4 w-4 text-green-600' />
-                </div>
-                <div>
-                  <h4 className='font-medium text-gray-900'>Subscription Plans</h4>
-                  <p className='text-sm text-gray-600 mt-1'>Up to 70% savings with included resources.</p>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h5 className="font-medium text-gray-900 mb-3">Pricing per hour</h5>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>CPU Core</span>
+                    <span className="font-mono">0.1 credits</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Memory (1GB)</span>
+                    <span className="font-mono">0.05 credits</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Storage (1GB)</span>
+                    <span className="font-mono">0.01 credits</span>
+                  </div>
+                  <div className="border-t pt-2 mt-3">
+                    <div className="flex justify-between font-medium">
+                      <span>Small container example</span>
+                      <span className="font-mono">~0.25 credits/hour</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">1 CPU + 2GB RAM + 5GB storage</p>
+                  </div>
                 </div>
               </div>
             </div>
           </Card>
         </TabsContent>
 
-        {/* Plans Tab */}
-        <TabsContent value='plans' className='space-y-6'>
-          <div className='text-center mb-8'>
-            <h2 className='text-2xl font-bold text-gray-900 mb-2'>Choose Your Plan</h2>
-            <p className='text-gray-600'>
-              Current: <span className='font-semibold capitalize'>{currentTier}</span>
-              {currentTier === 'free' && (
-                <span className='ml-2 px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full'>
-                  Upgrade to save up to 70%
-                </span>
-              )}
-            </p>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {Object.entries(Tier).filter(([key]) => key !== 'free').map(([tierKey, tierConfig]) => {
-              const isCurrentTier = currentTier === tierKey
-              const resources = formatResources(tierConfig)
-              const monthlyPrice = (tierConfig.monthlyCreditCost * 0.01).toFixed(2)
-              const payAsYouGoEquivalent = (parseFloat(monthlyPrice) * 3).toFixed(2)
-              const savingsPercentage = Math.round(
-                ((parseFloat(payAsYouGoEquivalent) - parseFloat(monthlyPrice)) / parseFloat(payAsYouGoEquivalent)) *
-                  100,
-              )
-
-              return (
-                <Card
-                  key={tierKey}
-                  className={`${getTierColor(tierKey, isCurrentTier)} transition-all duration-200`}
-                >
-                  <CardHeader>
-                    <h3 className='text-lg font-semibold text-gray-900 mb-2'>{formatTierName(tierKey)}</h3>
-                    <div className='text-2xl font-bold text-gray-900'>
-                      €{monthlyPrice}
-                      <span className='text-sm font-normal text-gray-500'>/month</span>
-                    </div>
-                    <p className='text-sm text-gray-500 mt-1'>
-                      {tierConfig.monthlyCreditCost.toLocaleString()} credits included
-                    </p>
-                    {!isCurrentTier && (
-                      <p className='text-xs text-gray-400 mt-1'>
-                        Save {savingsPercentage}% vs pay-as-you-go
-                      </p>
-                    )}
-                  </CardHeader>
-
-                  <CardContent>
-                    <div className='flex items-center gap-2'>
-                      <Cpu className='h-3 w-3' />
-                      <span>{resources.cpu}</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <MemoryStick className='h-3 w-3' />
-                      <span>{resources.memory}</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <HardDrive className='h-3 w-3' />
-                      <span>{resources.storage}</span>
-                    </div>
-                  </CardContent>
-
-                  <CardFooter>
-                    <Button
-                      onClick={() => subscribeTier(tierKey as Tier)}
-                      disabled={isCurrentTier || subscribing === tierKey}
-                      className={`w-full cursor-pointer ${
-                        isCurrentTier
-                          ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-900 hover:bg-gray-800 text-white'
-                      }`}
-                      variant={isCurrentTier ? 'outline' : 'default'}
-                    >
-                      {subscribing === tierKey
-                        ? (
-                          <div className='flex items-center gap-2'>
-                            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-current'></div>
-                            Processing...
-                          </div>
-                        )
-                        : isCurrentTier
-                        ? (
-                          'Current Plan'
-                        )
-                        : (
-                          `Upgrade to ${formatTierName(tierKey)}`
-                        )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </div>
-        </TabsContent>
-
         {/* Invoices Tab */}
-        <TabsContent value='invoices'>
+        <TabsContent value="invoices">
           <DataTableScreen<Invoice>
-            title='Billing History'
-            description='View and download your invoices'
+            title="Billing History"
+            description="View and download your invoices"
             icon={Receipt}
             data={invoices}
             columns={columns}
             actions={actions}
-            tableTitle='All Invoices'
+            tableTitle="All Invoices"
             tableDescription={`${invoices.length} invoices • ${
               invoices.filter((i) => i.status === 'paid').length
             } paid`}
@@ -518,17 +558,21 @@ export default function BillingScreen() {
               label: item.status,
               className: getStatusColor(item.status),
             })}
-            mobileCardIcon={() => <Receipt className='h-4 w-4' />}
+            mobileCardIcon={() => <Receipt className="h-4 w-4" />}
             searchable
-            searchPlaceholder='Search invoices...'
+            searchPlaceholder="Search invoices..."
             searchKeys={['number', 'description', 'status']}
             columnFilterable
             defaultVisibleColumns={['number', 'description', 'credits', 'amount', 'status', 'createdAt']}
-            emptyMessage='No invoices found. Your purchases will appear here.'
-            loading={loading}
+            emptyMessage="No invoices found. Your purchases will appear here."
+            loading={invoicesLoading}
           />
         </TabsContent>
       </Tabs>
+
+      {/* Dialogs */}
+      <CreditPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} />
+      <BillingSettingsDialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen} />
     </div>
   )
 }

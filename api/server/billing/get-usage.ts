@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from '../../_common.ts'
-import { parseResourceValue, calculateCost, calculateCosts, Tier, TierLimits} from 'lib/billing/utils.ts'
+import { parseResourceValue, calculateCost, Tier, TierLimits} from 'lib/billing/utils.ts'
 
 export const Meta = {
   aliases: {},

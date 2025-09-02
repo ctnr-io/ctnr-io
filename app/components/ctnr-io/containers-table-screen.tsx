@@ -229,10 +229,10 @@ export default function ContainersTableScreen({
     },
     {
       key: 'cost',
-      label: 'Cost / hr',
+      label: 'Daily cost',
       render: (_value, item) => (
         <div className='text-sm inline-flex gap-1'>
-          <Coins className="h-3 w-3 text-gray-600 self-center" /> {item.cost.hourly}
+          <Coins className="h-3 w-3 text-gray-600 self-center" /> {item.cost.daily}
         </div>
       ),
       className: 'text-sm',
@@ -375,7 +375,7 @@ export default function ContainersTableScreen({
       searchPlaceholder='Search containers by name, image, status, or clusters...'
       searchKeys={['name', 'image', 'status', 'clusters']}
       columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory', 'cost']}
+      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}
       emptyMessage='No containers found. Create your first container to get started.'
       loading={isLoading}
     />

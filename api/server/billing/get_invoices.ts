@@ -1,5 +1,4 @@
-import { createServerContext } from 'ctx/server/mod.ts'
-import { ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
 
 export const Meta = {}
@@ -30,7 +29,7 @@ export type Output = {
   total: number
 }
 
-export default async function* GetInvoices({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<Output> {
+export default async function* GetInvoices({ input }: ServerRequest<Input>): ServerResponse<Output> {
   yield `Fetching invoices...`
 
   try {

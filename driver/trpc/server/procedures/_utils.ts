@@ -1,4 +1,4 @@
-import { ServerRequest, ServerResponse, WebhookRequest, WebhookResponse } from 'api/_common.ts'
+import { ServerRequest, ServerResponse, WebhookRequest, WebhookResponse } from 'lib/api/types.ts'
 import { ServerContext, WebhookContext } from 'ctx/mod.ts'
 import { createDeferer } from 'lib/api/defer.ts'
 import {
@@ -75,13 +75,17 @@ export function transformQueryProcedure<Input, Output>(
   }
 }
 
-export async function withServerContext({ ctx, next }: {
+export async function withServerContext({ ctx, signal, next }: {
   ctx: TrpcServerContext
+  signal?: AbortSignal
   next: (opts: {
     ctx: ServerContext
   }) => Promise<MiddlewareResult<ServerContext>>
 }) {
-  return next({ ctx: await createServerContext(ctx) })
+  if (!signal) {
+    throw new Error('AbortSignal is required')
+  }
+  return next({ ctx: await createServerContext(ctx, signal) })
 }
 
 export async function withWebhookContext({ ctx, next }: {

@@ -1,7 +1,7 @@
 import 'lib/utils.ts'
 
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
-import * as ws from 'ws'
+import { WebSocketServer } from 'ws'
 import { createServer } from 'node:http'
 import { router } from './router.ts'
 import { createTrpcServerContext } from './context.ts'
@@ -43,8 +43,8 @@ const httpServer = createServer((req, res) => {
   })
 })
 
-const websocketServer = new ws.WebSocketServer({
-  server: httpServer,
+const websocketServer = new WebSocketServer({
+ server: httpServer, 
 })
 
 const websocketHandler = applyWSSHandler({

@@ -4,18 +4,14 @@ import React, { useState } from 'react'
 import {
   AlertTriangle,
   CreditCard,
-  DollarSign,
   Download,
   Plus,
   Receipt,
-  Settings,
-  Shield,
   TrendingUp,
   Wallet,
-  Zap,
 } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import { Card, CardTitle } from 'app/components/shadcn/ui/card.tsx'
+import { Card } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
 import {
   Dialog,
@@ -24,16 +20,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from 'app/components/shadcn/ui/dialog.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Label } from 'app/components/shadcn/ui/label.tsx'
-import { Switch } from 'app/components/shadcn/ui/switch.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Alert, AlertDescription, AlertTitle } from 'app/components/shadcn/ui/alert.tsx'
+import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 
 interface Invoice {
   id: string
@@ -56,23 +50,16 @@ function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [formData, setFormData] = useState({ amount: '500', customAmount: '' })
   const trpc = useTRPC()
 
-  const buyCredits = useMutation(trpc.billing.buyCredits.mutationOptions({
-    onSuccess: (data) => {
-      // Open payment URL in new tab
-      window.open(data.paymentUrl, '_blank')
-      onOpenChange(false)
-    },
-    onError: (error) => {
-      console.error('Failed to initiate credit purchase:', error)
-      alert('Failed to initiate credit purchase. Please try again.')
-    },
-  }))
+  const buyCredits = useMutation(trpc.billing.buyCredits.mutationOptions({}))
 
   const handlePurchase = async () => {
     const amount = formData.amount === 'custom' ? parseInt(formData.customAmount) : parseInt(formData.amount)
 
     if (amount > 0) {
-      await buyCredits.mutateAsync({ amount })
+      const data = await buyCredits.mutateAsync({ amount })
+      // Open payment URL in new tab
+      globalThis.open(data.paymentUrl, '_blank')
+      onOpenChange(false)
     }
   }
 
@@ -149,188 +136,8 @@ function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   )
 }
 
-// Settings Dialog Component
-function BillingSettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const trpc = useTRPC()
-
-  // Fetch current settings
-  const { data: settingsData, isLoading: settingsLoading } = useQuery(trpc.billing.getSettings.queryOptions({}))
-
-  // Form state for settings
-  const [settings, setSettings] = useState({
-    autoPurchaseEnabled: false,
-    autoPurchaseThreshold: '100',
-    autoPurchaseAmount: '500',
-    usageLimitsEnabled: false,
-    cpuLimit: '2',
-    memoryLimit: '4',
-    storageLimit: '10',
-    dailySpendLimit: '10',
-  })
-
-  // Update form state when settings data loads
-  React.useEffect(() => {
-    if (settingsData) {
-      setSettings({
-        autoPurchaseEnabled: settingsData.autoPurchase.enabled,
-        autoPurchaseThreshold: settingsData.autoPurchase.threshold.toString(),
-        autoPurchaseAmount: settingsData.autoPurchase.amount.toString(),
-        usageLimitsEnabled: settingsData.usageLimits.enabled,
-        cpuLimit: settingsData.usageLimits.cpu.toString(),
-        memoryLimit: settingsData.usageLimits.memory.toString(),
-        storageLimit: settingsData.usageLimits.storage.toString(),
-        dailySpendLimit: settingsData.usageLimits.dailySpendLimit.toString(),
-      })
-    }
-  }, [settingsData])
-
-  const updateSettingsMutation = useMutation(trpc.billing.updateSettings.mutationOptions({
-    onSuccess: () => {
-      onOpenChange(false)
-    },
-    onError: (error) => {
-      console.error('Failed to update billing settings:', error)
-      alert('Failed to update billing settings. Please try again.')
-    },
-  }))
-
-  const handleSave = async () => {
-    await updateSettingsMutation.mutateAsync({
-      autoPurchase: {
-        enabled: settings.autoPurchaseEnabled,
-        threshold: parseInt(settings.autoPurchaseThreshold),
-        amount: parseInt(settings.autoPurchaseAmount),
-      },
-      usageLimits: {
-        enabled: settings.usageLimitsEnabled,
-        cpu: parseInt(settings.cpuLimit),
-        memory: parseInt(settings.memoryLimit),
-        storage: parseInt(settings.storageLimit),
-        dailySpendLimit: parseInt(settings.dailySpendLimit),
-      },
-    })
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl'>
-        <DialogHeader>
-          <DialogTitle>Billing Settings</DialogTitle>
-          <DialogDescription>
-            Configure automatic credit purchases and usage limits.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className='space-y-6'>
-          {/* Auto Purchase Settings */}
-          <div className='space-y-4'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <h4 className='font-medium'>Automatic Credit Purchase</h4>
-                <p className='text-sm text-gray-500'>Automatically buy credits when balance is low</p>
-              </div>
-              <Switch
-                checked={settings.autoPurchaseEnabled}
-                onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, autoPurchaseEnabled: checked }))}
-              />
-            </div>
-
-            {settings.autoPurchaseEnabled && (
-              <div className='grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-100'>
-                <div>
-                  <Label>Trigger when balance below</Label>
-                  <Input
-                    type='number'
-                    value={settings.autoPurchaseThreshold}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, autoPurchaseThreshold: e.target.value }))}
-                    placeholder='100'
-                  />
-                </div>
-                <div>
-                  <Label>Purchase amount</Label>
-                  <Input
-                    type='number'
-                    value={settings.autoPurchaseAmount}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, autoPurchaseAmount: e.target.value }))}
-                    placeholder='500'
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Usage Limits */}
-          <div className='space-y-4'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <h4 className='font-medium'>Usage Limits</h4>
-                <p className='text-sm text-gray-500'>Set limits to prevent unexpected charges</p>
-              </div>
-              <Switch
-                checked={settings.usageLimitsEnabled}
-                onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, usageLimitsEnabled: checked }))}
-              />
-            </div>
-
-            {settings.usageLimitsEnabled && (
-              <div className='grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-100'>
-                <div>
-                  <Label>Max CPU cores</Label>
-                  <Input
-                    type='number'
-                    value={settings.cpuLimit}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, cpuLimit: e.target.value }))}
-                    placeholder='2'
-                  />
-                </div>
-                <div>
-                  <Label>Max Memory (GB)</Label>
-                  <Input
-                    type='number'
-                    value={settings.memoryLimit}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, memoryLimit: e.target.value }))}
-                    placeholder='4'
-                  />
-                </div>
-                <div>
-                  <Label>Max Storage (GB)</Label>
-                  <Input
-                    type='number'
-                    value={settings.storageLimit}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, storageLimit: e.target.value }))}
-                    placeholder='10'
-                  />
-                </div>
-                <div>
-                  <Label>Daily spend limit (€)</Label>
-                  <Input
-                    type='number'
-                    value={settings.dailySpendLimit}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, dailySpendLimit: e.target.value }))}
-                    placeholder='10'
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant='outline' onClick={() => onOpenChange(false)} disabled={updateSettingsMutation.isPending}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={updateSettingsMutation.isPending}>
-            {updateSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 export default function BillingScreen() {
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false)
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
 
   const trpc = useTRPC()
 
@@ -339,14 +146,6 @@ export default function BillingScreen() {
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery(
     trpc.billing.getInvoices.queryOptions({ limit: 50, offset: 0 }),
   )
-
-  // Check balance to get status
-  const { data: balanceCheck } = useQuery({
-    ...trpc.billing.checkBalance.queryOptions({}),
-    refetchInterval: 30000, // Check every 30 seconds
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-  })
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -434,42 +233,33 @@ export default function BillingScreen() {
       label: 'Download Invoice',
       onClick: (invoice) => {
         if (invoice.downloadUrl) {
-          window.open(invoice.downloadUrl, '_blank')
+          globalThis.open(invoice.downloadUrl, '_blank')
         }
       },
       condition: (invoice) => invoice.status === 'paid' && !!invoice.downloadUrl,
     },
   ]
 
-  // Use actual data or fallback to mock data - prefer balanceCheck data when available
-  const currentBalance = balanceCheck?.credits.balance ?? usageData?.credits?.balance ?? 0
+  // Use actual data from the updated API
+  const currentBalance = usageData?.credits?.balance ?? 0
   const isPaidPlan = usageData?.tier?.type !== 'free'
   const invoices = invoicesData?.invoices || []
-  const dailyUsage = balanceCheck?.costs?.daily ?? usageData?.costs?.daily ?? 0
-  const usage = balanceCheck?.usage ?? usageData?.usage
-  const status = balanceCheck?.status ?? 'normal'
+  const dailyUsage = usageData?.costs?.daily ?? 0
+  const usage = usageData?.usage
+  const status = usageData?.status ?? 'normal'
 
   // Calculate days remaining for insufficient credits warning
   const daysRemaining = dailyUsage > 0 ? Math.floor(currentBalance / dailyUsage) : 0
 
   return (
-    <div className='min-h-screen '>
-      <div className='max-w-7xl mx-auto p-6'>
-        <div className='mb-8 flex items-center justify-between'>
+      <div className='w-full py-8'>
+        <div className='mb-8 flex items-center justify-between px-4'>
           <div>
             <h1 className='text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent'>
               Billing
             </h1>
             <p className='text-gray-600 mt-2 text-lg'>Manage your credits and billing history</p>
           </div>
-          <Button
-            variant='outline'
-            onClick={() => setSettingsDialogOpen(true)}
-            className='flex items-center gap-2 hover:bg-gray-50 border-gray-200 shadow-sm'
-          >
-            <Settings className='h-4 w-4' />
-            Settings
-          </Button>
         </div>
 
         {/* Warning Alerts */}
@@ -492,14 +282,6 @@ export default function BillingScreen() {
                         className='bg-red-600 hover:bg-red-700 text-white'
                       >
                         Buy Credits
-                      </Button>
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        onClick={() => setSettingsDialogOpen(true)}
-                        className='border-red-300 text-red-700 hover:bg-red-50'
-                      >
-                        Adjust Limits
                       </Button>
                     </div>
                   </div>
@@ -528,14 +310,6 @@ export default function BillingScreen() {
                       >
                         Buy Credits
                       </Button>
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        onClick={() => setSettingsDialogOpen(true)}
-                        className='border-amber-300 text-amber-700 hover:bg-amber-50'
-                      >
-                        Enable Auto-Purchase
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -544,7 +318,7 @@ export default function BillingScreen() {
           </div>
         )}
 
-        <Tabs defaultValue='overview' className='space-y-6'>
+        <Tabs defaultValue='overview' className='space-y-6 px-4'>
           <TabsList className='grid w-full grid-cols-2'>
             <TabsTrigger value='overview' className='flex items-center gap-2'>
               <Wallet className='h-4 w-4' />
@@ -606,7 +380,7 @@ export default function BillingScreen() {
                 <div className='flex items-center justify-between'>
                   <div>
                     <p className='text-gray-600 text-sm font-medium'>Daily Usage</p>
-                    <p className='text-3xl font-bold text-gray-900'>~{usageData?.costs?.daily || '-'}</p>
+                    <p className='text-3xl font-bold text-gray-900'>{usageData?.costs?.daily ? `~ ${usageData.costs.daily}` : '-'}</p>
                     <p className='text-gray-500 text-sm'>Credits per day</p>
                   </div>
                   <TrendingUp className='h-8 w-8 text-gray-400' />
@@ -658,7 +432,7 @@ export default function BillingScreen() {
           </TabsContent>
 
           {/* Invoices Tab */}
-          <TabsContent value='invoices'>
+          <TabsContent value='invoices' className='-mx-4'>
             <DataTableScreen<Invoice>
               title='Billing History'
               description='View and download your invoices'
@@ -668,7 +442,7 @@ export default function BillingScreen() {
               actions={actions}
               tableTitle='All Invoices'
               tableDescription={`${invoices.length} invoices • ${
-                invoices.filter((i) => i.status === 'paid').length
+                invoices.filter((i: Invoice) => i.status === 'paid').length
               } paid`}
               mobileCardTitle={(item) => item.number}
               mobileCardStatus={(item) => ({
@@ -681,6 +455,7 @@ export default function BillingScreen() {
               searchKeys={['number', 'description', 'status']}
               columnFilterable
               defaultVisibleColumns={['number', 'description', 'credits', 'amount', 'status', 'createdAt']}
+              mobileVisibleColumns={['credits']}
               emptyMessage='No invoices found. Your purchases will appear here.'
               loading={invoicesLoading}
             />
@@ -689,8 +464,6 @@ export default function BillingScreen() {
 
         {/* Dialogs */}
         <CreditPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} />
-        <BillingSettingsDialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen} />
       </div>
-    </div>
   )
 }

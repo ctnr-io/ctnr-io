@@ -1,17 +1,16 @@
-import * as Run from 'api/server/core/run.ts'
-import * as List from 'api/server/core/list.ts'
-import * as Attach from 'api/server/core/attach.ts'
-import * as Exec from 'api/server/core/exec.ts'
-import * as Route from 'api/server/core/route.ts'
-import * as Logs from 'api/server/core/logs.ts'
-import * as BuyCredits from 'api/server/billing/buy-credits.ts'
-import * as GetUsage from 'api/server/billing/get-usage.ts'
-import * as DeductCredits from 'api/server/billing/deduct-credits.ts'
-import * as GetInvoices from 'api/server/billing/get-invoices.ts'
-import * as GetPayments from 'api/server/billing/get-payments.ts'
+import * as Run from 'api/server//compute/containers/run.ts'
+import * as List from 'api/server//compute/containers/list.ts'
+import * as Attach from 'api/server//compute/containers/attach.ts'
+import * as Exec from 'api/server//compute/containers/exec.ts'
+import * as Route from 'api/server//compute/containers/route.ts'
+import * as Logs from 'api/server//compute/containers/logs.ts'
+import * as BuyCredits from 'api/server/billing/buy_credits.ts'
+import * as GetUsage from 'api/server/billing/get_usage.ts'
+import * as GetInvoices from 'api/server/billing/get_invoices.ts'
+import * as GetPayments from 'api/server/billing/get_payments.ts'
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from './context.ts'
-import login from 'api/client/auth/login-from-terminal.ts'
+import login from 'api/client/auth/login_from_terminal.ts'
 import logout from 'api/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'ctx/mod.ts'
@@ -117,17 +116,12 @@ export const clientRouter = trpc.router({
   // Billing procedures
   buyCredits: trpc.procedure.meta(BuyCredits.Meta).input(BuyCredits.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      (server) => transformSubscribeResolver(server.billing.buyCredits.subscribe, { ctx, input, signal }),
+      (server) => server.billing.buyCredits.mutate(input, { signal, context: ctx }),
     )
   ),
   getUsage: trpc.procedure.meta(GetUsage.Meta).input(GetUsage.Input).query(({ input, signal, ctx }) =>
     ctx.connect(
       (server) => server.billing.getUsage.query(input, { signal, context: ctx }),
-    )
-  ),
-  deductCredits: trpc.procedure.meta(DeductCredits.Meta).input(DeductCredits.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => server.billing.deductCredits.mutate(input, { signal, context: ctx }),
     )
   ),
   getInvoices: trpc.procedure.meta(GetInvoices.Meta).input(GetInvoices.Input).query(({ input, signal, ctx }) =>

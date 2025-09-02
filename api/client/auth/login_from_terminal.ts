@@ -1,5 +1,5 @@
 import { AuthClientContext } from 'ctx/mod.ts'
-import { ClientResponse } from '../../_common.ts'
+import { ClientResponse } from 'lib/api/types.ts'
 import login from './login.ts'
 import { html } from '@tmpl/core'
 

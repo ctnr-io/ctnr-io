@@ -15,9 +15,7 @@ export default function MainLayout() {
   return (
     <AppLayout user={ctx.auth.user!} onLogout={handleLogout}>
       <ExpoTrpcClientProvider>
-        <main className="min-h-screen  bg-gradient-to-br from-background to-muted">
         <Slot />
-        </main>
       </ExpoTrpcClientProvider>
     </AppLayout>
   )

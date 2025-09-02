@@ -1,8 +1,8 @@
-import { createServerContext } from 'ctx/server/mod.ts'
-import { ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
 
-export const Meta = {}
+export const Meta = {
+}
 
 export const Input = z.object({
   limit: z.number().int().min(1).max(100).default(20),
@@ -29,14 +29,15 @@ export type Output = {
   total: number
 }
 
-export default async function* GetPayments({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<Output> {
+export default async function* GetPayments({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
   yield `Fetching payment history...`
 
   try {
     // Get payments from Mollie for the current user
-    const paymentsResponse = await ctx.billing.client.payments.page({
+    const paymentsResponse = await ctx.billing.client.customerPayments.page({
       limit: input.limit,
       from: input.offset.toString(),
+      customerId: ctx.billing.customerId,
     })
 
     // Filter payments for current user based on metadata

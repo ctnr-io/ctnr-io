@@ -14,7 +14,7 @@ export interface TableColumn<T = any> {
   render?: (value: any, item: T) => ReactNode
   className?: string
   mobileLabel?: string // For mobile card view
-  hiddenOnMobile?: boolean // Hide this column on mobile
+  visibleOnMobile?: boolean // Hide this column on mobile
 }
 
 export interface TableAction<T = any> {
@@ -69,6 +69,7 @@ export interface DataTableScreenProps<T = any> {
   // Column filtering
   columnFilterable?: boolean
   defaultVisibleColumns?: string[] // Column keys that should be visible by default
+  mobileVisibleColumns?: string[] // Column keys that should be visible on mobile
 
   // Loading and empty states
   loading?: boolean
@@ -97,6 +98,7 @@ export function DataTableScreen<T = any>({
   searchKeys,
   columnFilterable = false,
   defaultVisibleColumns,
+  mobileVisibleColumns,
   loading = false,
   emptyMessage = 'No data available',
 }: DataTableScreenProps<T>) {
@@ -145,55 +147,31 @@ export function DataTableScreen<T = any>({
     return (
       <div
         key={index}
-        className={`border-b last:border-b-0 p-2 ${
+        className={`border-b last:border-b-0 p-2 flex flex-col gap-2 ${
           rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : ''
         }`}
         onClick={() => rowClickable && onRowClick && onRowClick(item)}
       >
-        <div className='flex items-start justify-between'>
-          <div className='flex items-center gap-3 flex-1 min-w-0'>
+        <div className='flex-1 flex flex-row justify-between mx-2 mt-2 gap-3'>
+          <div className='flex items-center gap-3 min-w-0'>
             <div className='flex-shrink-0 p-2 bg-primary/10 rounded-lg'>
               {mobileCardIcon ? mobileCardIcon(item) : <Icon className='h-4 w-4 text-primary' />}
             </div>
-            <div className='flex-1 min-w-0'>
+            <div className='min-w-0'>
               <h3 className='font-semibold text-base text-foreground truncate'>{mobileCardTitle(item)}</h3>
               {mobileCardSubtitle && (
                 <p className='text-sm text-muted-foreground mt-1 leading-relaxed'>{mobileCardSubtitle(item)}</p>
               )}
             </div>
+            {status && (
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0`}
+              >
+                {status.label}
+              </span>
+            )}
           </div>
-          {status && (
-            <span
-              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0 ml-3`}
-            >
-              {status.label}
-            </span>
-          )}
-        </div>
-        {
-          /*
-        <div className='space-y-3 mb-4'>
-          {columns
-            .filter((col) => !col.hiddenOnMobile && visibleColumns.has(col.key))
-            .map((column) => {
-              const value = item[column.key as keyof T]
-              const displayValue = column.render ? column.render(value, item) : String(value || '')
-
-              if (!displayValue || displayValue === '-') return null
-
-              return (
-                <div key={column.key} className='flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg border'>
-                  <span className='text-sm font-medium text-muted-foreground'>{column.mobileLabel || column.label}</span>
-                  <span className={`text-sm font-medium text-foreground ${column.className || ''}`}>{displayValue}</span>
-                </div>
-              )
-            })}
-        </div> */
-        }
-
-        {
-          /* {actions.length > 0 && (
-          <div className='flex items-center justify-center gap-2 pt-2 border-t border-muted/30'>
+          <div className='flex items-center gap-3 min-w-0'>
             {actions
               .filter((action) => !action.condition || action.condition(item))
               .map((action, actionIndex) => (
@@ -205,15 +183,39 @@ export function DataTableScreen<T = any>({
                     e.stopPropagation() // Prevent card click when clicking action buttons
                     action.onClick(item)
                   }}
-                  className={`${action.className} shadow-sm hover:shadow-md transition-shadow`}
+                  className={`${action.className} shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
                   title={action.label}
                 >
                   <action.icon className='h-4 w-4' />
                 </Button>
               ))}
           </div>
-        )} */
-        }
+        </div>
+
+        <div className='space-y-3 mx-2'>
+          {columns
+            .filter((col) => mobileVisibleColumns?.includes(col.key))
+            .map((column) => {
+              const value = item[column.key as keyof T]
+              const displayValue = column.render ? column.render(value, item) : String(value || '')
+
+              if (!displayValue || displayValue === '-') return null
+
+              return (
+                <div
+                  key={column.key}
+                  className='flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg border'
+                >
+                  <span className='text-sm font-medium text-muted-foreground'>
+                    {column.mobileLabel || column.label}
+                  </span>
+                  <span className={`text-sm font-medium text-foreground ${column.className || ''}`}>
+                    {displayValue}
+                  </span>
+                </div>
+              )
+            })}
+        </div>
       </div>
     )
   }

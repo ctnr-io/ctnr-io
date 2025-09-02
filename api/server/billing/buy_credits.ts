@@ -1,4 +1,4 @@
-import { ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
 
 export const Meta = {}
@@ -9,13 +9,14 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
+export const Output = z.any()
+
 export type Output = {
   paymentUrl: string
   paymentId: string
 }
 
 export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
-
   yield `Initiating payment for ${input.amount} credits`
 
   const payment = await ctx.billing.client.payments.create({
@@ -28,7 +29,7 @@ export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>):
       userId: ctx.auth.user.id,
       credits: input.amount.toString(),
     },
-    webhookUrl: `${Deno.env.get('CTNR_API_URL')}/billing/webhook`,
+    webhookUrl: `${Deno.env.get('CTNR_API_URL')}/webhook/handle_credit_payment`,
     redirectUrl: `${Deno.env.get('CTNR_WEB_URL')}/billing/success`,
   })
 

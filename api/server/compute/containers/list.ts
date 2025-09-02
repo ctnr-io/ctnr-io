@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as YAML from '@std/yaml'
 import { calculateCost } from 'lib/billing/utils.ts'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'

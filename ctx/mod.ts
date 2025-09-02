@@ -82,25 +82,25 @@ export type ProjectContext = {
 /**
  * Billing context for managing user billing information.
  */
-export type BillingContext = {
+export type BillingServerContext = {
   billing: {
     client: MollieClient
     webhookUrl: string
-    // tier: 'free' | 'paid'
-    // credits: number
-    // rates: {
-    //   cpu: number
-    //   memory: number
-    //   storage: number
-    //   network: number
-    // }
+    customerId: string
   }
 }
 
-export type ServerContext = StdioContext & KubeServerContext & AuthServerContext & ProjectContext & BillingContext & {
+export type BillingWebhookContext = {
+  billing: {
+    client: MollieClient
+    webhookUrl: string
+  }
+}
+
+export type ServerContext = StdioContext & KubeServerContext & AuthServerContext & ProjectContext & BillingServerContext & {
   __type: 'server'
 }
-export type WebhookContext = KubeWebhookContext & BillingContext & {
+export type WebhookContext = KubeWebhookContext & BillingWebhookContext & {
   __type: 'webhook'
 }
 export type ClientContext = StdioContext & AuthClientContext & { __type: 'client' }

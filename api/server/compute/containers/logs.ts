@@ -1,9 +1,10 @@
 import { z } from 'zod'
-import { ContainerName, ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import {
   combineReadableStreamsToAsyncGenerator,
 } from 'lib/api/streams.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
+import { ContainerName } from 'lib/api/schemas.ts'
 
 export const Meta = {
   aliases: {

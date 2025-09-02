@@ -34,7 +34,8 @@
     "rules": {
       "tags": ["recommended"],
       "exclude": [
-        "no-explicit-any"
+        "no-explicit-any",
+        "no-control-regex"
       ]
     }
   }

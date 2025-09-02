@@ -18,7 +18,7 @@ export default function () {
   )
 
   // Get the first container from the results (should be only one with name filter)
-  const containerData = (containers as any)?.[0]
+  const containerData = containers?.[0]
 
   if (!containerData && error) {
     return <Redirect href='/containers' />

@@ -1,9 +1,10 @@
 import { z } from 'zod'
-import { ContainerName, PortName, ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ensureUserRoute } from 'lib/kubernetes/kube-client.ts'
 import { hash } from 'node:crypto'
 import * as shortUUID from '@opensrc/short-uuid'
 import { resolveTxt } from 'node:dns/promises'
+import { ContainerName, PortName } from 'lib/api/schemas.ts'
 
 export const Meta = {
   aliases: {
@@ -127,7 +128,7 @@ export default async function* ({ ctx, input, signal }: ServerRequest<Input>): S
       userId: ctx.auth.user.id,
       ports: routedPorts,
       clusters,
-    })
+    }, signal)
 
     yield `Routes created successfully for container ${input.name}:`
     for (const hostname of hostnames) {

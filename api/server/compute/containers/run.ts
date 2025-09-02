@@ -3,11 +3,12 @@ import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import attach from './attach.ts'
-import { ContainerName, Publish, ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as Route from './route.ts'
 import logs from './logs.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 import { ServerContext } from 'ctx/mod.ts'
+import { ContainerName, Publish } from 'lib/api/schemas.ts'
 
 export const Meta = {
   aliases: {
@@ -101,36 +102,6 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
     replicaCount = replicas as number
     minReplicas = replicaCount
     maxReplicas = replicaCount
-  }
-
-  // Check resource limits before creating container
-  try {
-    const checkResourceLimits = await import('api/server/billing/check-resource-limits.ts')
-    const limitCheckGenerator = checkResourceLimits.default({
-      ctx,
-      input: {
-        cpu: typeof cpu === 'string' ? cpu : `${cpu}`,
-        memory,
-        storage: '0Gi', // Containers don't directly request storage
-        replicas: replicaCount,
-      },
-      signal,
-      defer,
-    })
-
-    const limitCheck = await limitCheckGenerator.next()
-    const result = limitCheck.value
-
-    if (result && typeof result === 'object' && 'allowed' in result && !result.allowed) {
-      yield `❌ Resource limit exceeded: ${result.reason}`
-      if (result.upgradeUrl) {
-        yield `💳 Upgrade your plan to create more containers: ${result.upgradeUrl}`
-      }
-      return
-    }
-  } catch (error) {
-    console.warn('Failed to check resource limits:', error)
-    // Continue with container creation if limit check fails
   }
 
   const labels: Record<string, string> = {}

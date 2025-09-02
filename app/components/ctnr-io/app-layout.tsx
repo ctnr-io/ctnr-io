@@ -52,9 +52,9 @@ export default function AppLayout({ user, onLogout, children }: PropsWithChildre
             <CreditsDisplay />
           </div>
         </header>
-        <div className='flex flex-1 flex-col bg-white'>
+        <main className='flex flex-1 flex-col'>
           {children}
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

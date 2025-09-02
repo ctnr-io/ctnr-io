@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { ServerRequest, ServerResponse } from '../../_common.ts'
-import { parseResourceValue, calculateCost, Tier, TierLimits} from 'lib/billing/utils.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
+import { parseResourceValue, calculateCost } from 'lib/billing/utils.ts'
 
 export const Meta = {
   aliases: {},
@@ -9,6 +9,8 @@ export const Meta = {
 export const Input = z.object({})
 
 export type Input = z.infer<typeof Input>
+
+export const Output = z.object({})
 
 export interface Container {
   name: string
@@ -23,17 +25,13 @@ export interface Container {
   }
 }
 
-export interface UsageData {
+export type BalanceStatus = 'normal' | 'limit_reached' | 'insufficient_credits' | 'free_tier'
+
+export interface Output {
   // Credit information
   credits: {
     balance: number
     currency: string
-  }
-  
-  // Tier information
-  tier: {
-    type: Tier
-    limits: TierLimits
   }
   
   // Current resource usage
@@ -52,12 +50,26 @@ export interface UsageData {
   
   // Container breakdown
   containers: Container[]
+  
+  // Status information
+  status: BalanceStatus
+  
+  // Tier information
+  tier: {
+    type: 'free' | 'paid'
+    limits: {
+      cpu: number
+      memory: number
+      storage: number
+    }
+  }
 }
 
 export default async function* (
   { ctx, signal }: ServerRequest<Input>,
-): ServerResponse<UsageData> {
+): ServerResponse<Output> {
   try {
+    console.log('tolo')
     const kubeClient = ctx.kube.client['eu']
     const namespace = ctx.kube.namespace
     
@@ -67,8 +79,7 @@ export default async function* (
     })
     
     const annotations = namespaceObj.metadata?.annotations || {}
-    const tierAnnotation = (annotations['ctnr.io/tier'] || 'free') as Tier
-    const creditsAnnotation = annotations['ctnr.io/credits'] || annotations['ctnr.io/credit-balance']
+    const creditsAnnotation = annotations['ctnr.io/credits']
     
     // Parse credits
     let credits = 0
@@ -80,8 +91,14 @@ export default async function* (
     }
     
     // Get tier limits
-    const tierKey = tierAnnotation as Tier
-    const limits = Tier[tierKey] 
+    const resourceQuota = await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota('ctnr-resource-quota', {
+      abortSignal: signal,
+    })
+    const limits = {
+      cpu: parseResourceValue(resourceQuota.spec?.overall['limits.cpu'], 'cpu'),
+      memory: parseResourceValue(resourceQuota.spec?.overall['limits.memory'], 'memory'),
+      storage: parseResourceValue(resourceQuota.spec?.overall['limits.storage'], 'storage'),
+    }
     
     // Get all deployments
     const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
@@ -174,24 +191,46 @@ export default async function* (
         percentage: limits.storage === Infinity ? 0 : Math.round((totalStorageUsed / limits.storage) * 100)
       }
     }
+
+    // Determine status
+    let status: BalanceStatus = 'normal'
     
-    const result: UsageData = {
+    if (credits === 0) {
+      status = 'free_tier'
+    } else {
+      // Check if any resource limit is reached (>= 95%)
+      const resourceLimitReached = usage.cpu.percentage >= 95 || 
+                                   usage.memory.percentage >= 95 || 
+                                   usage.storage.percentage >= 95
+      
+      if (resourceLimitReached) {
+        status = 'limit_reached'
+      } else if (totalCost.daily > 0 && credits < totalCost.daily * 2) {
+        // If daily cost > 0 and credits < 2 days worth
+        status = 'insufficient_credits'
+      }
+    }
+
+    // Determine tier
+    const tier = {
+      type: credits > 0 ? 'paid' : 'free' as 'free' | 'paid',
+      limits: {
+        cpu: limits.cpu,
+        memory: limits.memory,
+        storage: limits.storage
+      }
+    }
+    
+    const result: Output = {
       credits: {
         balance: credits,
         currency: 'credits'
       },
-      tier: {
-        type: tierAnnotation,
-        limits: {
-          cpu: limits.cpu,
-          memory: limits.memory,
-          storage: Math.round(limits.storage / 1024), // Convert MB to GB
-          monthlyCreditCost: limits.monthlyCreditCost
-        }
-      },
       usage,
       costs: totalCost,
-      containers
+      containers,
+      status,
+      tier
     }
     
     return result
@@ -199,20 +238,15 @@ export default async function* (
     console.error('Failed to get usage data:', error)
     
     // Fallback response
-    const fallbackLimits = Tier.free
-    const fallbackResult: UsageData = {
+    const fallbackLimits = {
+      cpu: 1000,
+      memory: 2048,
+      storage: 10
+    }
+    const fallbackResult: Output = {
       credits: {
         balance: 0,
         currency: 'credits'
-      },
-      tier: {
-        type: 'free',
-        limits: {
-          cpu: fallbackLimits.cpu,
-          memory: fallbackLimits.memory,
-          storage: Math.round(fallbackLimits.storage / 1024), // Convert MB to GB
-          monthlyCreditCost: fallbackLimits.monthlyCreditCost
-        }
       },
       usage: {
         cpu: { used: 0, limit: fallbackLimits.cpu, percentage: 0 },
@@ -224,7 +258,12 @@ export default async function* (
         daily: 0,
         monthly: 0
       },
-      containers: []
+      containers: [],
+      status: 'free_tier',
+      tier: {
+        type: 'free',
+        limits: fallbackLimits
+      }
     }
     
     return fallbackResult

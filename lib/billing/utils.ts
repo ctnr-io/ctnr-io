@@ -123,41 +123,25 @@ export function calculateCost(
 }
 
 export type TierLimits = {
-  cpu: number // in millicores
-  memory: number // in MB
-  storage: number // in MB
+  cpu: string // in millicores
+  memory: string // in MB
+  storage: string // in MB
   monthlyCreditCost: number // in credits
 }
 
 const units = {
-  cpu: 1000,
-  memory: 2048,
-  storage: 4 * 1024,
+  cpu: '1',
+  memory: '2Gi',
+  storage: '4Gi',
   monthlyCreditCost: 500,
 }
 const freeTier = {
   ...units,
   monthlyCreditCost: 0,
 }
-function computeTier(factor: number): TierLimits {
-  return {
-    cpu: units.cpu * factor,
-    memory: units.memory * factor,
-    storage: units.storage * factor,
-    monthlyCreditCost: units.monthlyCreditCost * factor,
-  }
-}
 
 export const Tier = {
   'free': freeTier,
-  'nano': computeTier(2),
-  'tiny': computeTier(3),
-  'micro': computeTier(4),
-  'small': computeTier(8),
-  'medium': computeTier(14),
-  'large': computeTier(18),
-  'huge': computeTier(100),
-  'giant': computeTier(200),
 } satisfies Record<
   string,
   TierLimits

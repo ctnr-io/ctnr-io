@@ -157,7 +157,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const handleRefreshLogs = async () => {
+  const handleRefreshLogs = () => {
     setState((state) => ({ ...state, logs: [], error: null }))
     // Restart streaming to get fresh logs
     if (state.isStreaming) {
@@ -169,7 +169,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
   // Utility function to strip ANSI escape codes
   const stripAnsiCodes = (text: string): string => {
-    // @deno-lint-ignore
     return text.replace(/\x1b\[[0-9;]*m/g, '')
   }
 

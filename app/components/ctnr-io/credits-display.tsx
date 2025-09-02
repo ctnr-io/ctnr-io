@@ -5,7 +5,6 @@ import { AlertTriangle, Coins, Cpu, HardDrive, MemoryStick, Plus } from 'lucide-
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useQuery } from '@tanstack/react-query'
-import { cn } from '../../lib/shadcn/utils.ts'
 import { Badge } from '../shadcn/ui/badge.tsx'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/ui/tooltip.tsx'
 
@@ -24,9 +23,6 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
         <Badge
           title={label}
           variant={percentage >= 100 ? 'destructive' : 'secondary'}
-          className={cn(
-            percentage >= 100 && 'animate-pulse',
-          )}
         >
           <Icon />
           {used}/{limit}
@@ -41,11 +37,9 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
 
 export default function CreditsDisplay() {
   const trpc = useTRPC()
-  const { data: usageData, isLoading, error } = useQuery(trpc.billing.getUsage.queryOptions({}))
-
   // Check balance on component mount and periodically
-  const { data: balanceCheck } = useQuery({
-    ...trpc.billing.checkBalance.queryOptions({}),
+  const { data: usageData, isLoading, error } = useQuery({
+    ...trpc.billing.getUsage.queryOptions({}),
     refetchInterval: 30000, // Check every 30 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -69,21 +63,15 @@ export default function CreditsDisplay() {
     )
   }
 
-  // Extract data from the API response - use updated balance if available
-  const credits = balanceCheck?.credits.balance ?? usageData.credits.balance
-  const usage = balanceCheck?.usage ?? usageData.usage
-  const costs = balanceCheck?.costs ?? usageData.costs
-  const status = balanceCheck?.status ?? 'normal'
-  const baseLimits = usageData.tier.limits
-
-  // Apply credit-based limits: 0 credits = 1 CPU, 2GB max
-  const limits = credits === 0
-    ? {
-      cpu: 1000, // 1 CPU in millicores
-      memory: 2048, // 2GB in MB
-      storage: baseLimits.storage, // Keep storage limit as is
-    }
-    : baseLimits
+  // Extract data from the API response
+  const credits = usageData?.credits?.balance ?? 0
+  const usage = usageData?.usage
+  const status = usageData?.status ?? 'normal'
+  const limits = usageData?.tier?.limits ?? {
+    cpu: 1000, // 1 CPU in millicores
+    memory: 2048, // 2GB in MB
+    storage: 10240, // 10GB in MB
+  }
 
   // Format display values - API provides data in correct units
   const cpuUsed = (usage.cpu.used / 1000).toFixed(1) // millicores to cores
@@ -98,6 +86,22 @@ export default function CreditsDisplay() {
   return (
     <div className='flex items-center gap-4 px-4'>
       <div className='flex items-center gap-2 py-2'>
+        {status === 'insufficient_credits' || status === 'limit_reached' && (
+              <Link href='/(main)/billing' asChild>
+                <Button
+                  variant='link'
+                  size='sm'
+                  className='cursor-pointer text-amber-700 '
+                >
+                  <AlertTriangle className='h-3 w-3 text-red-600' />
+                  {status === 'limit_reached'
+                    ? 'Limit reached'
+                    : status === 'insufficient_credits'
+                    ? 'Low balance'
+                    : null}
+                </Button>
+              </Link>
+            )}
         <ResourceIndicator
           icon={Cpu}
           label='Processor (vCPU)'
@@ -123,16 +127,6 @@ export default function CreditsDisplay() {
       <div className='flex items-center gap-2'>
         <div className='flex items-center gap-2'>
           <Link href='/(main)/billing' asChild>
-            <Button
-              variant='link'
-              size='sm'
-              className='cursor-pointer text-amber-700 '
-            >
-              <AlertTriangle className='h-3 w-3 text-red-600' />
-              {status === 'limit_reached' ? 'Limit reached' : status === 'insufficient_credits' ? 'Low balance' : null}
-            </Button>
-          </Link>
-          <Link href='/(main)/billing' asChild>
             <Button variant='ghost' className='cursor-pointer hover:bg-gray-50'>
               <Coins className='h-4 w-4 text-gray-600' />
               <span className='text-sm font-semibold text-gray-900'>
@@ -140,7 +134,6 @@ export default function CreditsDisplay() {
               </span>
             </Button>
           </Link>
-          {/* )} */}
           <Link href='/(main)/billing' asChild>
             <Button variant='outline' size='sm' className='cursor-pointer shadow-sm active:shadow-sm '>
               <Plus className='h-4 w-4 text-gray-600' />

@@ -2,11 +2,13 @@ import 'lib/utils.ts'
 
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import { WebSocketServer } from 'ws'
-import { createServer } from 'node:http'
+import { createServer, IncomingMessage } from 'node:http'
 import { router } from './router.ts'
 import { createTrpcServerContext } from './context.ts'
 import process from 'node:process'
-import { createOpenApiHttpHandler } from 'trpc-to-openapi';
+import { createOpenApiHttpHandler } from 'trpc-to-openapi'
+import { Readable } from 'node:stream'
+import querystring from 'node:querystring'
 
 // Create tRPC HTTP handler
 const httpHandler = createOpenApiHttpHandler({
@@ -14,37 +16,72 @@ const httpHandler = createOpenApiHttpHandler({
   createContext: createTrpcServerContext,
 })
 
-const httpServer = createServer((req, res) => {
+const httpServer = createServer(async (req, res) => {
   console.info(`➕➕ HTTP Request: ${req.method} ${req.url}`)
-  
+
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  
+
   // Handle preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
     res.writeHead(200)
     res.end()
     return
   }
-  
+
   // Handle health check
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ status: 'ok', service: 'ctnr-io-trpc-server' }))
     return
   }
+  console.debug(`Handling HTTP request: ${req.method} ${req.url}`, req.headers)
 
-  httpHandler(req, res)
-  
+  // Handle all request as JSON
+  if (req.headers['content-type'] === 'application/x-www-form-urlencoded') {
+    let body = ''
+    req.on('data', (chunk) => {
+      body += chunk.toString()
+    })
+
+    req.on('end', async () => {
+      const parsedBody = querystring.parse(body)
+      const jsonBody = JSON.stringify(parsedBody)
+
+      console.log('Received JSON:', jsonBody)
+      console.log(req.socket)
+
+      try {
+        const response = await fetch('http://localhost:3000' + req.url!, {
+          method: req.method,
+          // @ts-expect-error
+          headers: {
+            ...req.headers,
+            'content-type': 'application/json', // Override content-type header
+          },
+          body: jsonBody,
+        })
+        res.writeHead(response.status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify(await response.json()))
+      } catch (err) {
+        console.error('Error forwarding request:', err)
+        res.writeHead(500, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Internal Server Error' }))
+      }
+    })
+  } else {
+    httpHandler(req, res)
+  }
+
   res.on('finish', () => {
     console.info(`➖➖ HTTP Response: ${res.statusCode}`)
   })
 })
 
 const websocketServer = new WebSocketServer({
- server: httpServer, 
+  server: httpServer,
 })
 
 const websocketHandler = applyWSSHandler({
@@ -73,7 +110,6 @@ process.on('SIGTERM', () => {
   websocketHandler.broadcastReconnectNotification()
   websocketServer.close()
 })
-
 
 httpServer.listen(3000)
 

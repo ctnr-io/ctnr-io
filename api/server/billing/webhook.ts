@@ -3,7 +3,7 @@ import z from 'zod'
 import { ensureUserNamespace } from 'lib/kubernetes/kube-client.ts'
 
 export const Meta = {
-  openapi: { method: 'POST', path: '/billing/handle-credits-payment' },
+  openapi: { method: 'POST', path: '/billing/webhook' },
 } as const
 
 export const Input = z.object({
@@ -15,6 +15,8 @@ export type Input = z.infer<typeof Input>
 export type Output = Response
 
 export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookResponse<Output> {
+  console.log('Billing webhook triggered:', { input })
+
   // Get payment ID from the request body
   const paymentId = input.id
 

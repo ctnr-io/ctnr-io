@@ -19,6 +19,20 @@ export type Output = {
 export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
   yield `Initiating payment for ${input.amount} credits`
 
+  /**
+   * When using localhost, the expo ngrok will handle the call from *.exp.direct/api/*
+   * Look at metro.config.cjs in the app directory for more information.
+   */
+  let apiUrl = Deno.env.get('CTNR_API_URL')
+  if (apiUrl?.includes('localhost')) {
+    // We use the app url as it should be ngrok
+    apiUrl = `${Deno.env.get('CTNR_APP_URL')}/api`
+  }
+  const webhookUrl = `${apiUrl}/billing/webhook`
+
+  // Redirect to the app
+  const redirectUrl = `${Deno.env.get('CTNR_APP_URL')}/billing`
+
   const payment = await ctx.billing.client.payments.create({
     description: `Purchase ${input.amount} credits`,
     amount: {
@@ -29,8 +43,8 @@ export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>):
       userId: ctx.auth.user.id,
       credits: input.amount.toString(),
     },
-    webhookUrl: `${Deno.env.get('CTNR_API_URL')}/webhook/handle_credit_payment`,
-    redirectUrl: `${Deno.env.get('CTNR_WEB_URL')}/billing/success`,
+    webhookUrl,
+    redirectUrl,
   })
 
   if (!payment.id || !payment._links?.checkout?.href) {

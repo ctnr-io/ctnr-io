@@ -58,7 +58,7 @@ function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (amount > 0) {
       const data = await buyCredits.mutateAsync({ amount })
       // Open payment URL in new tab
-      globalThis.open(data.paymentUrl, '_blank')
+      globalThis.location.href = data.paymentUrl
       onOpenChange(false)
     }
   }

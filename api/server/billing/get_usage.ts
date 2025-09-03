@@ -69,7 +69,6 @@ export default async function* (
   { ctx, signal }: ServerRequest<Input>,
 ): ServerResponse<Output> {
   try {
-    console.log('tolo')
     const kubeClient = ctx.kube.client['eu']
     const namespace = ctx.kube.namespace
     

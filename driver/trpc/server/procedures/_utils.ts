@@ -1,9 +1,7 @@
 import { ServerRequest, ServerResponse, WebhookRequest, WebhookResponse } from 'lib/api/types.ts'
 import { ServerContext, WebhookContext } from 'ctx/mod.ts'
 import { createDeferer } from 'lib/api/defer.ts'
-import {
-  MiddlewareResult,
-} from '@trpc/server/unstable-core-do-not-import'
+import { MiddlewareResult } from '@trpc/server/unstable-core-do-not-import'
 import { TrpcServerContext } from '../context.ts'
 import { createServerContext } from 'ctx/server/mod.ts'
 import { createWebhookContext } from 'ctx/webhook/mod.ts'
@@ -18,7 +16,7 @@ export type SubscribeProcedureOutput<Output> = {
 
 type TRPCServerRequest<Input> = { ctx: ServerContext; input: Input; signal: AbortSignal | undefined }
 
-type TRPCWebhookRequest<Input> = { ctx: WebhookContext; input: Input; }
+type TRPCWebhookRequest<Input> = { ctx: WebhookContext; input: Input }
 
 export function transformSubscribeProcedure<Input, Output>(
   procedure: (opts: ServerRequest<Input>) => ServerResponse<Output>,
@@ -85,7 +83,12 @@ export async function withServerContext({ ctx, signal, next }: {
   if (!signal) {
     throw new Error('AbortSignal is required')
   }
-  return next({ ctx: await createServerContext(ctx, signal) })
+  try {
+    return next({ ctx: await createServerContext(ctx, signal) })
+  } catch (error) {
+    console.error('Error creating server context:', error)
+    throw error
+  }
 }
 
 export async function withWebhookContext({ ctx, next }: {
@@ -94,7 +97,12 @@ export async function withWebhookContext({ ctx, next }: {
     ctx: WebhookContext
   }) => Promise<MiddlewareResult<WebhookContext>>
 }) {
-  return next({ ctx: await createWebhookContext(ctx) })
+  try {
+    return next({ ctx: await createWebhookContext(ctx) })
+  } catch (error) {
+    console.error('Error creating webhook context:', error)
+    throw error
+  }
 }
 
 export function transformWebhookRequest<Input, Output>(

@@ -6,8 +6,7 @@ import * as Route from 'api/server//compute/containers/route.ts'
 import * as Logs from 'api/server//compute/containers/logs.ts'
 import * as BuyCredits from 'api/server/billing/buy_credits.ts'
 import * as GetUsage from 'api/server/billing/get_usage.ts'
-import * as GetInvoices from 'api/server/billing/get_invoices.ts'
-import * as GetPayments from 'api/server/billing/get_payments.ts'
+import * as GetInvoices from '../../../api/server/billing/get_invoices.ts'
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from './context.ts'
 import login from 'api/client/auth/login_from_terminal.ts'
@@ -127,11 +126,6 @@ export const clientRouter = trpc.router({
   getInvoices: trpc.procedure.meta(GetInvoices.Meta).input(GetInvoices.Input).query(({ input, signal, ctx }) =>
     ctx.connect(
       (server) => server.billing.getInvoices.query(input, { signal, context: ctx }),
-    )
-  ),
-  getPayments: trpc.procedure.meta(GetPayments.Meta).input(GetPayments.Input).query(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => server.billing.getPayments.query(input, { signal, context: ctx }),
     )
   ),
 })

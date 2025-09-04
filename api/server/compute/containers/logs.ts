@@ -1,8 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import {
-  combineReadableStreamsToAsyncGenerator,
-} from 'lib/api/streams.ts'
+import { combineReadableStreamsToAsyncGenerator } from 'lib/api/streams.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 import { ContainerName } from 'lib/api/schemas.ts'
 

@@ -627,7 +627,7 @@ export async function ensureFederatedResourceQuota(
   await match(
     // Get the federated resource quota and return null if it does not exist
     await kc.KarmadaV1Alpha1(namespace).getFederatedResourceQuota(federatedResourceQuotaName, { abortSignal }).catch(
-      () => null
+      () => null,
     ),
   )
     // if federated resource quota does not exist, create it

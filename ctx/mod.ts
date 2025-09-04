@@ -1,6 +1,7 @@
 import { MollieClient } from '@mollie/api-client'
 import { KubeClient } from 'lib/kubernetes/kube-client.ts'
 import { Session, SupabaseClient } from '@supabase/supabase-js'
+import { QontoClient } from 'lib/billing/qonto/mod.ts'
 
 export type Signals =
   | 'SIGINT'
@@ -84,16 +85,21 @@ export type ProjectContext = {
  */
 export type BillingServerContext = {
   billing: {
-    client: MollieClient
-    webhookUrl: string
-    customerId: string
+    client: {
+      mollie: MollieClient
+      qonto: QontoClient
+    }
+    mollieCustomerId: string
+    qontoClientId: string
   }
 }
 
 export type BillingWebhookContext = {
   billing: {
-    client: MollieClient
-    webhookUrl: string
+    client: {
+      mollie: MollieClient
+      qonto: QontoClient
+    }
   }
 }
 

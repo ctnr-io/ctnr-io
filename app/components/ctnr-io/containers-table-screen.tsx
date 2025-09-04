@@ -146,7 +146,6 @@ function formatDate(dateString: string) {
   })
 }
 
-
 export default function ContainersTableScreen({
   data,
   isLoading = false,
@@ -232,7 +231,7 @@ export default function ContainersTableScreen({
       label: 'Daily cost',
       render: (_value, item) => (
         <div className='text-sm inline-flex gap-1'>
-          <Coins className="h-3 w-3 text-gray-600 self-center" /> {item.cost.daily}
+          <Coins className='h-3 w-3 text-gray-600 self-center' /> {item.cost.daily}
         </div>
       ),
       className: 'text-sm',

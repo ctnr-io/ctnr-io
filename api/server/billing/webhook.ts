@@ -1,6 +1,8 @@
 import { WebhookRequest, WebhookResponse } from 'lib/api/types.ts'
 import z from 'zod'
 import { ensureUserNamespace } from 'lib/kubernetes/kube-client.ts'
+import { PaymentMetadataV1 } from 'lib/billing/utils.ts'
+import { formatDate } from 'date-fns'
 
 export const Meta = {
   openapi: { method: 'POST', path: '/billing/webhook' },
@@ -15,7 +17,7 @@ export type Input = z.infer<typeof Input>
 export type Output = Response
 
 export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookResponse<Output> {
-  console.log('Billing webhook triggered:', { input })
+  console.debug('Billing webhook triggered:', { input })
 
   // Get payment ID from the request body
   const paymentId = input.id
@@ -26,7 +28,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
   }
 
   // Fetch payment details from Mollie
-  const payment = await ctx.billing.client.payments.get(paymentId)
+  const payment = await ctx.billing.client['mollie'].payments.get(paymentId)
 
   if (!payment) {
     console.error(`Payment not found: ${paymentId}`)
@@ -35,17 +37,64 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
 
   // Process payment based on status
   if (payment.status === 'paid') {
-    const metadata = payment.metadata as Record<string, string> | undefined
-    const userId = metadata?.userId
-
+    const metadata = PaymentMetadataV1.safeParse(payment.metadata)
+    if (!metadata.success) {
+      throw new Error(`Invalid payment metadata for payment ${paymentId}: ${metadata.error}`)
+    }
+    const userId = metadata?.data.userId
     if (!userId) {
       console.error(`Invalid metadata for payment ${paymentId}: missing userId`, payment.metadata)
       return new Response('Invalid payment metadata', { status: 400 })
     }
 
-    const namespace = await ensureUserNamespace(ctx.kube.client['eu'], userId, new AbortSignal())
+    const controller = new AbortController()
+    const namespace = await ensureUserNamespace(ctx.kube.client['eu'], userId, controller.signal)
 
     const namespaceObj = await ctx.kube.client['eu'].CoreV1.getNamespace(namespace)
+
+    // Get qonto client id
+    const qontoClientId = metadata?.data.qontoClientId
+    if (!qontoClientId) {
+      console.error(`No Qonto client ID found for payment ${paymentId}`)
+      return new Response('Internal Server Error', { status: 500 })
+    }
+
+    // Create an invoice
+    console.info("Creating invoice in Qonto for client", qontoClientId)
+
+    const issueDate = formatDate(new Date(payment.paidAt!), 'yyyy-MM-dd')
+    const amountWithVAT = Number(payment.amount.value)
+    const amountWithoutVAT = amountWithVAT / 1.2
+    const invoice = await ctx.billing.client.qonto.createClientInvoice({
+      client_id: qontoClientId,
+      issue_date: issueDate,
+      due_date: issueDate,
+      currency: payment.amount.currency,
+      payment_methods: {
+        iban: Deno.env.get("QONTO_IBAN"),
+      },
+      items: [{
+        title: `${metadata.data.credits} credits`,
+        quantity: String(metadata.data.credits),
+        unit_price: {
+          currency: payment.amount.currency,
+          value: amountWithoutVAT.toFixed(2),
+        },
+        vat_rate: '0.2',
+      }],
+      // We cannot set it as paid now
+      status: 'unpaid',
+    })
+
+    const invoiceUrl = invoice.client_invoice?.invoice_url!
+
+    // Update payment metadata with invoice
+    await ctx.billing.client.mollie.payments.update(paymentId, {
+      metadata: {
+        ...metadata.data,
+        invoiceUrl,
+      } satisfies PaymentMetadataV1,
+    })
 
     // Handle successful payment
     console.info(`Payment ${paymentId} succeeded:`, payment)
@@ -54,7 +103,6 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     const currentBalanceAnnotation = namespaceObj.metadata?.annotations?.['ctnr.io/credits-balance']
     const currentBalance = parseInt(currentBalanceAnnotation || '0')
 
-    console.info(`Current balance for user ${userId}:`, currentBalance)
 
     const addedBalance = Number(payment.amount.value) * 100
     const newBalance = currentBalance + addedBalance
@@ -67,6 +115,8 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
         },
       },
     })
+
+    console.info(`New balance for user ${userId}:`, newBalance)
     return new Response('Payment processed successfully')
   }
   return new Response('Payment not processed', { status: 400 })

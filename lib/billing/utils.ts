@@ -2,6 +2,8 @@
  * Billing utility functions for cost calculation and resource parsing
  */
 
+import z, { string } from 'zod'
+
 export interface ResourceParsed {
   cpu: number // in millicores
   memory: number // in MB
@@ -148,3 +150,12 @@ export const Tier = {
 >
 
 export type Tier = keyof typeof Tier
+
+export const PaymentMetadataV1 = z.object({
+  version: z.literal(1),
+  userId: z.string(),
+  qontoClientId: z.string(),
+  credits: z.number(),
+  invoiceUrl: z.string(),
+})
+export type PaymentMetadataV1 = z.infer<typeof PaymentMetadataV1>

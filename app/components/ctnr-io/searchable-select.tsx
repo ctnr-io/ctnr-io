@@ -78,10 +78,7 @@ export function SearchableSelect({
             disabled={disabled}
             className={`justify-between text-ellipsis ${buttonClassName || ''}`}
           >
-            {renderSelectedValue 
-              ? renderSelectedValue(selectedOption)
-              : defaultRenderSelectedValue(selectedOption)
-            }
+            {renderSelectedValue ? renderSelectedValue(selectedOption) : defaultRenderSelectedValue(selectedOption)}
             <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
           </Button>
         </PopoverTrigger>

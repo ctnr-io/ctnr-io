@@ -1,13 +1,14 @@
 import { getMollieClient } from 'lib/billing/mollie.ts'
 import { BillingWebhookContext } from '../mod.ts'
+import { getQontoClient } from 'lib/billing/qonto/mod.ts'
 
 export function createBillingContext(): BillingWebhookContext {
-  // Retrieve billing customerId from namespace label or create customer 
-  const client = getMollieClient()
   return {
     billing: {
-      client,
-      webhookUrl: '/api/billing/webhook',
-    }
+      client: {
+        mollie: getMollieClient(),
+        qonto: getQontoClient(),
+      },
+    },
   }
 }

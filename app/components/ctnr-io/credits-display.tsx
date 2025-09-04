@@ -87,20 +87,18 @@ export default function CreditsDisplay() {
     <div className='flex items-center gap-4 px-4'>
       <div className='flex items-center gap-2 py-2'>
         {status === 'insufficient_credits' || status === 'limit_reached' && (
-              <Link href='/(main)/billing' asChild>
-                <Button
-                  variant='link'
-                  size='sm'
-                  className='cursor-pointer text-amber-700 '
-                >
-                  <AlertTriangle className='h-3 w-3 text-red-600' />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertTriangle className='h-4 w-4 text-red-600' />
+                </TooltipTrigger>
+                <TooltipContent>
                   {status === 'limit_reached'
                     ? 'Limit reached'
                     : status === 'insufficient_credits'
                     ? 'Low balance'
                     : null}
-                </Button>
-              </Link>
+                </TooltipContent>
+              </Tooltip>
             )}
         <ResourceIndicator
           icon={Cpu}

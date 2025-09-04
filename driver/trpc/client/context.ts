@@ -127,7 +127,7 @@ export async function createTrpcClientContext(
         if (globalThis.Deno) {
           Deno.exit(1)
         } else {
-          throw new Error("An error occurred while executing command.")
+          throw new Error('An error occurred while executing command.')
         }
       }
     },

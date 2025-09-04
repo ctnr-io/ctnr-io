@@ -32,46 +32,45 @@ const data = {
   //   },
   // ],
   categories: [
-      {
-        title: "Compute",
-        items: [{
-          title: "Containers",
-          url: "/containers",
-          icon: Container,
-        }, {
-          title: "Functions",
-          url: "/functions" as Route,
-          icon: FunctionSquare,
-          disabled: true,
-        }],
-      },
-      {
-        title: "Storage",
-        items: [{
-          title: "Volumes",
-          url: "/volumes" as Route,
-          icon: HardDrive,
-          disabled: true,
-        }, 
-        // {
+    {
+      title: 'Compute',
+      items: [{
+        title: 'Containers',
+        url: '/containers',
+        icon: Container,
+      }, {
+        title: 'Functions',
+        url: '/functions' as Route,
+        icon: FunctionSquare,
+        disabled: true,
+      }],
+    },
+    {
+      title: 'Storage',
+      items: [{
+        title: 'Volumes',
+        url: '/volumes' as Route,
+        icon: HardDrive,
+        disabled: true,
+      } // {
         //   title: "Database",
         //   url: "/databases" as Route,
         //   icon: Database,
         //   disabled: true,
         // }
-      ]
-      },
-      // {
-      //   title: "Network",
-      //   items: [{
-      //     title: "Domains",
-      //     url: "/network/domains" as Route,
-      //     icon: Globe,
-      //     disabled: true,
-      //   }]
-      // }
-    ] satisfies NavCategoryProps[],
-  
+      ],
+    },
+    // {
+    //   title: "Network",
+    //   items: [{
+    //     title: "Domains",
+    //     url: "/network/domains" as Route,
+    //     icon: Globe,
+    //     disabled: true,
+    //   }]
+    // }
+  ] satisfies NavCategoryProps[],
+
   navMain: [
     {
       title: 'Containers',
@@ -236,15 +235,15 @@ const data = {
 }
 
 interface NavItem {
-  title: string;
-  url: Route;
-  icon: LucideIcon;
-  disabled?: boolean;
+  title: string
+  url: Route
+  icon: LucideIcon
+  disabled?: boolean
 }
 
 interface NavCategoryProps {
-  title: string;
-  items: NavItem[];
+  title: string
+  items: NavItem[]
 }
 
 export function NavCategory({ title, items }: NavCategoryProps) {
@@ -256,7 +255,7 @@ export function NavCategory({ title, items }: NavCategoryProps) {
       <SidebarMenu>
         {items.map((item) => (
           <Link key={item.url} href={item.url} asChild>
-            <SidebarMenuButton disabled={item.disabled} className="cursor-pointer">
+            <SidebarMenuButton disabled={item.disabled} className='cursor-pointer'>
               <item.icon /> {item.title} {item.disabled && <Badge variant='outline'>Coming soon</Badge>}
             </SidebarMenuButton>
           </Link>
@@ -264,7 +263,7 @@ export function NavCategory({ title, items }: NavCategoryProps) {
       </SidebarMenu>
     </SidebarGroup>
   )
-} 
+}
 
 export function AppSidebar({ user, onLogout, ...props }: React.ComponentProps<typeof Sidebar> & {
   user: {

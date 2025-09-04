@@ -20,7 +20,6 @@ export default async function* (
   const kubeClient = ctx.kube.client['eu']
   const namespace = ctx.kube.namespace
 
-
   const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace)
 
   const creditsAnnotation = namespaceObj.metadata?.annotations?.['ctnr.io/credits-balance']

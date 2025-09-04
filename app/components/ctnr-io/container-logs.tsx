@@ -600,11 +600,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               <div className='flex items-center gap-2'>
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    isLoading
-                      ? 'bg-blue-500 animate-pulse'
-                      : state.isStreaming
-                      ? 'bg-green-500'
-                      : 'bg-yellow-500'
+                    isLoading ? 'bg-blue-500 animate-pulse' : state.isStreaming ? 'bg-green-500' : 'bg-yellow-500'
                   }`}
                 />
                 <span className='font-medium'>

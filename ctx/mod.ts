@@ -90,7 +90,7 @@ export type BillingServerContext = {
       qonto: QontoClient
     }
     mollieCustomerId: string
-    qontoClientId: string
+    qontoClientId: string | undefined
   }
 }
 

@@ -3,9 +3,10 @@ import { trpc } from '../trpc.ts'
 import { transformQueryProcedure, transformWebhookRequest, withServerContext, withWebhookContext } from './_utils.ts'
 
 import * as BuyCredits from 'api/server/billing/buy_credits.ts'
+import * as GetClient from 'api/server/billing/get_client.ts'
 import * as GetUsage from 'api/server/billing/get_usage.ts'
 import * as SetLimits from 'api/server/billing/set_limits.ts'
-import * as GetInvoice from '../../../../api/server/billing/get_invoices.ts'
+import * as GetInvoices from 'api/server/billing/get_invoices.ts'
 import * as Webhook from 'api/server/billing/webhook.ts'
 
 export const buyCredits = trpc.procedure
@@ -13,6 +14,12 @@ export const buyCredits = trpc.procedure
   .meta(BuyCredits.Meta)
   .input(BuyCredits.Input)
   .mutation(transformQueryProcedure(BuyCredits.default))
+
+export const getClient = trpc.procedure
+  .use(withServerContext)
+  .meta(GetClient.Meta)
+  .input(GetClient.Input)
+  .query(transformQueryProcedure(GetClient.default))
 
 export const getUsage = trpc.procedure
   .use(withServerContext)
@@ -27,9 +34,9 @@ export const setLimits = trpc.procedure
 
 export const getInvoices = trpc.procedure
   .use(withServerContext)
-  .meta(GetInvoice.Meta)
-  .input(GetInvoice.Input)
-  .query(transformQueryProcedure(GetInvoice.default))
+  .meta(GetInvoices.Meta)
+  .input(GetInvoices.Input)
+  .query(transformQueryProcedure(GetInvoices.default))
 
 export const webhook = trpc.procedure
   .use(withWebhookContext)

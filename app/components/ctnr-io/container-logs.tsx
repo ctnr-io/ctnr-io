@@ -23,7 +23,7 @@ import { useSubscription } from '@trpc/tanstack-react-query'
 import Ansi from 'ansi-to-react'
 import { SearchableSelect, SearchableSelectOption } from './searchable-select.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
-import { cn } from '../../lib/shadcn/utils.ts'
+import { cn } from 'lib/shadcn/utils.ts'
 
 interface ContainerInstance {
   name: string
@@ -359,7 +359,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       }
 
       // Could add a toast notification here if available
-      console.log('Logs copied to clipboard')
     } catch (err) {
       console.error('Failed to copy logs:', err)
       setState((prev) => ({ ...prev, error: 'Failed to copy logs to clipboard' }))

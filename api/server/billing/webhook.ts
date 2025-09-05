@@ -53,9 +53,9 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     const namespaceObj = await ctx.kube.client['eu'].CoreV1.getNamespace(namespace)
 
     // Get qonto client id
-    const qontoClientId = metadata?.data.qontoClientId
+    const qontoClientId = namespaceObj.metadata?.labels?.['ctnr.io/qonto-client-id']
     if (!qontoClientId) {
-      console.error(`No Qonto client ID found for payment ${paymentId}`)
+      console.error(`No Qonto client ID found for namespace ${namespace}`)
       return new Response('Internal Server Error', { status: 500 })
     }
 

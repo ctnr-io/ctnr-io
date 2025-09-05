@@ -2,7 +2,7 @@
  * Billing utility functions for cost calculation and resource parsing
  */
 
-import z, { string } from 'zod'
+import z from 'zod'
 
 export interface ResourceParsed {
   cpu: number // in millicores
@@ -154,8 +154,48 @@ export type Tier = keyof typeof Tier
 export const PaymentMetadataV1 = z.object({
   version: z.literal(1),
   userId: z.string(),
-  qontoClientId: z.string(),
   credits: z.number(),
-  invoiceUrl: z.string(),
+  invoiceUrl: z.string().or(z.null()),
 })
 export type PaymentMetadataV1 = z.infer<typeof PaymentMetadataV1>
+
+export const BillingClient =  z.union([
+    z.object({
+      type: z.literal('individual'),
+      firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
+      lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
+    }),
+    z.object({
+      type: z.literal('freelance'),
+      firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
+      lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
+      vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
+    }),
+    z.object({
+      type: z.literal('company'),
+      name: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
+      vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
+    }),
+  ])
+    .and(z.object({
+      currency: z.enum(['EUR']),
+      locale: z.enum(['fr']),
+      billingAddress: z.object({
+        streetAddress: z.string().min(1, 'Street address is required').max(200, 'Street address too long'),
+        city: z.string().min(1, 'City is required').max(100, 'City name too long'),
+        postalCode: z.string().min(1, 'Postal code is required').max(20, 'Postal code too long'),
+        provinceCode: z.string().max(10, 'Province code too long').optional(),
+        countryCode: z.string().min(2, 'Country code must be at least 2 characters').max(3, 'Country code too long'),
+      }).refine((data) => {
+        // Province code is required only for Italian addresses
+        if (data.countryCode === 'IT') {
+          return data.provinceCode && data.provinceCode.trim().length > 0;
+        }
+        return true;
+      }, {
+        message: 'Province code is required for Italian addresses',
+        path: ['provinceCode'],
+      }),
+    }))
+
+export type BillingClient = z.infer<typeof BillingClient>

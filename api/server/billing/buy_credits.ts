@@ -2,13 +2,14 @@ import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
 import { match } from 'ts-pattern'
 import { SequenceType } from '@mollie/api-client'
-import { PaymentMetadataV1 } from 'lib/billing/utils.ts'
+import { BillingClient, PaymentMetadataV1 } from 'lib/billing/utils.ts'
 import { c } from '@tmpl/core'
+import client, { CreateClientRequest } from 'lib/billing/qonto/client.ts'
 
 export const Meta = {}
 
 export const Input = z.object({
-  amount: z.number().int().min(1),
+  amount: z.number().int().min(1).max(1000000, 'Amount cannot exceed 1,000,000 credits'),
   /**
    * The type of the payment sequence.
    * - `one-time`: A one-time payment
@@ -17,35 +18,7 @@ export const Input = z.object({
    */
   type: z.enum(['one-time', 'first', 'recurring']),
 
-  client: z.union([
-    z.object({
-      type: z.literal('individual'),
-      firstName: z.string(),
-      lastName: z.string(),
-    }),
-    z.object({
-      type: z.literal('freelance'),
-      firstName: z.string(),
-      lastName: z.string(),
-      vatNumber: z.string(),
-    }),
-    z.object({
-      type: z.literal('company'),
-      name: z.string(),
-      vatNumber: z.string(),
-    }),
-  ])
-    .and(z.object({
-      currency: z.enum(['EUR']),
-      locale: z.enum(['FR']),
-      billingAddress: z.object({
-        streetAddress: z.string(),
-        city: z.string(),
-        postalCode: z.string(),
-        provinceCode: z.string(),
-        countryCode: z.string(),
-      }),
-    })),
+  client: BillingClient,
 })
 
 export type Input = z.infer<typeof Input>
@@ -79,31 +52,29 @@ export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>):
     .with('first', () => SequenceType.first)
     .with('recurring', () => SequenceType.recurring)
     .exhaustive()
-  
+
   const currency = 'EUR'
 
-  // Save client informations to Qonto
-  await ctx.billing.client['qonto'].updateClient(
-    {
-      id: ctx.billing.qontoClientId,
-    },
-    {
-      ...match(input.client)
-        .with({ type: 'individual' }, (client) => ({
-          first_name: client.firstName,
-          last_name: client.lastName,
-        }))
-        .with({ type: 'freelance' }, (client) => ({
-          first_name: client.firstName,
-          last_name: client.lastName,
-          vat_number: client.vatNumber,
-        }))
-        .with({ type: 'company' }, (client) => ({
-          name: client.name,
-          vat_number: client.vatNumber,
-        })),
-      currency,
-      locale: input.client.locale,
+  const clientInfo: CreateClientRequest = {
+    type: input.client.type,
+    ...match(input.client)
+      .with({ type: 'individual' }, (client) => ({
+        first_name: client.firstName,
+        last_name: client.lastName,
+      }))
+      .with({ type: 'freelance' }, (client) => ({
+        first_name: client.firstName,
+        last_name: client.lastName,
+        vat_number: client.vatNumber,
+      }))
+      .with({ type: 'company' }, (client) => ({
+        name: client.name,
+        vat_number: client.vatNumber,
+      }))
+      .exhaustive(),
+    currency,
+    locale: input.client.locale,
+    ...(input.client.billingAddress && {
       billing_address: {
         street_address: input.client.billingAddress.streetAddress,
         city: input.client.billingAddress.city,
@@ -111,8 +82,29 @@ export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>):
         province_code: input.client.billingAddress.provinceCode,
         country_code: input.client.billingAddress.countryCode,
       },
-    },
-  )
+    }),
+  }
+  if (!ctx.billing.qontoClientId) {
+    const response = await ctx.billing.client['qonto'].createClient(clientInfo)
+    if (!response.client?.id) {
+      throw new Error('Failed to create Qonto client')
+    }
+    await ctx.kube.client['eu'].CoreV1.patchNamespace(ctx.kube.namespace, 'json-merge', {
+      metadata: {
+        labels: {
+          'ctnr.io/qonto-client-id': response.client.id,
+        },
+      },
+    })
+  } else {
+    // Save client informations to Qonto
+    await ctx.billing.client['qonto'].updateClient(
+      {
+        id: ctx.billing.qontoClientId,
+      },
+      clientInfo,
+    )
+  }
 
   const payment = await ctx.billing.client['mollie'].payments.create({
     description: `Purchase ${input.amount} credits`,
@@ -123,9 +115,8 @@ export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>):
     metadata: {
       version: 1,
       userId: ctx.auth.user.id,
-      qontoClientId: ctx.billing.qontoClientId,
       credits: input.amount,
-      invoiceUrl: '',
+      invoiceUrl: null,
     } satisfies PaymentMetadataV1,
     webhookUrl,
     redirectUrl,

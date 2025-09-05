@@ -41,6 +41,9 @@ export function transformSubscribeProcedure<Input, Output>(
         result = await gen.next()
       }
       yield { type: 'return', value: result.value }
+    } catch (error) {
+      console.error('Error occurred while processing request', error)
+      throw new Error('Failed to process request')
     } finally {
       await defer.execute()
     }
@@ -67,6 +70,9 @@ export function transformQueryProcedure<Input, Output>(
         result = await gen.next()
       }
       return result.value
+    } catch (error) {
+      console.error('Error occurred while processing request', error)
+      throw new Error('Failed to process request')
     } finally {
       await defer.execute()
     }

@@ -11,7 +11,7 @@
     "app/": "../app/",
     "cli/": "../cli/",
     "driver/": "../driver/",
-    "lib/": "../app/lib/",
+    "lib/": "../lib/",
     "ctx/": "../ctx/"
   },
   "compilerOptions": {

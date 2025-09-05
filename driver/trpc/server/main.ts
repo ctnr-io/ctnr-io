@@ -50,9 +50,6 @@ const httpServer = createServer(async (req, res) => {
       const parsedBody = querystring.parse(body)
       const jsonBody = JSON.stringify(parsedBody)
 
-      console.log('Received JSON:', jsonBody)
-      console.log(req.socket)
-
       try {
         const response = await fetch('http://localhost:3000' + req.url!, {
           method: req.method,

@@ -3,6 +3,8 @@ import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import z from 'zod'
 import { ensureFederatedResourceQuota } from 'lib/kubernetes/kube-client.ts'
 
+export const Meta = {}
+
 export const Input = z.object({
   cpu: z.union([z.string().regex(/^\d+m?$/)]).describe('CPU limit'),
   memory: z.string().regex(/^\d[MG]i/).describe('Memory limit'),

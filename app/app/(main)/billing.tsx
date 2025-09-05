@@ -1,7 +1,7 @@
 'use dom'
 
 import React, { useState } from 'react'
-import { AlertTriangle, CreditCard, Currency, Download, Plus, Receipt, TrendingUp, Wallet } from 'lucide-react'
+import { AlertTriangle, CreditCard, Download, Plus, Receipt, TrendingUp, Wallet } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Card } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
@@ -9,17 +9,261 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from 'app/components/shadcn/ui/dialog.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
-import { Label } from 'app/components/shadcn/ui/label.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from 'app/components/shadcn/ui/form.tsx'
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { BillingClient } from 'lib/billing/utils.ts'
+import { CountryCodes } from 'lib/billing/country_codes.ts'
+
+// Create form schema combining amount with BillingClient
+const CreditPurchaseFormSchema = z.object({
+  amount: z.string().min(1, 'Please enter an amount').refine((val) => {
+    const amount = parseInt(val)
+    return !isNaN(amount) && amount > 0 && amount <= 1000000
+  }, 'Please enter a valid amount between 1 and 1,000,000 credits'),
+}).and(BillingClient)
+
+type CreditPurchaseFormData = z.infer<typeof CreditPurchaseFormSchema>
+
+// Client Information Form Component
+function ClientInfoForm({ form, watchedType }: {
+  form: any
+  watchedType: 'individual' | 'freelance' | 'company'
+}) {
+  return (
+    <div className='space-y-4'>
+      <FormField
+        control={form.control}
+        name='type'
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Client Type</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder='Select client type' />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value='individual'>Individual</SelectItem>
+                <SelectItem value='freelance'>Freelance</SelectItem>
+                <SelectItem value='company'>Company</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {watchedType === 'company'
+        ? (
+          <FormField
+            control={form.control}
+            name='name'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company Name</FormLabel>
+                <FormControl>
+                  <Input placeholder='Enter company name' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )
+        : (
+          <div className='grid grid-cols-2 gap-4'>
+            <FormField
+              control={form.control}
+              name='firstName'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter first name' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='lastName'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter last name' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+
+      {(watchedType === 'freelance' || watchedType === 'company') && (
+        <FormField
+          control={form.control}
+          name='vatNumber'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>VAT Number</FormLabel>
+              <FormControl>
+                <Input placeholder='Enter VAT number' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+    </div>
+  )
+}
+
+// Billing Address Form Component
+function BillingAddressForm({ form }: { form: any }) {
+  const [showBillingAddress, setShowBillingAddress] = React.useState(true)
+
+  // Watch for changes in billing address fields to determine if switch should be on
+  const billingAddress = form.watch('billingAddress')
+
+  // Update switch state based on whether billing address has any values
+  React.useEffect(() => {
+    if (billingAddress && Object.values(billingAddress).some((value) => value && value !== '')) {
+      setShowBillingAddress(true)
+    }
+  }, [billingAddress])
+
+  // // Clear billing address when switch is turned off
+  // const handleSwitchChange = (checked: boolean) => {
+  //   setShowBillingAddress(checked)
+  //   if (!checked) {
+  //     form.setValue('billingAddress', null)
+  //   } else {
+  //     // Initialize with empty billing address object when turned on
+  //     form.setValue('billingAddress', {
+  //       streetAddress: '',
+  //       city: '',
+  //       postalCode: '',
+  //       provinceCode: '',
+  //       countryCode: '',
+  //     })
+  //   }
+  // }
+
+  return (
+    <div className='border-t pt-4'>
+      <div className='flex items-center justify-between mb-4'>
+        <div>
+          <h4 className='font-medium'>Billing Address</h4>
+          <p className='text-sm text-gray-500'>Add billing address to your invoice</p>
+        </div>
+        {/* <Switch
+          checked={showBillingAddress}
+          onCheckedChange={handleSwitchChange}
+        /> */}
+      </div>
+
+      {showBillingAddress && (
+        <div className='space-y-3'>
+          <FormField
+            control={form.control}
+            name='billingAddress.streetAddress'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Street Address</FormLabel>
+                <FormControl>
+                  <Input placeholder='Enter street address' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className='grid grid-cols-2 gap-4'>
+            <FormField
+              control={form.control}
+              name='billingAddress.city'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter city' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='billingAddress.postalCode'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Postal Code</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter postal code' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className='grid grid-cols-2 gap-4'>
+            <FormField
+              control={form.control}
+              name='billingAddress.provinceCode'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Province/State Code (Italian required)</FormLabel>
+                  <FormControl>
+                    <Input placeholder='' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='billingAddress.countryCode'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Country</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='Select country' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.entries(CountryCodes).map(([code, name]) => (
+                        <SelectItem key={code} value={code}>
+                          {name} ({code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface Invoice {
   id: string
@@ -37,39 +281,105 @@ interface Invoice {
   downloadUrl?: string
 }
 
-// Credit Purchase Dialog Component
-function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [formData, setFormData] = useState({ amount: '500', customAmount: '' })
-  const trpc = useTRPC()
+// Credit Purchase Form Component
+function CreditPurchaseForm({ 
+  onSubmit, 
+  onCancel, 
+  isSubmitting,
+  clientData,
+  clientLoading
+}: { 
+  onSubmit: (data: CreditPurchaseFormData) => Promise<void>
+  onCancel: () => void
+  isSubmitting: boolean
+  clientData: any
+  clientLoading: boolean
+}) {
+  const [step, setStep] = useState<'amount' | 'client'>('amount')
+  const [isCustomAmount, setIsCustomAmount] = useState(false)
 
-  const buyCredits = useMutation(trpc.billing.buyCredits.mutationOptions({}))
+  // Initialize form with default values
+  const form = useForm<CreditPurchaseFormData>({
+    resolver: zodResolver(CreditPurchaseFormSchema),
+    defaultValues: {
+      amount: '500',
+      type: 'individual',
+      firstName: '',
+      lastName: '',
+      currency: 'EUR',
+      locale: 'fr',
+      billingAddress: {
+        streetAddress: '',
+        city: '',
+        postalCode: '',
+        provinceCode: '',
+        countryCode: '',
+      },
+    },
+  })
 
-  const handlePurchase = async () => {
-    const amount = formData.amount === 'custom' ? parseInt(formData.customAmount) : parseInt(formData.amount)
+  // Pre-populate form with existing client data
+  React.useEffect(() => {
+    if (clientData) {
+      const updates: any = {
+        type: clientData.type || 'individual',
+        currency: clientData.currency || 'EUR',
+        locale: clientData.locale || 'FR',
+        billingAddress: clientData.billingAddress || null,
+      }
 
-    if (amount > 0) {
-      const data = await buyCredits.mutateAsync({
-        amount,
-        type: 'one-time',
-        client: {
-          type: 'individual',
-          firstName: 'John',
-          lastName: 'Doe',
-          currency: 'EUR',
-          locale: 'FR',
-          billingAddress: {
-            streetAddress: '123 Main St',
-            city: 'Anytown',
-            postalCode: '12345',
-            provinceCode: 'CA',
-            countryCode: 'US',
-          },
-        },
+      if (clientData.type === 'individual' || clientData.type === 'freelance') {
+        updates.firstName = clientData.firstName || ''
+        updates.lastName = clientData.lastName || ''
+      }
+
+      if (clientData.type === 'company') {
+        updates.name = clientData.name || ''
+      }
+
+      if (clientData.type === 'freelance' || clientData.type === 'company') {
+        updates.vatNumber = clientData.vatNumber || ''
+      }
+
+      // Merge with current form values and ensure defaults are preserved
+      const currentValues = form.getValues()
+      form.reset({
+        amount: currentValues.amount || '500',
+        ...updates,
       })
-      // Open payment URL in new tab
-      globalThis.location.href = data.paymentUrl
-      onOpenChange(false)
     }
+  }, [clientData, form])
+
+  const watchedType = form.watch('type')
+
+  const validateStep1 = async () => {
+    const result = await form.trigger(['amount'])
+    return result
+  }
+
+  const handleNext = async () => {
+    try {
+      const result = await validateStep1()
+      if (result) {
+        setStep('client')
+      }
+    } catch (error) {
+      console.error('Step 1 validation error:', error)
+    }
+  }
+
+  const handleBack = () => {
+    setStep('amount')
+  }
+
+  const handleSubmit = async (data: CreditPurchaseFormData) => {
+    await onSubmit(data)
+  }
+
+  const handleCancel = () => {
+    form.reset()
+    setStep('amount')
+    onCancel()
   }
 
   const presetAmounts = [
@@ -81,65 +391,205 @@ function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   ]
 
   return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+        {step === 'amount' && (
+          <div className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='amount'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Credit Amount</FormLabel>
+                  <Select
+                    onValueChange={(amount) => {
+                      if (amount === 'custom') {
+                        setIsCustomAmount(true)
+                      } else {
+                        setIsCustomAmount(false)
+                        field.onChange(amount)
+                      }
+                    }}
+                    defaultValue={presetAmounts.find((preset) => preset.value === field.value)?.value || 'custom'}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='Select amount' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {presetAmounts.map((preset) => (
+                        <SelectItem key={preset.value} value={preset.value}>
+                          {preset.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {isCustomAmount && (
+              <FormField
+                control={form.control}
+                name='amount'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Amount</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        placeholder='Enter credit amount'
+                        value={field.value === 'custom' ? '' : field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    {field.value && field.value !== 'custom' && !form.formState.errors.amount && (
+                      <p className='text-sm text-gray-500'>
+                        Total: €{(parseInt(field.value) * 0.01).toFixed(2)}
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+        )}
+
+        {step === 'client' && (
+          <div className='space-y-4'>
+            {clientLoading ? (
+              <div className='flex items-center justify-center py-8'>
+                <div className='flex items-center gap-3'>
+                  <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900'></div>
+                  <span className='text-sm text-gray-600'>Loading billing information...</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <ClientInfoForm form={form} watchedType={watchedType} />
+                <BillingAddressForm form={form} />
+              </>
+            )}
+          </div>
+        )}
+
+        <div className='flex justify-end gap-2'>
+          <Button variant='outline' type='button' onClick={handleCancel}>
+            Cancel
+          </Button>
+          {step === 'amount'
+            ? (
+              <Button type='button' onClick={handleNext}>
+                Next
+              </Button>
+            )
+            : (
+              <>
+                <Button type='button' variant='outline' onClick={handleBack}>
+                  Back
+                </Button>
+                <Button
+                  type='submit'
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Processing...' : 'Purchase Credits'}
+                </Button>
+              </>
+            )}
+        </div>
+      </form>
+    </Form>
+  )
+}
+
+// Credit Purchase Dialog Component
+function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [generalError, setGeneralError] = useState<string>('')
+  const trpc = useTRPC()
+
+  const buyCredits = useMutation(trpc.billing.buyCredits.mutationOptions({}))
+
+  // Fetch existing client data at the top level
+  const { data: clientData, isLoading: clientLoading } = useQuery({
+    ...trpc.billing.getClient.queryOptions({}),
+    enabled: open,
+  })
+
+  const handleSubmit = async (data: CreditPurchaseFormData) => {
+    setGeneralError('')
+
+    const amount = parseInt(data.amount)
+
+    try {
+      const clientPayload = {
+        type: data.type,
+        ...(data.type === 'individual' && {
+          firstName: data.firstName!,
+          lastName: data.lastName!,
+        }),
+        ...(data.type === 'freelance' && {
+          firstName: data.firstName!,
+          lastName: data.lastName!,
+          vatNumber: data.vatNumber!,
+        }),
+        ...(data.type === 'company' && {
+          name: data.name!,
+          vatNumber: data.vatNumber!,
+        }),
+        currency: data.currency,
+        locale: data.locale,
+        billingAddress: data.billingAddress,
+      }
+
+      const result = await buyCredits.mutateAsync({
+        amount,
+        type: 'one-time',
+        client: clientPayload,
+      })
+
+      // Open payment URL
+      globalThis.location.href = result.paymentUrl
+      onOpenChange(false)
+    } catch (error) {
+      console.error('Purchase failed:', error)
+      setGeneralError('Purchase failed. Please try again.')
+    }
+  }
+
+  const handleCancel = () => {
+    setGeneralError('')
+    onOpenChange(false)
+  }
+
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent className='sm:max-w-lg'>
         <DialogHeader>
           <DialogTitle>Purchase Credits</DialogTitle>
           <DialogDescription>
-            Select the amount of credits you'd like to purchase. Credits are charged at €0.01 per credit.
+            Select the amount of credits you'd like to purchase and provide your billing information.
           </DialogDescription>
         </DialogHeader>
 
-        <div className='space-y-4'>
-          <div>
-            <Label htmlFor='amount'>Credit Amount</Label>
-            <Select
-              value={formData.amount}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, amount: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder='Select amount' />
-              </SelectTrigger>
-              <SelectContent>
-                {presetAmounts.map((preset) => (
-                  <SelectItem key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {generalError && (
+          <Alert className='border-red-200 bg-red-50'>
+            <AlertTriangle className='h-4 w-4 text-red-600' />
+            <AlertDescription className='text-red-700'>
+              {generalError}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {formData.amount === 'custom' && (
-            <div>
-              <Label htmlFor='customAmount'>Custom Amount</Label>
-              <Input
-                id='customAmount'
-                type='number'
-                placeholder='Enter credit amount'
-                value={formData.customAmount}
-                onChange={(e) => setFormData((prev) => ({ ...prev, customAmount: e.target.value }))}
-              />
-              {formData.customAmount && (
-                <p className='text-sm text-gray-500 mt-1'>
-                  Total: €{(parseInt(formData.customAmount) * 0.01).toFixed(2)}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant='outline' onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handlePurchase}
-            disabled={buyCredits.isPending || (formData.amount === 'custom' && !formData.customAmount)}
-          >
-            {buyCredits.isPending ? 'Processing...' : 'Purchase Credits'}
-          </Button>
-        </DialogFooter>
+        <CreditPurchaseForm
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isSubmitting={buyCredits.isPending}
+          clientData={clientData}
+          clientLoading={clientLoading}
+        />
       </DialogContent>
     </Dialog>
   )
@@ -287,7 +737,9 @@ export default function BillingScreen() {
                   <div className='flex gap-2'>
                     <Button
                       size='sm'
-                      onClick={() => setPurchaseDialogOpen(true)}
+                      onClick={() => {
+                        setPurchaseDialogOpen(true)
+                      }}
                       variant='destructive'
                     >
                       <Plus className='h-3 w-3' />
@@ -315,7 +767,9 @@ export default function BillingScreen() {
                   <div className='flex gap-2'>
                     <Button
                       size='sm'
-                      onClick={() => setPurchaseDialogOpen(true)}
+                      onClick={() => {
+                        setPurchaseDialogOpen(true)
+                      }}
                       className='bg-amber-600 hover:bg-amber-700 text-white'
                     >
                       Buy Credits
@@ -353,7 +807,9 @@ export default function BillingScreen() {
                 </div>
                 <div className='text-right'>
                   <Button
-                    onClick={() => setPurchaseDialogOpen(true)}
+                    onClick={() => {
+                      setPurchaseDialogOpen(true)
+                    }}
                     className='bg-gray-900 text-white hover:bg-gray-800'
                     size='sm'
                   >

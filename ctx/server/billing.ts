@@ -34,25 +34,7 @@ export async function createBillingContext(
     })
   }
 
-  let qontoClientId = labels?.['ctnr.io/qonto-client-id']
-  if (!qontoClientId) {
-    // Create a new client in Qonto
-    const { client } = await qontoClient.createClient({
-      first_name: 'John',
-      last_name: 'Doe',
-      type: 'individual',
-      email: ctx.auth.user.email,
-    })
-    qontoClientId = client!.id!
-    await ctx.kube.client['eu'].CoreV1.patchNamespace(namespace.metadata!.name!, 'json-merge', {
-      metadata: {
-        labels: {
-          'ctnr.io/qonto-client-id': qontoClientId,
-        },
-      },
-    })
-  }
-
+  const qontoClientId = labels?.['ctnr.io/qonto-client-id'] || undefined
   return {
     billing: {
       client: {

@@ -4,7 +4,7 @@ const fs = require('fs')
 const { url } = require('zod')
 const { createProxyMiddleware } = require('http-proxy-middleware')
 
-const process = require('./lib/node/process.ts').default
+const process = require('../lib/node/process.ts').default
 
 const config = getDefaultConfig(__dirname)
 
@@ -21,7 +21,7 @@ const importMappings = fs
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'node:process') {
-    moduleName = 'app/lib/node/process.ts'
+    moduleName = 'lib/node/process.ts'
   }
 
   // Fast path: check if module starts with known import prefixes

@@ -36,7 +36,6 @@ export default async function* GetInvoices({ ctx, input }: ServerRequest<Input>)
   for await (const payment of iterator) {
     userPayments.push(payment)
   }
-  console.log(userPayments)
   const invoices = userPayments.map((payment): Output[number] => {
     // Check metadata is ok
     const metadata = payment.metadata as PaymentMetadataV1

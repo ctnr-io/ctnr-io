@@ -3,8 +3,7 @@ import { z } from 'zod'
 import { match } from 'ts-pattern'
 import { SequenceType } from '@mollie/api-client'
 import { BillingClient, PaymentMetadataV1 } from 'lib/billing/utils.ts'
-import { c } from '@tmpl/core'
-import client, { CreateClientRequest } from 'lib/billing/qonto/client.ts'
+import { CreateClientRequest } from 'lib/billing/qonto/client.ts'
 
 export const Meta = {}
 
@@ -30,7 +29,7 @@ export type Output = {
   paymentId: string
 }
 
-export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
+export default async function* PurchaseCredits({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
   yield `Initiating payment for ${input.amount} credits`
 
   /**
@@ -106,7 +105,8 @@ export default async function* BuyCredits({ ctx, input }: ServerRequest<Input>):
     )
   }
 
-  const payment = await ctx.billing.client['mollie'].payments.create({
+  const payment = await ctx.billing.client['mollie'].customerPayments.create({
+    customerId: ctx.billing.mollieCustomerId,
     description: `Purchase ${input.amount} credits`,
     amount: {
       currency,

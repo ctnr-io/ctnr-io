@@ -4,7 +4,7 @@ import * as Attach from 'api/server//compute/containers/attach.ts'
 import * as Exec from 'api/server//compute/containers/exec.ts'
 import * as Route from 'api/server//compute/containers/route.ts'
 import * as Logs from 'api/server//compute/containers/logs.ts'
-import * as BuyCredits from 'api/server/billing/buy_credits.ts'
+import * as PurchaseCredits from '../../../api/server/billing/purchase_credits.ts'
 import * as GetClient from 'api/server/billing/get_client.ts'
 import * as GetUsage from 'api/server/billing/get_usage.ts'
 import * as GetInvoices from 'api/server/billing/get_invoices.ts'
@@ -115,9 +115,9 @@ export const clientRouter = trpc.router({
   ),
 
   // Billing procedures
-  buyCredits: trpc.procedure.meta(BuyCredits.Meta).input(BuyCredits.Input).mutation(({ input, signal, ctx }) =>
+  purchaseCredits: trpc.procedure.meta(PurchaseCredits.Meta).input(PurchaseCredits.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      (server) => server.billing.buyCredits.mutate(input, { signal, context: ctx }),
+      (server) => server.billing.purchaseCredits.mutate(input, { signal, context: ctx }),
     )
   ),
   getClient: trpc.procedure.meta(GetClient.Meta).input(GetClient.Input).query(({ input, signal, ctx }) =>

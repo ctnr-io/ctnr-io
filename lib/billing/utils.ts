@@ -199,3 +199,19 @@ export const BillingClient =  z.union([
     }))
 
 export type BillingClient = z.infer<typeof BillingClient>
+
+export interface Invoice {
+  id: string
+  number: string
+  amount: {
+    value: string
+    currency: string
+  }
+  description: string
+  status: 'paid' | 'pending' | 'failed' | 'draft'
+  createdAt: string
+  paidAt?: string
+  dueAt: string
+  credits: number
+  downloadUrl?: string
+}

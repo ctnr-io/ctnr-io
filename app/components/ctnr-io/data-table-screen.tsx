@@ -7,6 +7,8 @@ import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
 import { Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
 import { ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
+import { Card, CardHeader, CardContent } from '../shadcn/ui/card.tsx'
+import { cn } from 'lib/shadcn/utils.ts'
 
 export interface TableColumn<T = any> {
   key: string
@@ -224,16 +226,16 @@ export function DataTableScreen<T = any>({
     const visibleColumnsArray = columns.filter((col) => visibleColumns.has(col.key))
 
     return (
-      <div className='hidden md:block overflow-x-auto'>
-        <Table>
+      <CardContent className='hidden md:block overflow-x-auto px-0'>
+        <Table >
           <TableHeader>
             <TableRow>
               {visibleColumnsArray.map((column) => (
-                <TableHead key={column.key} className={column.className}>
+                <TableHead key={column.key} className={cn(column.className, "px-6")}>
                   {column.label}
                 </TableHead>
               ))}
-              {actions.length > 0 && <TableHead className='text-right'>Actions</TableHead>}
+              {actions.length > 0 && <TableHead className='text-right px-6'>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -243,12 +245,12 @@ export function DataTableScreen<T = any>({
                 [...Array(5)].map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
                     {visibleColumnsArray.map((column) => (
-                      <TableCell key={column.key} className={column.className}>
+                      <TableCell key={column.key} className={cn(column.className, "px-6")}>
                         <Skeleton className='h-4' style={{ width: `${Math.random() * 40 + 60}%` }} />
                       </TableCell>
                     ))}
                     {actions.length > 0 && (
-                      <TableCell className='text-right'>
+                      <TableCell className='text-right px-6'>
                         <div className='flex items-center justify-end gap-1'>
                           <Skeleton className='h-8 w-8' />
                           <Skeleton className='h-8 w-8' />
@@ -271,13 +273,13 @@ export function DataTableScreen<T = any>({
                       const displayValue = column.render ? column.render(value, item) : String(value || '')
 
                       return (
-                        <TableCell key={column.key} className={column.className}>
+                        <TableCell key={column.key} className={cn(column.className, "px-6")}>
                           {displayValue}
                         </TableCell>
                       )
                     })}
                     {actions.length > 0 && (
-                      <TableCell className='text-right'>
+                      <TableCell className='text-right px-6'>
                         <div className='flex items-center justify-end gap-1'>
                           {actions
                             .filter((action) => !action.condition || action.condition(item))
@@ -290,7 +292,7 @@ export function DataTableScreen<T = any>({
                                   e.stopPropagation() // Prevent row click when clicking action buttons
                                   action.onClick(item)
                                 }}
-                                className={action.className}
+                                className={cn(action.className, 'cursor-pointer')}
                                 title={action.label}
                               >
                                 <action.icon className='h-4 w-4' />
@@ -304,7 +306,7 @@ export function DataTableScreen<T = any>({
               )}
           </TableBody>
         </Table>
-      </div>
+      </CardContent>
     )
   }
 
@@ -335,27 +337,27 @@ export function DataTableScreen<T = any>({
 
         {/* Description */}
         {infoDescription && (
-          <div className='bg-card border rounded-lg p-3 md:p-4'>
+          <Card className='bg-card border rounded-lg p-3 md:p-4 '>
             <p className='text-sm sm:text-base text-card-foreground'>
               {infoDescription}
             </p>
-          </div>
+          </Card>
         )}
 
         {/* Data Table */}
-        <div className='bg-card border rounded-lg overflow-hidden'>
-          <div className='p-3 md:p-4 border-b'>
+        <Card className='overflow-hidden gap-0'>
+          <CardHeader className="border-b">
             <h2 className='text-lg sm:text-xl font-semibold'>{tableTitle}</h2>
             {tableDescription && (
               <p className='text-xs sm:text-sm text-muted-foreground'>
                 {tableDescription}
               </p>
             )}
-          </div>
+          </CardHeader>
 
           {/* Desktop Search and Filter Bar */}
           {(searchable || columnFilterable) && (
-            <div className='hidden md:block p-3 md:p-4 border-b'>
+            <CardHeader className='hidden md:block border-b pt-6'>
               <div className='flex items-center gap-4'>
                 {searchable && (
                   <div className='relative min-w-sm'>
@@ -436,7 +438,7 @@ export function DataTableScreen<T = any>({
                   </div>
                 )}
               </div>
-            </div>
+            </CardHeader>
           )}
 
           {loading
@@ -483,11 +485,11 @@ export function DataTableScreen<T = any>({
                 {renderDesktopTable()}
               </>
             )}
-        </div>
+        </Card>
       </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}
       {(searchable || columnFilterable) && (
-        <div className='sticky bottom-0 left-0 right-0 bg-white md:hidden border-t p-3'>
+        <div className='sticky bottom-0 left-0 right-0 bg-white md:hidden border-t p-3 drop-shadow-sm'>
           <div className='space-y-3'>
             {searchable && (
               <div className='relative'>

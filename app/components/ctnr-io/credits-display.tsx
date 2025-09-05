@@ -7,6 +7,8 @@ import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { Badge } from '../shadcn/ui/badge.tsx'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/ui/tooltip.tsx'
+import { CreditPurchaseDialog } from './billing-purchase-credits-dialog.tsx'
+import { useState } from 'react'
 
 interface ResourceIndicatorProps {
   icon: React.ComponentType<{ className?: string }>
@@ -22,7 +24,8 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
       <TooltipTrigger asChild>
         <Badge
           title={label}
-          variant={percentage >= 100 ? 'destructive' : 'secondary'}
+          variant={used === '0.0' ? 'secondary' : 'outline'}
+          className={percentage >= 100 && used !== '0.0' ? ' text-red-600' : ''}
         >
           <Icon />
           {used}/{limit}
@@ -36,6 +39,7 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
 }
 
 export default function CreditsDisplay() {
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false)
   const trpc = useTRPC()
   // Check balance on component mount and periodically
   const { data: usageData, isLoading, error } = useQuery({
@@ -89,7 +93,7 @@ export default function CreditsDisplay() {
         {status === 'insufficient_credits' || status === 'limit_reached' && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <AlertTriangle className='h-4 w-4 text-red-600' />
+                  <AlertTriangle className='h-5 w-5 p-1 text-red-600' strokeWidth={3} />
                 </TooltipTrigger>
                 <TooltipContent>
                   {status === 'limit_reached'
@@ -132,14 +136,22 @@ export default function CreditsDisplay() {
               </span>
             </Button>
           </Link>
-          <Link href='/(main)/billing' asChild>
-            <Button variant='outline' size='sm' className='cursor-pointer shadow-sm active:shadow-sm '>
-              <Plus className='h-4 w-4 text-gray-600' />
-              Buy credits
-            </Button>
-          </Link>
+          <Button 
+            variant='outline' 
+            size='sm' 
+            className='cursor-pointer shadow-sm active:shadow-sm'
+            onClick={() => setIsPurchaseDialogOpen(true)}
+          >
+            <Plus className='h-4 w-4 text-gray-600' />
+            Add Credits
+          </Button>
         </div>
       </div>
+      
+      <CreditPurchaseDialog 
+        open={isPurchaseDialogOpen} 
+        onOpenChange={setIsPurchaseDialogOpen} 
+      />
     </div>
   )
 }

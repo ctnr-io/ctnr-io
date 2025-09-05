@@ -14,7 +14,6 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>
 
 export type Output = Array<{
-  id: string
   amount: {
     value: string
     currency: string
@@ -29,18 +28,15 @@ export type Output = Array<{
 }>
 
 export default async function* GetInvoices({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
-  const userPayments = []
-  const iterator =  ctx.billing.client['mollie'].customerPayments.iterate({
+  const userPayments = await ctx.billing.client['mollie'].customerPayments.page({
     customerId: ctx.billing.mollieCustomerId,
+    limit: input.limit ?? 20,
   })
-  for await (const payment of iterator) {
-    userPayments.push(payment)
-  }
+  console.log(JSON.stringify(userPayments, null, 2))
   const invoices = userPayments.map((payment): Output[number] => {
     // Check metadata is ok
     const metadata = payment.metadata as PaymentMetadataV1
     return ({
-      id: payment.id,
       amount: {
         value: payment.amount.value,
         currency: payment.amount.currency,
@@ -50,7 +46,7 @@ export default async function* GetInvoices({ ctx, input }: ServerRequest<Input>)
         .with(PaymentStatus.open, () => 'pending' as const)
         .with(PaymentStatus.canceled, () => 'failed' as const)
         .with(PaymentStatus.pending, () => 'pending' as const)
-        .with(PaymentStatus.authorized, () => 'pending' as const)
+      .with(PaymentStatus.authorized, () => 'pending' as const)
         .with(PaymentStatus.expired, () => 'failed' as const)
         .with(PaymentStatus.failed, () => 'failed' as const)
         .with(PaymentStatus.paid, () => 'paid' as const)

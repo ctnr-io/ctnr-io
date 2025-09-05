@@ -2,18 +2,18 @@ import { z } from 'zod'
 import { trpc } from '../trpc.ts'
 import { transformQueryProcedure, transformWebhookRequest, withServerContext, withWebhookContext } from './_utils.ts'
 
-import * as BuyCredits from 'api/server/billing/buy_credits.ts'
+import * as PurchaseCredits from '../../../../api/server/billing/purchase_credits.ts'
 import * as GetClient from 'api/server/billing/get_client.ts'
 import * as GetUsage from 'api/server/billing/get_usage.ts'
 import * as SetLimits from 'api/server/billing/set_limits.ts'
 import * as GetInvoices from 'api/server/billing/get_invoices.ts'
 import * as Webhook from 'api/server/billing/webhook.ts'
 
-export const buyCredits = trpc.procedure
+export const purchaseCredits = trpc.procedure
   .use(withServerContext)
-  .meta(BuyCredits.Meta)
-  .input(BuyCredits.Input)
-  .mutation(transformQueryProcedure(BuyCredits.default))
+  .meta(PurchaseCredits.Meta)
+  .input(PurchaseCredits.Input)
+  .mutation(transformQueryProcedure(PurchaseCredits.default))
 
 export const getClient = trpc.procedure
   .use(withServerContext)

@@ -68,36 +68,72 @@ export interface Output {
 export default async function* (
   { ctx, signal }: ServerRequest<Input>,
 ): ServerResponse<Output> {
+  // Default free tier limits
+
+  let credits = 0
+  let limits = {
+    cpu: 0,
+    memory: 0,
+    storage: 0,
+  }
+
   try {
     const kubeClient = ctx.kube.client['eu']
     const namespace = ctx.kube.namespace
 
     // Get namespace to check credits and tier
-    const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, {
-      abortSignal: signal,
-    })
+    try {
+      const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, {
+        abortSignal: signal,
+      })
 
-    const annotations = namespaceObj.metadata?.annotations || {}
-    const creditsAnnotation = annotations['ctnr.io/credits']
+      const annotations = namespaceObj.metadata?.annotations || {}
+      const creditsAnnotation = annotations['ctnr.io/credits-balance']
 
-    // Parse credits
-    let credits = 0
-    if (creditsAnnotation) {
-      const parsed = parseInt(creditsAnnotation, 10)
-      if (!isNaN(parsed) && parsed >= 0) {
-        credits = parsed
+      // Parse credits
+      if (creditsAnnotation) {
+        const parsed = parseInt(creditsAnnotation, 10)
+        if (!isNaN(parsed) && parsed >= 0) {
+          credits = parsed
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to get namespace or credits:', error)
+      // Keep default credits = 0
+    }
+
+    // For free tier users (credits = 0), always use free tier limits
+    // For paid users, try to get limits from resource quota
+    if (credits > 0) {
+      try {
+        const resourceQuota = await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota('ctnr-resource-quota', {
+          abortSignal: signal,
+        })
+        
+        if (resourceQuota.spec?.overall) {
+          const quotaLimits = {
+            cpu: parseResourceValue(resourceQuota.spec.overall['limits.cpu'], 'cpu'),
+            memory: parseResourceValue(resourceQuota.spec.overall['limits.memory'], 'memory'),
+            storage: parseResourceValue(resourceQuota.spec.overall['limits.storage'], 'storage'),
+          }
+          
+          // Only use quota limits if they're valid (not 0 or Infinity)
+          if (quotaLimits.cpu > 0 && quotaLimits.cpu !== Infinity) {
+            limits.cpu = quotaLimits.cpu
+          }
+          if (quotaLimits.memory > 0 && quotaLimits.memory !== Infinity) {
+            limits.memory = quotaLimits.memory
+          }
+          if (quotaLimits.storage > 0 && quotaLimits.storage !== Infinity) {
+            limits.storage = quotaLimits.storage
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to get resource quota for paid user, using free tier limits:', error)
+        // Keep free tier limits
       }
     }
-
-    // Get tier limits
-    const resourceQuota = await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota('ctnr-resource-quota', {
-      abortSignal: signal,
-    })
-    const limits = {
-      cpu: parseResourceValue(resourceQuota.spec?.overall['limits.cpu'], 'cpu'),
-      memory: parseResourceValue(resourceQuota.spec?.overall['limits.memory'], 'memory'),
-      storage: parseResourceValue(resourceQuota.spec?.overall['limits.storage'], 'storage'),
-    }
+    // For free tier users (credits = 0), we keep the freeTierLimits as set above
 
     // Get all deployments
     const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
@@ -137,7 +173,7 @@ export default async function* (
 
         totalCpuUsed += cpuMillicores * replicas
         totalMemoryUsed += memoryMB * replicas
-        totalStorageUsed += storageGB * replicas
+        totalStorageUsed += (storageGB * replicas) / 3 // Divide by 3 for ephemeral storage
 
         // Calculate costs for this container
         const costs = calculateCost(cpuString, memoryString, storageString, replicas)

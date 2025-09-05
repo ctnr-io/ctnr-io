@@ -32,7 +32,6 @@ export default async function* GetInvoices({ ctx, input }: ServerRequest<Input>)
     customerId: ctx.billing.mollieCustomerId,
     limit: input.limit ?? 20,
   })
-  console.log(JSON.stringify(userPayments, null, 2))
   const invoices = userPayments.map((payment): Output[number] => {
     // Check metadata is ok
     const metadata = payment.metadata as PaymentMetadataV1

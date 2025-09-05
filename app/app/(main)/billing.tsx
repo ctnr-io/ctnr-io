@@ -1,19 +1,23 @@
 'use dom'
 
 import React, { useState } from 'react'
-import { AlertTriangle, CreditCard, Download, Plus, Receipt, TrendingUp, Wallet } from 'lucide-react'
+import { AlertTriangle, CreditCard, Download, Plus, Receipt, Settings, TrendingUp, Wallet, Zap, Database, Cpu, MemoryStick, HardDrive } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import { Card } from 'app/components/shadcn/ui/card.tsx'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
+import { Badge } from 'app/components/shadcn/ui/badge.tsx'
+import { Progress } from 'app/components/shadcn/ui/progress.tsx'
 import { Invoice } from 'lib/billing/utils.ts'
 import { CreditPurchaseDialog } from 'app/components/ctnr-io/billing-purchase-credits-dialog.tsx'
+import { ResourceLimitsDialog } from 'app/components/ctnr-io/resource-limits-dialog.tsx'
 
 export default function BillingScreen() {
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false)
+  const [resourceLimitsDialogOpen, setResourceLimitsDialogOpen] = useState(false)
 
   const trpc = useTRPC()
 
@@ -22,11 +26,6 @@ export default function BillingScreen() {
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery(
     trpc.billing.getInvoices.queryOptions({ limit: 50 }),
   )
-
-  // Debug logging
-  console.log('Usage Data:', usageData)
-  console.log('Invoices Data:', invoicesData)
-  console.log('Usage Loading:', usageLoading)
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -39,15 +38,15 @@ export default function BillingScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'text-green-600 bg-green-50'
+        return 'text-primary bg-primary/10 border-primary/20'
       case 'pending':
-        return 'text-yellow-600 bg-yellow-50'
+        return 'text-chart-4 bg-chart-4/10 border-chart-4/20'
       case 'failed':
-        return 'text-red-600 bg-red-50'
+        return 'text-destructive bg-destructive/10 border-destructive/20'
       case 'draft':
-        return 'text-gray-600 bg-gray-50'
+        return 'text-muted-foreground bg-muted border-border'
       default:
-        return 'text-gray-600 bg-gray-50'
+        return 'text-muted-foreground bg-muted border-border'
     }
   }
 
@@ -58,7 +57,7 @@ export default function BillingScreen() {
       label: 'Invoice',
       render: (value, item) => (
         <div className='flex items-center gap-2'>
-          <Receipt className='h-4 w-4 text-gray-400' />
+          <Receipt className='h-4 w-4 text-muted-foreground' />
           <span className='font-medium'>{value}</span>
         </div>
       ),
@@ -73,17 +72,17 @@ export default function BillingScreen() {
       key: 'credits',
       label: 'Credits',
       render: (value) => (
-        <span className='font-mono text-sm'>
+        <Badge variant="secondary" className="font-mono">
           +{value.toLocaleString()}
-        </span>
+        </Badge>
       ),
-      className: 'text-blue-600 font-medium',
+      className: 'font-medium',
     },
     {
       key: 'amount',
       label: 'Amount',
       render: (value) => (
-        <span className='font-semibold text-green-600'>
+        <span className='font-semibold'>
           {value.currency} {value.value}
         </span>
       ),
@@ -92,11 +91,12 @@ export default function BillingScreen() {
       key: 'status',
       label: 'Status',
       render: (value) => (
-        <span
-          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(value)}`}
+        <Badge
+          variant="outline"
+          className={getStatusColor(value)}
         >
           {value.charAt(0).toUpperCase() + value.slice(1)}
-        </span>
+        </Badge>
       ),
     },
     {
@@ -130,256 +130,352 @@ export default function BillingScreen() {
   const hourlyUsage = usageData?.costs?.hourly ?? 0
   const usage = usageData?.usage
   const status = usageData?.status ?? 'normal'
-  const containers = usageData?.containers ?? []
 
   // Calculate days remaining for insufficient credits warning
   const daysRemaining = dailyUsage > 0 ? Math.floor(currentBalance / dailyUsage) : 0
 
-  return (
-    <div className='w-full max-w-6xl mx-auto py-6 px-4'>
-      <div className='mb-8'>
-        <h1 className='text-2xl font-semibold text-gray-900 mb-2'>Billing</h1>
-        <p className='text-gray-500 text-sm'>Manage your credits and usage</p>
+  if (usageLoading) {
+    return (
+      <div className='min-h-screen bg-background'>
+        <div className='container mx-auto px-6 py-8'>
+          <div className='mb-8'>
+            <h1 className='text-3xl font-bold text-foreground mb-2'>Billing</h1>
+            <p className='text-muted-foreground'>Manage your credits and usage</p>
+          </div>
+          <div className='flex items-center justify-center py-20'>
+            <div className='text-center'>
+              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4'></div>
+              <p className='text-muted-foreground text-lg'>Loading billing information...</p>
+            </div>
+          </div>
+        </div>
       </div>
+    )
+  }
 
-      {/* Warning Alerts */}
-      {(status === 'limit_reached' || status === 'insufficient_credits') && (
-        <Card className='mb-6 space-y-4 px-4 '>
-          {status === 'limit_reached' && (
-            <div className='flex items-start gap-3'>
-              <AlertTriangle className='h-5 w-5 flex-shrink-0 mt-0.5' />
+  return (
+    <div className='min-h-screen bg-background'>
+      <div className='container mx-auto px-6 py-8'>
+        <div className='mb-8'>
+          <h1 className='text-3xl font-bold text-foreground mb-2'>Billing</h1>
+          <p className='text-muted-foreground'>Manage your credits and usage</p>
+        </div>
+
+        {/* Warning Alerts */}
+        {(status === 'limit_reached' || status === 'insufficient_credits') && (
+          <Alert className='mb-6' variant="destructive">
+            <AlertTriangle className='h-5 w-5' />
+            <AlertDescription> 
               <div className='flex-1'>
-                <h4 className='font-semibold mb-1'>Resource Limit Reached</h4>
-                <p className='text-sm mb-3'>
-                  One or more of your resources (CPU, Memory, or Storage) has reached its limit. Your containers may be
-                  throttled or stopped.
+                <h4 className='font-semibold mb-2'>
+                  {status === 'limit_reached' ? 'Resource Limit Reached' : 'Low Credit Balance'}
+                </h4>
+                <p className='text-sm mb-4'>
+                  {status === 'limit_reached'
+                    ? 'One or more of your resources (CPU, Memory, or Storage) has reached its limit. Your containers may be throttled or stopped.'
+                    : `Your current balance (${currentBalance.toLocaleString()} credits) is below your daily usage (~${dailyUsage.toLocaleString()} credits/day). ${daysRemaining > 0 ? `Estimated ${daysRemaining} days remaining.` : 'Consider adding credits soon.'}`}
                 </p>
-                <div className='flex gap-2'>
-                  <Button
-                    size='sm'
-                    onClick={() => {
-                      setPurchaseDialogOpen(true)
-                    }}
-                  >
-                    <Plus className='h-3 w-3' />
-                    Add Credits
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {status === 'insufficient_credits' && (
-            <div className='flex items-start gap-3'>
-              <AlertTriangle className='h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5' />
-              <div className='flex-1'>
-                <h4 className='font-semibold text-amber-800 mb-1'>Low Credit Balance</h4>
-                <p className='text-sm text-amber-700 mb-3'>
-                  Your current balance ({currentBalance.toLocaleString()}{' '}
-                  credits) is below your daily usage (~{dailyUsage.toLocaleString()} credits/day).
-                  {daysRemaining > 0
-                    ? ` You have approximately ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining.`
-                    : ' Your services may be limited soon.'}
-                </p>
-                <div className='flex gap-2'>
-                  <Button
-                    size='sm'
-                    onClick={() => {
-                      setPurchaseDialogOpen(true)
-                    }}
-                  >
-                    Add Credits
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </Card>
-      )}
-
-      <Tabs defaultValue='overview' className='space-y-6'>
-        <TabsList className='grid w-full grid-cols-2'>
-          <TabsTrigger value='overview' className='text-sm font-medium'>
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value='invoices' className='text-sm font-medium'>
-            Invoices
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value='overview' className='space-y-6'>
-          {/* Balance and Plan */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <Card className='p-6'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <p className='text-sm text-gray-500 mb-1'>Balance</p>
-                  <p className='text-3xl font-bold text-gray-900'>{currentBalance?.toLocaleString() || '0'}</p>
-                  <p className='text-xs text-gray-400 mt-1'>credits</p>
-                </div>
                 <Button
-                  onClick={() => setPurchaseDialogOpen(true)}
                   size='sm'
-                  className='bg-black hover:bg-gray-800 text-white text-xs px-3 py-1.5'
+                  onClick={() => {
+                    status === 'limit_reached' ? setResourceLimitsDialogOpen(true) : setPurchaseDialogOpen(true)
+                  }}
+                  variant="destructive"
                 >
-                  <Plus className='h-3 w-3 mr-1' />
-                  Add Credits
+                  {status === 'limit_reached' ? <Settings className='h-4 w-4 mr-2' /> : <Plus className='h-4 w-4 mr-2' />}
+                  {status === 'limit_reached' ? 'Ajust limits' : 'Add Credits'}
                 </Button>
               </div>
-            </Card>
+            </AlertDescription>
+          </Alert>
+        )}
 
-            <Card className='p-6'>
-              <div>
-                <p className='text-sm text-gray-500 mb-1'>Plan</p>
-                <p className='text-2xl font-bold text-gray-900'>{isPaidPlan ? 'Paid' : 'Free'}</p>
-                <p className='text-xs text-gray-400 mt-1'>
-                  {isPaidPlan ? 'Pay-as-you-go' : '1 CPU • 2GB RAM • 10GB storage'}
-                </p>
-              </div>
-            </Card>
-          </div>
+        <Tabs defaultValue='overview' className='space-y-6'>
+          <TabsList className='grid w-full grid-cols-2'>
+            <TabsTrigger value='overview' className='text-sm font-medium'>
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value='invoices' className='text-sm font-medium'>
+              Invoices
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Usage Stats */}
-          <div className='grid grid-cols-3 gap-4'>
-            <Card className='p-4'>
-              <div className='text-center'>
-                <p className='text-xs text-gray-500 mb-1'>Monthly</p>
-                <p className='text-xl font-semibold text-gray-900'>
-                  {monthlyUsage ? monthlyUsage.toLocaleString() : '0'}
-                </p>
-                <p className='text-xs text-gray-400'>credits</p>
-              </div>
-            </Card>
-
-            <Card className='p-4'>
-              <div className='text-center'>
-                <p className='text-xs text-gray-500 mb-1'>Daily</p>
-                <p className='text-xl font-semibold text-gray-900'>{dailyUsage ? dailyUsage.toLocaleString() : '0'}</p>
-                <p className='text-xs text-gray-400'>credits</p>
-              </div>
-            </Card>
-
-            <Card className='p-4'>
-              <div className='text-center'>
-                <p className='text-xs text-gray-500 mb-1'>Hourly</p>
-                <p className='text-xl font-semibold text-gray-900'>
-                  {hourlyUsage ? hourlyUsage.toLocaleString() : '0'}
-                </p>
-                <p className='text-xs text-gray-400'>credits</p>
-              </div>
-            </Card>
-          </div>
-
-          {/* Resource Usage */}
-          {usage && (
-            <Card className='p-6'>
-              <h3 className='text-sm font-medium text-gray-900 mb-4'>Resources</h3>
-              <div className='space-y-4'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-3'>
-                    <div className='w-2 h-2 rounded-full bg-blue-500'></div>
-                    <span className='text-sm text-gray-700'>CPU</span>
+          {/* Overview Tab */}
+          <TabsContent value='overview' className='space-y-6'>
+            {/* Balance and Plan */}
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+              <Card className='bg-primary/5 border-primary/20'>
+                <CardHeader className='pb-3'>
+                  <CardTitle className='flex items-center gap-2 text-primary'>
+                    <Wallet className='h-5 w-5' />
+                    Current Balance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <p className='text-4xl font-bold text-foreground mb-1'>
+                        {currentBalance?.toLocaleString() || '0'}
+                      </p>
+                      <p className='text-muted-foreground font-medium'>credits</p>
+                    </div>
+                    <Button
+                      onClick={() => setPurchaseDialogOpen(true)}
+                    >
+                      <Plus className='h-4 w-4 mr-2' />
+                      Add Credits
+                    </Button>
                   </div>
-                  <div className='flex items-center gap-2'>
-                    <span className='text-xs text-gray-500'>
-                      {usage.cpu.used.toLocaleString()}m /{' '}
-                      {usage.cpu.limit === Infinity ? '∞' : `${usage.cpu.limit.toLocaleString()}m`}
-                    </span>
-                    <span className='text-xs font-medium text-gray-900'>{usage.cpu.percentage}%</span>
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-3'>
-                    <div className='w-2 h-2 rounded-full bg-green-500'></div>
-                    <span className='text-sm text-gray-700'>Memory</span>
+              <Card className='bg-chart-2/10 border-chart-2/20'>
+                <CardHeader className='pb-3'>
+                  <CardTitle className='flex items-center gap-2 text-chart-2'>
+                    <CreditCard className='h-5 w-5' />
+                    Current Plan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <p className='text-3xl font-bold text-foreground mb-1'>
+                      {isPaidPlan ? 'Paid' : 'Free'}
+                    </p>
+                    <p className='text-muted-foreground font-medium'>
+                      {isPaidPlan ? 'Pay-as-you-go pricing' : '1 CPU • 2GB RAM • 10GB storage'}
+                    </p>
                   </div>
-                  <div className='flex items-center gap-2'>
-                    <span className='text-xs text-gray-500'>
-                      {usage.memory.used.toLocaleString()}MB /{' '}
-                      {usage.memory.limit === Infinity ? '∞' : `${usage.memory.limit.toLocaleString()}MB`}
-                    </span>
-                    <span className='text-xs font-medium text-gray-900'>{usage.memory.percentage}%</span>
-                  </div>
-                </div>
-
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-3'>
-                    <div className='w-2 h-2 rounded-full bg-purple-500'></div>
-                    <span className='text-sm text-gray-700'>Storage</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <span className='text-xs text-gray-500'>
-                      {usage.storage.used.toLocaleString()}GB /{' '}
-                      {usage.storage.limit === Infinity ? '∞' : `${usage.storage.limit.toLocaleString()}GB`}
-                    </span>
-                    <span className='text-xs font-medium text-gray-900'>{usage.storage.percentage}%</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Pricing */}
-          <Card className='p-6'>
-            <h3 className='text-sm font-medium text-gray-900 mb-4'>Pricing</h3>
-            <div className='space-y-3'>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>CPU per hour</span>
-                <span className='text-sm font-mono text-gray-900'>0.01 credits</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Memory per MB/hour</span>
-                <span className='text-sm font-mono text-gray-900'>0.01 credits</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Storage per GB/hour</span>
-                <span className='text-sm font-mono text-gray-900'>0.002 credits</span>
-              </div>
-              <div className='border-t pt-3 mt-3'>
-                <div className='flex justify-between items-center'>
-                  <span className='text-sm text-gray-600'>1 credit equals</span>
-                  <span className='text-sm font-medium text-gray-900'>€0.01</span>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
-          </Card>
-        </TabsContent>
 
-        {/* Invoices Tab */}
-        <TabsContent value='invoices' className='-mx-4'>
-          <DataTableScreen<Invoice>
-            title='Billing History'
-            description='View and download your invoices'
-            icon={Receipt}
-            data={invoices}
-            columns={columns}
-            actions={actions}
-            tableTitle='All Invoices'
-            tableDescription={`${invoices.length} invoices • ${
-              invoices.filter((i: Invoice) => i.status === 'paid').length
-            } paid`}
-            mobileCardTitle={(item) => item.number}
-            mobileCardStatus={(item) => ({
-              label: item.status,
-              className: getStatusColor(item.status),
-            })}
-            mobileCardIcon={() => <Receipt className='h-4 w-4' />}
-            searchable
-            searchPlaceholder='Search invoices...'
-            searchKeys={['number', 'description', 'status']}
-            columnFilterable
-            defaultVisibleColumns={['number', 'description', 'credits', 'amount', 'status', 'createdAt']}
-            mobileVisibleColumns={['credits']}
-            emptyMessage='No invoices found. Your purchases will appear here.'
-            loading={invoicesLoading}
+            {/* Usage Stats */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+              <Card>
+                <CardHeader className='pb-3'>
+                  <CardTitle className='flex items-center gap-2 text-foreground text-base'>
+                    <TrendingUp className='h-4 w-4 text-chart-5' />
+                    Monthly Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className='text-2xl font-bold text-foreground mb-1'>
+                    {monthlyUsage ? monthlyUsage.toLocaleString() : '0'}
+                  </p>
+                  <p className='text-muted-foreground text-sm'>credits this month</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className='pb-3'>
+                  <CardTitle className='flex items-center gap-2 text-foreground text-base'>
+                    <Zap className='h-4 w-4 text-chart-1' />
+                    Daily Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className='text-2xl font-bold text-foreground mb-1'>
+                    {dailyUsage ? dailyUsage.toLocaleString() : '0'}
+                  </p>
+                  <p className='text-muted-foreground text-sm'>credits per day</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className='pb-3'>
+                  <CardTitle className='flex items-center gap-2 text-foreground text-base'>
+                    <Database className='h-4 w-4 text-chart-2' />
+                    Hourly Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className='text-2xl font-bold text-foreground mb-1'>
+                    {hourlyUsage ? hourlyUsage.toLocaleString() : '0'}
+                  </p>
+                  <p className='text-muted-foreground text-sm'>credits per hour</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Resource Usage */}
+            {usage && (
+              <Card>
+                <CardHeader>
+                  <div className='flex items-center justify-between'>
+                    <CardTitle className='text-foreground'>Resource Usage</CardTitle>
+                    {isPaidPlan && (
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => setResourceLimitsDialogOpen(true)}
+                      >
+                        <Settings className='h-4 w-4 mr-2' />
+                        Adjust Limits
+                      </Button>
+                    )}
+                  </div>
+                  <CardDescription>
+                    Monitor your current resource consumption
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className='space-y-6'>
+                  <div className='space-y-3'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-3'>
+                        <div className='p-2 bg-chart-3/10 rounded-lg'>
+                          <Cpu className='h-4 w-4 text-chart-3' />
+                        </div>
+                        <div>
+                          <p className='font-medium text-foreground'>CPU</p>
+                          <p className='text-sm text-muted-foreground'>
+                            {(parseFloat(usage.cpu.used.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} /{' '}
+                            {usage.cpu.limit === 'Infinity' ? '∞' : (parseFloat(usage.cpu.limit.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} cores
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={usage.cpu.percentage >= 80 ? 'destructive' : 'secondary'}>
+                        {usage.cpu.percentage}%
+                      </Badge>
+                    </div>
+                    <Progress 
+                      value={usage.cpu.percentage} 
+                      className="h-2"
+                    />
+                  </div>
+
+                  <div className='space-y-3'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-3'>
+                        <div className='p-2 bg-chart-2/10 rounded-lg'>
+                          <MemoryStick className='h-4 w-4 text-chart-2' />
+                        </div>
+                        <div>
+                          <p className='font-medium text-foreground'>Memory</p>
+                          <p className='text-sm text-muted-foreground'>
+                            {(parseFloat(usage.memory.used.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} /{' '}
+                            {usage.memory.limit === 'Infinity' ? '∞' : (parseFloat(usage.memory.limit.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} GB
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={usage.memory.percentage >= 80 ? 'destructive' : 'secondary'}>
+                        {usage.memory.percentage}%
+                      </Badge>
+                    </div>
+                    <Progress 
+                      value={usage.memory.percentage} 
+                      className="h-2"
+                    />
+                  </div>
+
+                  <div className='space-y-3'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-3'>
+                        <div className='p-2 bg-chart-5/10 rounded-lg'>
+                          <HardDrive className='h-4 w-4 text-chart-5' />
+                        </div>
+                        <div>
+                          <p className='font-medium text-foreground'>Storage</p>
+                          <p className='text-sm text-muted-foreground'>
+                            {parseFloat(usage.storage.used.replace(/[a-zA-Z]/g, '')).toFixed(1)} /{' '}
+                            {usage.storage.limit === 'Infinity' ? '∞' : parseFloat(usage.storage.limit.replace(/[a-zA-Z]/g, '')).toFixed(1)} GB
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={usage.storage.percentage >= 80 ? 'destructive' : 'secondary'}>
+                        {usage.storage.percentage}%
+                      </Badge>
+                    </div>
+                    <Progress 
+                      value={usage.storage.percentage} 
+                      className="h-2"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Pricing */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='text-foreground'>Pricing</CardTitle>
+                <CardDescription>
+                  Transparent pay-as-you-go pricing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-4'>
+                    <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                      <span className='text-foreground font-medium'>CPU per core/hour</span>
+                      <Badge variant="outline" className='font-mono'>1 credit</Badge>
+                    </div>
+                    <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                      <span className='text-foreground font-medium'>Memory per GB/hour</span>
+                      <Badge variant="outline" className='font-mono'>1 credit</Badge>
+                    </div>
+                    <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                      <span className='text-foreground font-medium'>Storage per GB/hour</span>
+                      <Badge variant="outline" className='font-mono'>1 credit</Badge>
+                    </div>
+                  </div>
+                  <div className='flex items-center justify-center'>
+                    <div className='text-center p-6 bg-primary/5 rounded-xl border border-primary/20'>
+                      <p className='text-sm text-muted-foreground mb-2'>Exchange Rate</p>
+                      <p className='text-2xl font-bold text-foreground'>1 credit = €0.01</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Invoices Tab */}
+          <TabsContent value='invoices'>
+            <Card>
+              <DataTableScreen<Invoice>
+                title='Billing History'
+                description='View and download your invoices'
+                icon={Receipt}
+                data={invoices}
+                columns={columns}
+                actions={actions}
+                tableTitle='All Invoices'
+                tableDescription={`${invoices.length} invoices • ${
+                  invoices.filter((i: Invoice) => i.status === 'paid').length
+                } paid`}
+                mobileCardTitle={(item) => item.number}
+                mobileCardStatus={(item) => ({
+                  label: item.status,
+                  className: getStatusColor(item.status),
+                })}
+                mobileCardIcon={() => <Receipt className='h-4 w-4' />}
+                searchable
+                searchPlaceholder='Search invoices...'
+                searchKeys={['number', 'description', 'status']}
+                columnFilterable
+                defaultVisibleColumns={['number', 'description', 'credits', 'amount', 'status', 'createdAt']}
+                mobileVisibleColumns={['credits']}
+                emptyMessage='No invoices found. Your purchases will appear here.'
+                loading={invoicesLoading}
+              />
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Dialogs */}
+        <CreditPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} />
+        {usage && (
+          <ResourceLimitsDialog
+            open={resourceLimitsDialogOpen}
+            onOpenChange={setResourceLimitsDialogOpen}
+            currentLimits={{
+              cpu: usage.cpu.limit,
+              memory: usage.memory.limit,
+              storage: usage.storage.limit,
+            }}
           />
-        </TabsContent>
-      </Tabs>
-
-      {/* Dialogs */}
-      <CreditPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} />
+        )}
+      </div>
     </div>
   )
 }

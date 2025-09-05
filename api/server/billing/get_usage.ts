@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { calculateCost, parseResourceValue } from 'lib/billing/utils.ts'
+import { calculateCost, FreeTier, parseResourceValue } from 'lib/billing/utils.ts'
 
 export const Meta = {
   aliases: {},
@@ -36,9 +36,9 @@ export interface Output {
 
   // Current resource usage
   usage: {
-    cpu: { used: number; limit: number; percentage: number }
-    memory: { used: number; limit: number; percentage: number }
-    storage: { used: number; limit: number; percentage: number }
+    cpu: { used: string; limit: string; percentage: number }
+    memory: { used: string; limit: string; percentage: number }
+    storage: { used: string; limit: string; percentage: number }
   }
 
   // Cost information
@@ -49,7 +49,7 @@ export interface Output {
   }
 
   // Container breakdown
-  containers: Container[]
+  // containers: Container[]
 
   // Status information
   status: BalanceStatus
@@ -64,18 +64,19 @@ export interface Output {
     }
   }
 }
+const freeTierLimits = {
+  cpu: parseResourceValue(FreeTier.cpu, 'cpu'), // 1 CPU in millicores
+  memory: parseResourceValue(FreeTier.memory, 'memory'), // 2GB in MB
+  storage: parseResourceValue(FreeTier.storage, 'storage'), // 10GB
+}
 
 export default async function* (
   { ctx, signal }: ServerRequest<Input>,
 ): ServerResponse<Output> {
-  // Default free tier limits
+  // Default free tier limits (in proper units)
 
   let credits = 0
-  let limits = {
-    cpu: 0,
-    memory: 0,
-    storage: 0,
-  }
+  let limits = { ...freeTierLimits }
 
   try {
     const kubeClient = ctx.kube.client['eu']
@@ -106,17 +107,20 @@ export default async function* (
     // For paid users, try to get limits from resource quota
     if (credits > 0) {
       try {
-        const resourceQuota = await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota('ctnr-resource-quota', {
-          abortSignal: signal,
-        })
-        
+        const resourceQuota = await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota(
+          'ctnr-resource-quota',
+          {
+            abortSignal: signal,
+          },
+        )
+
         if (resourceQuota.spec?.overall) {
           const quotaLimits = {
             cpu: parseResourceValue(resourceQuota.spec.overall['limits.cpu'], 'cpu'),
             memory: parseResourceValue(resourceQuota.spec.overall['limits.memory'], 'memory'),
-            storage: parseResourceValue(resourceQuota.spec.overall['limits.storage'], 'storage'),
+            storage: parseResourceValue(resourceQuota.spec.overall['requests.storage'], 'storage'),
           }
-          
+
           // Only use quota limits if they're valid (not 0 or Infinity)
           if (quotaLimits.cpu > 0 && quotaLimits.cpu !== Infinity) {
             limits.cpu = quotaLimits.cpu
@@ -141,7 +145,7 @@ export default async function* (
       abortSignal: signal,
     })
 
-    let totalCpuUsed = 0
+    let totalMilliCpuUsed = 0
     let totalMemoryUsed = 0
     let totalStorageUsed = 0
     let totalCost = {
@@ -159,8 +163,8 @@ export default async function* (
 
       if (container && replicas > 0) {
         const cpuRequest = container.resources?.limits?.cpu || '100m'
-        const memoryRequest = container.resources?.limits?.memory || '128Mi'
-        const storageRequest = container.resources?.limits?.['ephemeral-storage'] || '1Gi'
+        const memoryRequest = container.resources?.limits?.memory || '128M'
+        const storageRequest = container.resources?.limits?.['ephemeral-storage'] || '1G'
 
         const cpuString = typeof cpuRequest === 'string' ? cpuRequest : cpuRequest.serialize()
         const memoryString = typeof memoryRequest === 'string' ? memoryRequest : memoryRequest.serialize()
@@ -171,7 +175,7 @@ export default async function* (
         const memoryMB = parseResourceValue(memoryString, 'memory')
         const storageGB = parseResourceValue(storageString, 'storage')
 
-        totalCpuUsed += cpuMillicores * replicas
+        totalMilliCpuUsed += cpuMillicores * replicas
         totalMemoryUsed += memoryMB * replicas
         totalStorageUsed += (storageGB * replicas) / 3 // Divide by 3 for ephemeral storage
 
@@ -209,20 +213,20 @@ export default async function* (
     }
 
     // Calculate usage percentages
-    const usage = {
+    const usage: Output['usage'] = {
       cpu: {
-        used: totalCpuUsed,
-        limit: limits.cpu,
-        percentage: limits.cpu === Infinity ? 0 : Math.round((totalCpuUsed / limits.cpu) * 100),
+        used: totalMilliCpuUsed + 'm',
+        limit: limits.cpu + 'm',
+        percentage: limits.cpu === Infinity ? 0 : Math.round((totalMilliCpuUsed / limits.cpu) * 100),
       },
       memory: {
-        used: totalMemoryUsed,
-        limit: limits.memory,
+        used: totalMemoryUsed + 'M',
+        limit: limits.memory + 'M',
         percentage: limits.memory === Infinity ? 0 : Math.round((totalMemoryUsed / limits.memory) * 100),
       },
       storage: {
-        used: totalStorageUsed,
-        limit: limits.storage,
+        used: totalStorageUsed + 'G',
+        limit: limits.storage + 'G',
         percentage: limits.storage === Infinity ? 0 : Math.round((totalStorageUsed / limits.storage) * 100),
       },
     }
@@ -263,7 +267,7 @@ export default async function* (
       },
       usage,
       costs: totalCost,
-      containers,
+      // containers,
       status,
       tier,
     }
@@ -284,16 +288,16 @@ export default async function* (
         currency: 'credits',
       },
       usage: {
-        cpu: { used: 0, limit: fallbackLimits.cpu, percentage: 0 },
-        memory: { used: 0, limit: fallbackLimits.memory, percentage: 0 },
-        storage: { used: 0, limit: fallbackLimits.storage, percentage: 0 },
+        cpu: { used: '0', limit: fallbackLimits.cpu.toString(), percentage: 0 },
+        memory: { used: '0', limit: fallbackLimits.memory.toString(), percentage: 0 },
+        storage: { used: '0', limit: fallbackLimits.storage.toString(), percentage: 0 },
       },
       costs: {
         hourly: 0,
         daily: 0,
         monthly: 0,
       },
-      containers: [],
+      // containers: [],
       status: 'free_tier',
       tier: {
         type: 'free',

@@ -25,7 +25,7 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
         <Badge
           title={label}
           variant={used === '0.0' ? 'secondary' : 'outline'}
-          className={percentage >= 100 && used !== '0.0' ? ' text-red-600' : ''}
+          className={percentage >= 100 && used !== '0.0' ? 'bg-destructive text-background' : ''}
         >
           <Icon />
           {used}/{limit}
@@ -51,18 +51,18 @@ export default function CreditsDisplay() {
 
   if (isLoading) {
     return (
-      <div className='flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-50 to-gray-100'>
-        <Coins className='h-4 w-4 text-gray-400 animate-pulse' />
-        <span className='text-sm text-gray-500'>Loading usage...</span>
+      <div className='flex items-center gap-2 px-4 py-2 bg-muted/50'>
+        <Coins className='h-4 w-4 text-muted-foreground animate-pulse' />
+        <span className='text-sm text-muted-foreground'>Loading usage...</span>
       </div>
     )
   }
 
   if (error || !usageData) {
     return (
-      <div className='flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-50 to-red-100'>
-        <Coins className='h-4 w-4 text-red-400' />
-        <span className='text-sm text-red-600'>Failed to load</span>
+      <div className='flex items-center gap-2 px-4 py-2 bg-destructive/10'>
+        <Coins className='h-4 w-4 text-destructive' />
+        <span className='text-sm text-destructive'>Failed to load</span>
       </div>
     )
   }
@@ -77,33 +77,47 @@ export default function CreditsDisplay() {
     storage: 10240, // 10GB in MB
   }
 
-  // Format display values - API provides data in correct units
-  const cpuUsed = (usage.cpu.used / 1000).toFixed(1) // millicores to cores
-  const cpuLimit = limits.cpu === Infinity ? '∞' : (limits.cpu / 1000).toFixed(1) // millicores to cores
-  const memoryUsed = (usage.memory.used / 1024).toFixed(1) // MB to GB
-  const memoryLimit = limits.memory === Infinity ? '∞' : (limits.memory / 1024).toFixed(1) // MB to GB
-  const storageUsed = (usage.storage.used / 1024).toFixed(1) // MB to GB
-  const storageLimit = limits.storage === Infinity ? '∞' : (limits.storage / 1024).toFixed(1) // MB to GB
+  // Parse API values that come with units (e.g., "1000m", "2048M", "10G")
+  const parseValue = (value: string): number => {
+    if (!value) return 0
+    const numStr = value.replace(/[a-zA-Z]/g, '')
+    return parseFloat(numStr) || 0
+  }
+
+  const cpuUsedNum = parseValue(usage.cpu.used)
+  const cpuLimitNum = usage.cpu.limit === 'Infinity' ? Infinity : parseValue(usage.cpu.limit)
+  const memoryUsedNum = parseValue(usage.memory.used)
+  const memoryLimitNum = usage.memory.limit === 'Infinity' ? Infinity : parseValue(usage.memory.limit)
+  const storageUsedNum = parseValue(usage.storage.used)
+  const storageLimitNum = usage.storage.limit === 'Infinity' ? Infinity : parseValue(usage.storage.limit)
+
+  // Format display values
+  const cpuUsed = (cpuUsedNum / 1000).toFixed(1) // millicores to cores
+  const cpuLimit = cpuLimitNum === Infinity ? '∞' : (cpuLimitNum / 1000).toFixed(1) // millicores to cores
+  const memoryUsed = (memoryUsedNum / 1024).toFixed(1) // MB to GB
+  const memoryLimit = memoryLimitNum === Infinity ? '∞' : (memoryLimitNum / 1024).toFixed(1) // MB to GB
+  const storageUsed = storageUsedNum.toFixed(1) // Already in GB
+  const storageLimit = storageLimitNum === Infinity ? '∞' : storageLimitNum.toFixed(1) // Already in GB
 
   const formatCredits = (amount: number) => new Intl.NumberFormat('en-US').format(amount)
 
   return (
     <div className='flex items-center gap-4 px-4'>
       <div className='flex items-center gap-2 py-2'>
-        {status === 'insufficient_credits' || status === 'limit_reached' && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <AlertTriangle className='h-5 w-5 p-1 text-red-600' strokeWidth={3} />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {status === 'limit_reached'
-                    ? 'Limit reached'
-                    : status === 'insufficient_credits'
-                    ? 'Low balance'
-                    : null}
-                </TooltipContent>
-              </Tooltip>
-            )}
+        {(status === 'insufficient_credits' || status === 'limit_reached') && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertTriangle className='h-5 w-5 p-1' />
+            </TooltipTrigger>
+            <TooltipContent>
+              {status === 'limit_reached'
+                ? 'Limit reached'
+                : status === 'insufficient_credits'
+                ? 'Low balance'
+                : null}
+            </TooltipContent>
+          </Tooltip>
+        )}
         <ResourceIndicator
           icon={Cpu}
           label='Processor (vCPU)'
@@ -129,28 +143,28 @@ export default function CreditsDisplay() {
       <div className='flex items-center gap-2'>
         <div className='flex items-center gap-2'>
           <Link href='/(main)/billing' asChild>
-            <Button variant='ghost' className='cursor-pointer hover:bg-gray-50'>
-              <Coins className='h-4 w-4 text-gray-600' />
-              <span className='text-sm font-semibold text-gray-900'>
+            <Button variant='ghost' className='cursor-pointer'>
+              <Coins className='h-4 w-4 text-muted-foreground' />
+              <span className='text-sm font-semibold text-foreground'>
                 {formatCredits(credits)}
               </span>
             </Button>
           </Link>
-          <Button 
-            variant='outline' 
-            size='sm' 
-            className='cursor-pointer shadow-sm active:shadow-sm'
+          <Button
+            variant='outline'
+            size='sm'
+            className='cursor-pointer'
             onClick={() => setIsPurchaseDialogOpen(true)}
           >
-            <Plus className='h-4 w-4 text-gray-600' />
+            <Plus className='h-4 w-4 text-muted-foreground' />
             Add Credits
           </Button>
         </div>
       </div>
-      
-      <CreditPurchaseDialog 
-        open={isPurchaseDialogOpen} 
-        onOpenChange={setIsPurchaseDialogOpen} 
+
+      <CreditPurchaseDialog
+        open={isPurchaseDialogOpen}
+        onOpenChange={setIsPurchaseDialogOpen}
       />
     </div>
   )

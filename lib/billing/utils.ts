@@ -12,19 +12,28 @@ export interface ResourceParsed {
 
 export interface CostRates {
   cpuPerHour: number // cost per CPU core per hour in credits
-  memoryPerHour: number // cost per MB per hour in credits
+  memoryPerHour: number // cost per GB per hour in credits
   storagePerHour: number // cost per GB per hour in credits
 }
 
 // Default pricing rates (€0.01 = 1 credit)
 export const DEFAULT_RATES: CostRates = {
-  cpuPerHour: 0.01, // 0.01 credits per CPU core per hour (€0.01)
-  memoryPerHour: 0.01, // 0.01 credits per MB per hour (€0.01)
-  storagePerHour: 0.002, // 0.002 credits per GB per hour (€0.002) - more competitive storage pricing
+  cpuPerHour: 1, // 1 credits per CPU core per hour (€0.01)
+  memoryPerHour: 1, // 1 credits per GB per hour (€0.01)
+  storagePerHour: 1, // 1 credits per GB per hour (€0.01)
+}
+
+export const FreeTier = {
+  cpu: '1G', // 1 CPU core
+  memory: '2G', // 2 GB memory
+  storage: '1G', // 1 GB storage
 }
 
 /**
  * Parse Kubernetes resource values to standardized units
+ * - CPU: millicores (m)
+ * - Memory: megabytes (MB)
+ * - Storage: gigabytes (GB)
  */
 export function parseResourceValue(value: string | any, type: 'cpu' | 'memory' | 'storage'): number {
   if (!value) return 0
@@ -91,9 +100,9 @@ export function parseResourceValue(value: string | any, type: 'cpu' | 'memory' |
  * Calculate cost per hour based on CPU, memory, and storage
  */
 export function calculateCost(
-  cpu: string | number,
-  memory: string | number,
-  storage: string | number = 0,
+  cpu: string,
+  memory: string,
+  storage: string,
   replicas: number = 1,
   rates: CostRates = DEFAULT_RATES,
 ): {
@@ -101,26 +110,44 @@ export function calculateCost(
   daily: number
   monthly: number
 } {
+  console.log({
+    cpu,
+    memory,
+    storage
+  })
   // Parse resources to standardized units
-  const cpuMillicores = typeof cpu === 'number' ? cpu : parseResourceValue(cpu, 'cpu')
-  const memoryMB = typeof memory === 'number' ? memory : parseResourceValue(memory, 'memory')
+  const cpuCores = typeof cpu === 'number' ? cpu : parseResourceValue(cpu, 'cpu') / 1000
+  const memoryGB = typeof memory === 'number' ? memory : parseResourceValue(memory, 'memory') / 1024
   const storageGB = typeof storage === 'number' ? storage : parseResourceValue(storage, 'storage')
+  console.log({
+    cpuCores,
+    memoryGB,
+    storageGB
+  })
 
-  // Convert CPU millicores to cores
-  const cpuCores = cpuMillicores / 1000
+  // Free tier allowances (per replica)
+  const freeTierCpuCores = parseResourceValue(FreeTier.cpu, 'cpu') / 1000
+  const freeTierMemoryGB = parseResourceValue(FreeTier.memory, 'memory') / 1024
+  const freeTierStorageGB = parseResourceValue(FreeTier.storage, 'storage')
 
-  // Calculate base hourly cost for one replica
-  const baseCostPerHour = (cpuCores * rates.cpuPerHour) + (memoryMB * rates.memoryPerHour) +
-    (storageGB * rates.storagePerHour)
+  // Calculate billable resources (subtract free tier allowances)
+  const billableCpuCores = Math.max(0, cpuCores - freeTierCpuCores)
+  const billableMemoryGB = Math.max(0, memoryGB - freeTierMemoryGB)
+  const billableStorageGB = Math.max(0, storageGB - freeTierStorageGB)
+
+  // Calculate base hourly cost for one replica (only for usage above free tier)
+  const baseCostPerHour = (billableCpuCores * rates.cpuPerHour) + 
+    (billableMemoryGB * rates.memoryPerHour) + 
+    (billableStorageGB * rates.storagePerHour)
 
   // Multiply by replicas
   const hourlyCost = baseCostPerHour * replicas
 
   // Convert to credits (€0.01 = 1 credit)
   return {
-    hourly: parseInt(String(hourlyCost)),
-    daily: parseInt(String(hourlyCost * 24)),
-    monthly: parseInt(String(hourlyCost * 24 * 30)),
+    hourly: Math.round(hourlyCost * 100) / 100,
+    daily: Math.round(hourlyCost * 24 * 100) / 100,
+    monthly: Math.round(hourlyCost * 24 * 30 * 100) / 100,
   }
 }
 
@@ -214,4 +241,67 @@ export interface Invoice {
   dueAt: string
   credits: number
   downloadUrl?: string
+}
+
+// Logarithmic scaling functions
+const logScale = (value: number, min: number, max: number): number => {
+  const logMin = Math.log(min)
+  const logMax = Math.log(max)
+  return (Math.log(value) - logMin) / (logMax - logMin) * 100
+}
+
+const expScale = (sliderValue: number, min: number, max: number): number => {
+  const logMin = Math.log(min)
+  const logMax = Math.log(max)
+  const logValue = logMin + (sliderValue / 100) * (logMax - logMin)
+  return Math.round(Math.exp(logValue))
+}
+
+// Resource limits configuration with logarithmic scaling
+export const ResourceLimits = {
+  cpu: {
+    min: parseResourceValue(FreeTier.cpu, 'cpu') / 1000, // in cores
+    max: 72, // 72 CPUs
+    step: 1,
+    price: DEFAULT_RATES.cpuPerHour,
+    format: (value: number) => `${value}`,
+    display: (value: number) => `${(value).toFixed(0)} CPU${value >= 2 ? 's' : ''}`,
+    toSlider: (value: number) => logScale(value, ResourceLimits.cpu.min, ResourceLimits.cpu.max),
+    fromSlider: (sliderValue: number) => {
+      const rawValue = expScale(sliderValue, ResourceLimits.cpu.min, ResourceLimits.cpu.max)
+      // Round to nearest 1000 for cleaner values
+      return rawValue
+    },
+    fromString: (value: string) => parseResourceValue(value, 'cpu') / 1000,
+  },
+  memory: {
+    min: parseResourceValue(FreeTier.memory, 'memory') / 1000,
+    max: 128, // 128 GB
+    step: 1,
+    price: DEFAULT_RATES.memoryPerHour,
+    format: (value: number) => `${value}G`,
+    display: (value: number) => `${value} GB`,
+    toSlider: (value: number) => logScale(value, ResourceLimits.memory.min, ResourceLimits.memory.max),
+    fromSlider: (sliderValue: number) => {
+      const rawValue = expScale(sliderValue, ResourceLimits.memory.min, ResourceLimits.memory.max)
+      // Round to nearest 1 for cleaner values
+      return Math.round(rawValue)
+    },
+    fromString: (value: string) => parseResourceValue(value, 'memory') / 1000,
+  },
+  storage: {
+    min: 1, // 1 GB
+    max: 1024, // 1 TB 
+    step: 1,
+    price: DEFAULT_RATES.storagePerHour,
+    format: (value: number) => value >= 1000 ? `${value}T` : `${value}G`,
+    display: (value: number) => value >= 1000 ? `${(value / 1000).toFixed(1)} TB` : `${value} GB`,
+    toSlider: (value: number) => logScale(value, ResourceLimits.storage.min, ResourceLimits.storage.max),
+    fromSlider: (sliderValue: number) => {
+      const rawValue = expScale(sliderValue, ResourceLimits.storage.min, ResourceLimits.storage.max)
+      // Round to nearest 1 for cleaner values
+      return Math.round(rawValue)
+    },
+    fromString: (value: string) => parseResourceValue(value, 'storage'),
+  },
 }

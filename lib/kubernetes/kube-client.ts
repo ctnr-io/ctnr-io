@@ -12,6 +12,7 @@ import { match } from 'ts-pattern'
 import { yaml } from '@tmpl/core'
 import process from 'node:process'
 import { DeleteOpts, GetListOpts, GetOpts, PatchOpts, PutOpts } from '@cloudydeno/kubernetes-apis/operations.ts'
+import { FreeTier } from '../billing/utils.ts'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
@@ -609,7 +610,6 @@ type KarmadaV1Alpha1FederatedResourceQuota = {
         | 'requests.ephemeral-storage'
         | 'limits.cpu'
         | 'limits.memory'
-        | 'limits.storage'
         | 'limits.ephemeral-storage',
         string
       >
@@ -637,7 +637,7 @@ export async function ensureFederatedResourceQuota(
     )
     // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
     .with(federatedResourceQuota as any, () => true)
-    .otherwise(async () => {
+    .otherwise(async (current) => {
       console.debug('Replacing existing FederatedResourceQuota', federatedResourceQuotaName)
       // Delete the existing federated resource quota first
       await kc.KarmadaV1Alpha1(namespace).deleteFederatedResourceQuota(federatedResourceQuotaName, { abortSignal })
@@ -672,23 +672,23 @@ async function ensurePropagationPolicy(
 
 async function ensureNamespace(
   kc: KubeClient,
-  namespace: Namespace,
+  namespaceObj: Namespace,
   abortSignal: AbortSignal,
 ): Promise<void> {
-  const namespaceName = namespace.metadata!.name!
+  const namespace = namespaceObj.metadata!.name!
   await match(
     // Get the namespace and return null if it does not exist
-    await kc.CoreV1.getNamespace(namespaceName, { abortSignal }).catch(() => null),
+    await kc.CoreV1.getNamespace(namespace, { abortSignal }).catch(() => null),
   )
     // if namespace does not exist, create it
-    .with(null, () => kc.CoreV1.createNamespace(namespace, { abortSignal }))
+    .with(null, () => kc.CoreV1.createNamespace(namespaceObj, { abortSignal }))
     // if namespace exists, and match values, do nothing, else, patch it to ensure it match
     .with(namespace as any, () => true)
     .otherwise(() =>
       kc.CoreV1.patchNamespace(
-        namespaceName,
-        'apply-patch',
         namespace,
+        'apply-patch',
+        namespaceObj,
         {
           fieldManager: 'ctnr.io',
           abortSignal,
@@ -985,26 +985,28 @@ export const ensureUserNamespace = async (
   userId: string,
   abortSignal: AbortSignal,
 ): Promise<string> => {
-  const namespaceName = 'ctnr-user-' + userId
-  const namespace: Namespace = {
+  const namespace = 'ctnr-user-' + userId
+  let namespaceObj: Namespace = {
     metadata: {
-      name: namespaceName,
+      name: namespace,
       labels: {
         'ctnr.io/owner-id': userId,
       },
     },
   }
 
-  await ensureNamespace(kc, namespace, abortSignal)
+  await ensureNamespace(kc, namespaceObj, abortSignal)
+
+  namespaceObj = await kc.CoreV1.getNamespace(namespace, { abortSignal })
 
   const clusterNames = ['eu-0', 'eu-1', 'eu-2']
 
-  await ensurePropagationPolicy(kc, namespaceName, {
+  await ensurePropagationPolicy(kc, namespace, {
     apiVersion: 'policy.karmada.io/v1alpha1',
     kind: 'PropagationPolicy',
     metadata: {
       name: 'ctnr-user-propagation-policy-all',
-      namespace: namespaceName,
+      namespace: namespace,
       labels: {
         'ctnr.io/owner-id': userId,
       },
@@ -1063,12 +1065,12 @@ export const ensureUserNamespace = async (
         ['cluster.ctnr.io/' + clusterName]: 'true',
       },
     }
-    await ensurePropagationPolicy(kc, namespaceName, {
+    await ensurePropagationPolicy(kc, namespace, {
       apiVersion: 'policy.karmada.io/v1alpha1',
       kind: 'PropagationPolicy',
       metadata: {
         name: 'ctnr-user-propagation-policy-' + clusterName,
-        namespace: namespaceName,
+        namespace: namespace,
         labels: {
           'ctnr.io/owner-id': userId,
         },
@@ -1087,26 +1089,30 @@ export const ensureUserNamespace = async (
     }, abortSignal)
   }
 
-  await ensureFederatedResourceQuota(kc, namespaceName, {
-    apiVersion: 'policy.karmada.io/v1alpha1',
-    kind: 'FederatedResourceQuota',
-    metadata: {
-      name: 'ctnr-resource-quota',
-      namespace: namespaceName,
-      labels: {
-        'ctnr.io/owner-id': userId,
+  // If credits-balance === 0, set limits to Free Tier
+  const creditsAnnotation = namespaceObj.metadata?.annotations?.['ctnr.io/credits-balance']
+  const credits = parseInt(creditsAnnotation || '0', 10)
+  console.log({ credits })
+  if (credits === 0) {
+    await ensureFederatedResourceQuota(kc, namespace, {
+      apiVersion: 'policy.karmada.io/v1alpha1',
+      kind: 'FederatedResourceQuota',
+      metadata: {
+        name: 'ctnr-resource-quota',
+        namespace: namespace,
+        labels: {
+          'ctnr.io/owner-id': userId,
+        },
       },
-    },
-    spec: {
-      overall: {
-        'limits.cpu': new Quantity(2000, 'm').serialize(),
-        'limits.memory': new Quantity(4, 'Gi').serialize(),
-        // "pods": new Quantity("10"),
-        // "services": new Quantity("10"),
-        // "persistentvolumeclaims": new Quantity("10"),
+      spec: {
+        overall: {
+          'limits.cpu': FreeTier.cpu,
+          'limits.memory': FreeTier.memory,
+          'requests.storage': FreeTier.storage,
+        },
       },
-    },
-  }, abortSignal)
+    }, abortSignal)
+  }
 
   // Ensure the namespace has correct network policies
   const networkPolicyName = 'ctnr-user-network-policy'
@@ -1115,19 +1121,19 @@ export const ensureUserNamespace = async (
     kind: CiliumNetworkPolicy
     metadata:
       name: ${networkPolicyName}
-      namespace: ${namespaceName}
+      namespace: ${namespace}
       labels:
         "ctnr.io/owner-id": ${userId}
         "cluster.ctnr.io/all": "true"
     spec:
       endpointSelector:
         matchLabels:
-          "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+          "k8s:io.kubernetes.pod.namespace": ${namespace}
       ingress:
         # Allow from same namespace
         - fromEndpoints:
             - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+                "k8s:io.kubernetes.pod.namespace": ${namespace}
         # Allow from ctnr-api
         - fromEndpoints:
             - matchLabels:
@@ -1143,7 +1149,7 @@ export const ensureUserNamespace = async (
         # Allow to same namespace
         - toEndpoints:
             - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+                "k8s:io.kubernetes.pod.namespace": ${namespace}
         # Allow DNS to kube-dns/CoreDNS in cluster
         - toEndpoints:
             - matchLabels:
@@ -1166,9 +1172,9 @@ export const ensureUserNamespace = async (
         - toEntities:
             - world
   `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
-  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy, abortSignal)
+  await ensureCiliumNetworkPolicy(kc, namespace, networkPolicy, abortSignal)
 
-  return namespaceName
+  return namespace
 }
 
 export async function ensureUserRoute(

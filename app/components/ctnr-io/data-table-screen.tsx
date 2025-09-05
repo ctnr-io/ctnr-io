@@ -384,7 +384,7 @@ export function DataTableScreen<T = any>({
                     </Button>
 
                     {showColumnFilter && (
-                      <div className='absolute top-full mt-2 -left-1/2 bg-white border rounded-lg shadow-lg p-3 min-w-64 z-10'>
+                      <div className='absolute top-full mt-2 -left-1/2 bg-card border rounded-lg shadow-lg p-3 min-w-64 z-10'>
                         <div className='space-y-3'>
                           <div className='grid grid-cols-2 gap-1'>
                             {columns.map((column) => (
@@ -406,8 +406,8 @@ export function DataTableScreen<T = any>({
                                 />
                                 <span className='flex items-center gap-2 text-sm'>
                                   {visibleColumns.has(column.key)
-                                    ? <Eye className='h-3 w-3 text-green-600' />
-                                    : <EyeOff className='h-3 w-3 text-gray-400' />}
+                                    ? <Eye className='h-3 w-3 text-chart-2' />
+                                    : <EyeOff className='h-3 w-3 text-muted-foreground' />}
                                   {column.mobileLabel || column.label}
                                 </span>
                               </label>
@@ -489,7 +489,7 @@ export function DataTableScreen<T = any>({
       </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}
       {(searchable || columnFilterable) && (
-        <div className='sticky bottom-0 left-0 right-0 bg-white md:hidden border-t p-3 drop-shadow-sm'>
+        <div className='sticky bottom-0 left-0 right-0 bg-background md:hidden border-t p-3 drop-shadow-sm'>
           <div className='space-y-3'>
             {searchable && (
               <div className='relative'>

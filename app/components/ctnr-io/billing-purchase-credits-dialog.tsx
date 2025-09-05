@@ -16,6 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -38,93 +39,101 @@ function ClientInfoForm({ form, watchedType }: {
   watchedType: 'individual' | 'freelance' | 'company'
 }) {
   return (
-    <div className='space-y-4'>
-      <FormField
-        control={form.control}
-        name='type'
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Client Type</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder='Select client type' />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value='individual'>Individual</SelectItem>
-                <SelectItem value='freelance'>Freelance</SelectItem>
-                <SelectItem value='company'>Company</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Billing Information</CardTitle>
+        <CardDescription>
+          Provide your billing details for the invoice
+        </CardDescription>
+      </CardHeader>
+      <CardContent className='space-y-4'>
+        <FormField
+          control={form.control}
+          name='type'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Client Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder='Select client type' />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value='individual'>Individual</SelectItem>
+                  <SelectItem value='freelance'>Freelance</SelectItem>
+                  <SelectItem value='company'>Company</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {watchedType === 'company'
-        ? (
+        {watchedType === 'company'
+          ? (
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter company name' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )
+          : (
+            <div className='grid grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='firstName'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder='Enter first name' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='lastName'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder='Enter last name' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
+        {(watchedType === 'freelance' || watchedType === 'company') && (
           <FormField
             control={form.control}
-            name='name'
+            name='vatNumber'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company Name</FormLabel>
+                <FormLabel>VAT Number</FormLabel>
                 <FormControl>
-                  <Input placeholder='Enter company name' {...field} />
+                  <Input placeholder='Enter VAT number' {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        )
-        : (
-          <div className='grid grid-cols-2 gap-4'>
-            <FormField
-              control={form.control}
-              name='firstName'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>First Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder='Enter first name' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='lastName'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder='Enter last name' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
         )}
-
-      {(watchedType === 'freelance' || watchedType === 'company') && (
-        <FormField
-          control={form.control}
-          name='vatNumber'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>VAT Number</FormLabel>
-              <FormControl>
-                <Input placeholder='Enter VAT number' {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -142,123 +151,103 @@ function BillingAddressForm({ form }: { form: any }) {
     }
   }, [billingAddress])
 
-  // // Clear billing address when switch is turned off
-  // const handleSwitchChange = (checked: boolean) => {
-  //   setShowBillingAddress(checked)
-  //   if (!checked) {
-  //     form.setValue('billingAddress', null)
-  //   } else {
-  //     // Initialize with empty billing address object when turned on
-  //     form.setValue('billingAddress', {
-  //       streetAddress: '',
-  //       city: '',
-  //       postalCode: '',
-  //       provinceCode: '',
-  //       countryCode: '',
-  //     })
-  //   }
-  // }
-
   return (
-    <div className='border-t pt-4'>
-      <div className='flex items-center justify-between mb-4'>
-        <div>
-          <h4 className='font-medium'>Billing Address</h4>
-          <p className='text-sm text-gray-500'>Add billing address to your invoice</p>
-        </div>
-        {/* <Switch
-          checked={showBillingAddress}
-          onCheckedChange={handleSwitchChange}
-        /> */}
-      </div>
-
-      {showBillingAddress && (
-        <div className='space-y-3'>
-          <FormField
-            control={form.control}
-            name='billingAddress.streetAddress'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Street Address</FormLabel>
-                <FormControl>
-                  <Input placeholder='Enter street address' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className='grid grid-cols-2 gap-4'>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Billing Address</CardTitle>
+        <CardDescription>
+          Add billing address to your invoice
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {showBillingAddress && (
+          <div className='space-y-4'>
             <FormField
               control={form.control}
-              name='billingAddress.city'
+              name='billingAddress.streetAddress'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>City</FormLabel>
+                  <FormLabel>Street Address</FormLabel>
                   <FormControl>
-                    <Input placeholder='Enter city' {...field} />
+                    <Input placeholder='Enter street address' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name='billingAddress.postalCode'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Postal Code</FormLabel>
-                  <FormControl>
-                    <Input placeholder='Enter postal code' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
 
-          <div className='grid grid-cols-2 gap-4'>
-            <FormField
-              control={form.control}
-              name='billingAddress.provinceCode'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Province/State Code (Italian required)</FormLabel>
-                  <FormControl>
-                    <Input placeholder='' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='billingAddress.countryCode'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Country</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <div className='grid grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='billingAddress.city'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='Select country' />
-                      </SelectTrigger>
+                      <Input placeholder='Enter city' {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {Object.entries(CountryCodes).map(([code, name]) => (
-                        <SelectItem key={code} value={code}>
-                          {name} ({code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='billingAddress.postalCode'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Postal Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder='Enter postal code' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className='grid grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='billingAddress.provinceCode'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Province/State Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder='e.g. CA, NY, MI' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='billingAddress.countryCode'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder='Select country' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(CountryCodes).map(([code, name]) => (
+                          <SelectItem key={code} value={code}>
+                            {name} ({code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -375,68 +364,79 @@ function CreditPurchaseForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
         {step === 'amount' && (
-          <div className='space-y-4'>
-            <FormField
-              control={form.control}
-              name='amount'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Credit Amount</FormLabel>
-                  <Select
-                    onValueChange={(amount) => {
-                      if (amount === 'custom') {
-                        setIsCustomAmount(true)
-                      } else {
-                        setIsCustomAmount(false)
-                        field.onChange(amount)
-                      }
-                    }}
-                    defaultValue={presetAmounts.find((preset) => preset.value === field.value)?.value || 'custom'}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='Select amount' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {presetAmounts.map((preset) => (
-                        <SelectItem key={preset.value} value={preset.value}>
-                          {preset.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {isCustomAmount && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Select Credit Amount</CardTitle>
+              <CardDescription>
+                Choose how many credits you'd like to purchase
+              </CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-4'>
               <FormField
                 control={form.control}
                 name='amount'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Custom Amount</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        placeholder='Enter credit amount'
-                        value={field.value === 'custom' ? '' : field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                      />
-                    </FormControl>
+                    <FormLabel>Credit Amount</FormLabel>
+                    <Select
+                      onValueChange={(amount) => {
+                        if (amount === 'custom') {
+                          setIsCustomAmount(true)
+                        } else {
+                          setIsCustomAmount(false)
+                          field.onChange(amount)
+                        }
+                      }}
+                      defaultValue={presetAmounts.find((preset) => preset.value === field.value)?.value || 'custom'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder='Select amount' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {presetAmounts.map((preset) => (
+                          <SelectItem key={preset.value} value={preset.value}>
+                            {preset.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
-                    {field.value && field.value !== 'custom' && !form.formState.errors.amount && (
-                      <p className='text-sm text-gray-500'>
-                        Total: €{(parseInt(field.value) * 0.01).toFixed(2)}
-                      </p>
-                    )}
                   </FormItem>
                 )}
               />
-            )}
-          </div>
+
+              {isCustomAmount && (
+                <FormField
+                  control={form.control}
+                  name='amount'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Custom Amount</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='number'
+                          placeholder='Enter credit amount'
+                          value={field.value === 'custom' ? '' : field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      {field.value && field.value !== 'custom' && !form.formState.errors.amount && (
+                        <div className='mt-3 p-3 bg-muted/50 rounded-lg'>
+                          <div className='flex justify-between items-center'>
+                            <span className='text-sm text-muted-foreground'>Total Cost:</span>
+                            <span className='text-sm font-medium'>€{(parseInt(field.value) * 0.01).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </FormItem>
+                  )}
+                />
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {step === 'client' && (
@@ -444,8 +444,8 @@ function CreditPurchaseForm({
             {clientLoading ? (
               <div className='flex items-center justify-center py-8'>
                 <div className='flex items-center gap-3'>
-                  <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900'></div>
-                  <span className='text-sm text-gray-600'>Loading billing information...</span>
+                  <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-primary'></div>
+                  <span className='text-sm text-muted-foreground'>Loading billing information...</span>
                 </div>
               </div>
             ) : (
@@ -547,7 +547,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-lg'>
+      <DialogContent className='sm:max-w-2xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>Add Credits</DialogTitle>
           <DialogDescription>
@@ -556,9 +556,9 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
         </DialogHeader>
 
         {generalError && (
-          <Alert className='border-red-200 bg-red-50'>
-            <AlertTriangle className='h-4 w-4 text-red-600' />
-            <AlertDescription className='text-red-700'>
+          <Alert variant="destructive">
+            <AlertTriangle className='h-4 w-4' />
+            <AlertDescription>
               {generalError}
             </AlertDescription>
           </Alert>

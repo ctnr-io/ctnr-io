@@ -199,19 +199,19 @@ export function ContainersDetailScreen(props: {
               </CardHeader>
               <CardContent>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                  <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Image</span>
                     <Badge variant="outline" className='font-mono'>{data.image}</Badge>
                   </div>
-                  <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                  <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Created</span>
                     <Badge variant="outline">{data.createdAt ? formatDate(data.createdAt.toISOString()) : 'Unknown'}</Badge>
                   </div>
-                  <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                  <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Restart Policy</span>
                     <Badge variant="outline">{data.restartPolicy || 'unless-stopped'}</Badge>
                   </div>
-                  <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                  <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Working Directory</span>
                     <Badge variant="outline" className='font-mono'>{data.workingDir || 'N/A'}</Badge>
                   </div>
@@ -229,11 +229,11 @@ export function ContainersDetailScreen(props: {
               </CardHeader>
               <CardContent>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                  <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>CPU Usage</span>
                     <Badge variant="outline" className='font-mono'>{data.cpu}</Badge>
                   </div>
-                  <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                  <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Memory Usage</span>
                     <Badge variant="outline" className='font-mono'>{data.memory}</Badge>
                   </div>
@@ -245,7 +245,7 @@ export function ContainersDetailScreen(props: {
                     <h4 className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>Port Mappings</h4>
                     <div className='space-y-1'>
                       {data.ports.map((port, index) => (
-                        <div key={index} className='font-mono text-sm bg-muted px-2 py-1 rounded'>
+                        <div key={index} className='font-mono text-sm bg-muted/60 px-2 py-1 rounded'>
                           {port}
                         </div>
                       ))}
@@ -264,7 +264,7 @@ export function ContainersDetailScreen(props: {
                             href={route}
                             target='_blank'
                             rel='noopener noreferrer'
-                            className='text-primary hover:text-primary/80 underline text-sm font-mono bg-muted px-2 py-1 rounded'
+                            className='text-primary hover:text-primary/80 underline text-sm font-mono bg-muted/60 px-2 py-1 rounded'
                           >
                             {route}
                           </a>
@@ -366,7 +366,7 @@ export function ContainersDetailScreen(props: {
               <CardContent>
                 <div className='grid grid-cols-1 gap-4'>
                   {Object.entries(data.environment).map(([key, value]) => (
-                    <div key={key} className='flex justify-between items-center p-3 bg-muted rounded-lg'>
+                    <div key={key} className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                       <span className='text-foreground font-medium font-mono'>{key}</span>
                       <div className='flex items-center gap-2'>
                         <Badge variant="outline" className='font-mono'>{value}</Badge>

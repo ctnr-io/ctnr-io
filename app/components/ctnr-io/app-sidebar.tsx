@@ -16,6 +16,8 @@ import {
 } from 'app/components/shadcn/ui/sidebar.tsx'
 import { Link, Route } from 'expo-router'
 import { AppSidebarLogo } from './app-sidebar-logo.tsx'
+import { usePathname } from 'expo-router'
+import { useNavigation } from 'expo-router'
 
 // ctnr.io navigation data
 const data = {
@@ -273,6 +275,11 @@ export function AppSidebar({ user, onLogout, ...props }: React.ComponentProps<ty
   }
   onLogout: () => unknown
 }) {
+  const pathname = usePathname()
+  React.useEffect(() => {
+    // Scroll to top on navigation
+    document.getElementsByTagName('main').item(0)?.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [pathname])
   return (
     <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>

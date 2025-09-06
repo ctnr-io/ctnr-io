@@ -1,6 +1,6 @@
 'use dom'
 
-import React, { useState } from 'react'
+import React, { useState, useTransition } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import {
@@ -15,7 +15,7 @@ import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
-import { calculateCost, ResourceLimits, DEFAULT_RATES, calculateTotalCostWithFreeTier } from 'lib/billing/utils.ts'
+import { calculateCost, calculateTotalCostWithFreeTier, DEFAULT_RATES, ResourceLimits } from 'lib/billing/utils.ts'
 
 interface ResourceLimitsDialogProps {
   open: boolean
@@ -78,7 +78,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
   // Calculate estimated costs based on current slider values
   const calculateEstimatedCost = () => {
     return calculateTotalCostWithFreeTier(
-      String(cpuValue), // CPU in cores 
+      String(cpuValue), // CPU in cores
       memoryValue + 'G', // Memory in GB
       storageValue + 'G', // Storage in GB
     )
@@ -86,27 +86,29 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
 
   const estimatedCost = calculateEstimatedCost()
 
-  const handleSubmit = async () => {
-    setGeneralError('')
+  const [isSubmitPending, startSubmitTransition] = useTransition()
 
-    try {
-      await setLimits.mutateAsync({
-        cpu: ResourceLimits.cpu.format(cpuValue),
-        memory: ResourceLimits.memory.format(memoryValue),
-        storage: ResourceLimits.storage.format(storageValue),
-      })
+  const handleSubmit = () =>
+    startSubmitTransition(async () => {
+      setGeneralError('')
+      try {
+        await setLimits.mutateAsync({
+          cpu: ResourceLimits.cpu.format(cpuValue),
+          memory: ResourceLimits.memory.format(memoryValue),
+          storage: ResourceLimits.storage.format(storageValue),
+        })
 
-      // Invalidate and refetch usage data
-      await queryClient.invalidateQueries({
-        queryKey: trpc.billing.getUsage.queryKey({}),
-      })
+        // Invalidate and refetch usage data
+        await queryClient.invalidateQueries({
+          queryKey: trpc.billing.getUsage.queryKey({}),
+        })
 
-      onOpenChange(false)
-    } catch (error) {
-      console.error('Failed to update limits:', error)
-      setGeneralError('Failed to update resource limits. Please try again.')
-    }
-  }
+        onOpenChange(false)
+      } catch (error) {
+        console.error('Failed to update limits:', error)
+        setGeneralError('Failed to update resource limits. Please try again.')
+      }
+    })
 
   const handleCancel = () => {
     setGeneralError('')
@@ -127,7 +129,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
         </DialogHeader>
 
         {generalError && (
-          <Alert variant="destructive">
+          <Alert variant='destructive'>
             <AlertTriangle className='h-4 w-4' />
             <AlertDescription>
               {generalError}
@@ -139,7 +141,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
           {/* Resource Limits Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Resource Configuration</CardTitle>
+              <CardTitle className='text-lg'>Resource Configuration</CardTitle>
               <CardDescription>
                 Adjust your container resource limits using the sliders below
               </CardDescription>
@@ -162,7 +164,8 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
                   className='w-full'
                 />
                 <p className='text-xs text-muted-foreground'>
-                  Range: {ResourceLimits.cpu.display(ResourceLimits.cpu.min)} - {ResourceLimits.cpu.display(ResourceLimits.cpu.max)}
+                  Range: {ResourceLimits.cpu.display(ResourceLimits.cpu.min)} -{' '}
+                  {ResourceLimits.cpu.display(ResourceLimits.cpu.max)}
                 </p>
               </div>
 
@@ -183,7 +186,8 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
                   className='w-full'
                 />
                 <p className='text-xs text-muted-foreground'>
-                  Range: {ResourceLimits.memory.display(ResourceLimits.memory.min)} - {ResourceLimits.memory.display(ResourceLimits.memory.max)}
+                  Range: {ResourceLimits.memory.display(ResourceLimits.memory.min)} -{' '}
+                  {ResourceLimits.memory.display(ResourceLimits.memory.max)}
                 </p>
               </div>
 
@@ -204,7 +208,8 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
                   className='w-full'
                 />
                 <p className='text-xs text-muted-foreground'>
-                  Range: {ResourceLimits.storage.display(ResourceLimits.storage.min)} - {ResourceLimits.storage.display(ResourceLimits.storage.max)}
+                  Range: {ResourceLimits.storage.display(ResourceLimits.storage.min)} -{' '}
+                  {ResourceLimits.storage.display(ResourceLimits.storage.max)}
                 </p>
               </div>
             </CardContent>
@@ -213,7 +218,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
           {/* Cost Estimation Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Cost Estimation</CardTitle>
+              <CardTitle className='text-lg'>Cost Estimation</CardTitle>
               <CardDescription>
                 Estimated costs based on your current resource configuration
               </CardDescription>
@@ -222,24 +227,39 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
               <div className='p-3 bg-muted/50 rounded-lg'>
                 <div className='text-xs text-muted-foreground space-y-1'>
                   <div className='font-medium text-foreground mb-2'>Free tier: 1 CPU, 2 GB memory, 1 GB storage</div>
-                  <div>CPU: {ResourceLimits.cpu.display(cpuValue)} × €{(DEFAULT_RATES.cpuPerHour * 0.01).toFixed(3)}/core/hour</div>
-                  <div>Memory: {ResourceLimits.memory.display(memoryValue)} × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(2)}/GB/hour</div>
-                  <div>Storage: {ResourceLimits.storage.display(storageValue)} × €{(DEFAULT_RATES.storagePerHour * 0.01).toFixed(3)}/GB/hour</div>
+                  <div>
+                    CPU: {ResourceLimits.cpu.display(cpuValue)}{' '}
+                    × €{(DEFAULT_RATES.cpuPerHour * 0.01).toFixed(3)}/core/hour
+                  </div>
+                  <div>
+                    Memory: {ResourceLimits.memory.display(memoryValue)}{' '}
+                    × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(2)}/GB/hour
+                  </div>
+                  <div>
+                    Storage: {ResourceLimits.storage.display(storageValue)}{' '}
+                    × €{(DEFAULT_RATES.storagePerHour * 0.01).toFixed(3)}/GB/hour
+                  </div>
                 </div>
               </div>
-              
+
               <div className='space-y-2'>
                 <div className='flex justify-between items-center py-2 border-b border-border/50'>
                   <span className='text-sm text-muted-foreground'>Hourly:</span>
-                  <span className='text-sm font-medium'>{estimatedCost.hourly.toLocaleString()} credits ({(estimatedCost.hourly * 0.01).toFixed(2)} €)</span>
+                  <span className='text-sm font-medium'>
+                    {estimatedCost.hourly.toLocaleString()} credits ({(estimatedCost.hourly * 0.01).toFixed(2)} €)
+                  </span>
                 </div>
                 <div className='flex justify-between items-center py-2 border-b border-border/50'>
                   <span className='text-sm text-muted-foreground'>Daily:</span>
-                  <span className='text-sm font-medium'>{estimatedCost.daily.toLocaleString()} credits ({(estimatedCost.daily * 0.01).toFixed(2)} €)</span>
+                  <span className='text-sm font-medium'>
+                    {estimatedCost.daily.toLocaleString()} credits ({(estimatedCost.daily * 0.01).toFixed(2)} €)
+                  </span>
                 </div>
                 <div className='flex justify-between items-center py-2'>
                   <span className='text-sm text-muted-foreground'>Monthly:</span>
-                  <span className='text-sm font-semibold text-primary'>{estimatedCost.monthly.toLocaleString()} credits ({(estimatedCost.monthly * 0.01).toFixed(2)} €)</span>
+                  <span className='text-sm font-semibold text-primary'>
+                    {estimatedCost.monthly.toLocaleString()} credits ({(estimatedCost.monthly * 0.01).toFixed(2)} €)
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -252,9 +272,9 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={setLimits.isPending}
+            disabled={isSubmitPending}
           >
-            {setLimits.isPending ? 'Updating...' : 'Update Limits'}
+            {isSubmitPending ? 'Updating...' : 'Update Limits'}
           </Button>
         </div>
       </DialogContent>

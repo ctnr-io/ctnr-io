@@ -20,10 +20,13 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className='flex items-center gap-1 *:text-xs text-xs'>
+        <div className='flex gap-2 *:text-xs justify-center'>
           <Icon className={percentage >= 100 && used !== '0.0' ? 'text-destructive animate-pulse' : ''} />
-          <span className={percentage >= 100 && used !== '0.0' ? 'text-destructive' : ''}>{used}</span>
-          /<span>{limit}</span>
+          <span className='flex items-baseline gap-1'>
+            <span className={percentage >= 100 && used !== '0.0' ? 'text-destructive' : ''}>{used}</span>
+            <span>/</span>
+            <span>{limit}</span>
+          </span>
         </div>
       </TooltipTrigger>
       <TooltipContent>
@@ -87,7 +90,7 @@ export function ResourceLimitsDisplay() {
   const storageLimit = storageLimitNum === Infinity ? '∞' : storageLimitNum.toFixed(1) // Already in GB
 
   return (
-    <div className='flex flex-1 justify-between items-center gap-4 px-4'>
+    <div className='flex flex-1 justify-between items-center gap-4'>
       {
         /* {(status === 'insufficient_credits_for_current_usage' ||
         status === 'resource_limits_reached_for_current_usage') && (

@@ -345,7 +345,7 @@ export function DataTableScreen<T = any>({
         )}
 
         {/* Data Table */}
-        <Card className='overflow-hidden gap-0'>
+        <Card className='overflow-hidden gap-0 pb-0'>
           <CardHeader className="border-b">
             <h2 className='text-lg sm:text-xl font-semibold'>{tableTitle}</h2>
             {tableDescription && (

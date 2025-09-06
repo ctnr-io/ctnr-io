@@ -19,26 +19,15 @@ export function CreditsDisplay() {
   })
 
   if (isLoading) {
-    return (
-      <div className='flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg'>
-        <Coins className='h-4 w-4 text-muted-foreground animate-pulse' />
-        <span className='text-sm text-muted-foreground'>Loading usage...</span>
-      </div>
-    )
+    return null
   }
 
   if (error || !usageData) {
-    return (
-      <div className='flex items-center gap-2 px-4 py-2 bg-destructive/10 rounded-lg'>
-        <Coins className='h-4 w-4 text-destructive' />
-        <span className='text-sm text-destructive'>Failed to load</span>
-      </div>
-    )
+    return null
   }
 
   // Extract data from the API response
   const credits = usageData.credits.balance ?? 0
-
 
   return (
     <div className='flex items-center gap-2'>

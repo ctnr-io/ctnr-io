@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = "dark" | "light" | "system"
+type Theme = 'dark' | 'light' | 'system'
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -11,35 +11,43 @@ type ThemeProviderProps = {
 type ThemeProviderState = {
   theme: Theme
   setTheme: (theme: Theme) => void
+  isDark: boolean
+  isLight: boolean
 }
 
 const initialState: ThemeProviderState = {
-  theme: "system",
+  theme: 'system',
   setTheme: () => null,
+  get isDark() {
+    return globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+  },
+  get isLight() {
+    return globalThis.matchMedia('(prefers-color-scheme: light)').matches
+  },
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
-  storageKey = "vite-ui-theme",
+  defaultTheme = 'system',
+  storageKey = 'ui-theme',
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
   )
 
   useEffect(() => {
     const root = globalThis.document.documentElement
 
-    root.classList.remove("light", "dark")
+    root.classList.remove('light', 'dark')
 
-    if (theme === "system") {
-      const systemTheme = globalThis.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
+    if (theme === 'system') {
+      const systemTheme = globalThis.matchMedia('(prefers-color-scheme: dark)')
+          .matches
+        ? 'dark'
+        : 'light'
 
       root.classList.add(systemTheme)
       return
@@ -54,8 +62,11 @@ export function ThemeProvider({
       localStorage.setItem(storageKey, theme)
       setTheme(theme)
     },
+    isDark: theme === 'dark' || (theme === 'system' && globalThis.matchMedia('(prefers-color-scheme: dark)').matches),
+    isLight: theme === 'light' ||
+      (theme === 'system' && globalThis.matchMedia('(prefers-color-scheme: light)').matches),
   }
-
+console.log({ value})
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
       {children}
@@ -66,8 +77,9 @@ export function ThemeProvider({
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
 
-  if (context === undefined)
-    throw new Error("useTheme must be used within a ThemeProvider")
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider')
+  }
 
   return context
 }

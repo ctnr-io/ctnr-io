@@ -23,6 +23,8 @@ export default function BillingScreen() {
 
   // Fetch data using tRPC queries
   const { data: usageData, isLoading: usageLoading } = useQuery(trpc.billing.getUsage.queryOptions({}))
+
+  // TODO: query invoices only when on tab
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery(
     trpc.billing.getInvoices.queryOptions({ limit: 50 }),
   )
@@ -125,14 +127,11 @@ export default function BillingScreen() {
   const currentBalance = usageData?.credits?.balance ?? 0
   const isPaidPlan = usageData?.tier?.type !== 'free'
   const invoices = invoicesData || []
-  const dailyUsage = usageData?.costs?.daily ?? 0
-  const monthlyUsage = usageData?.costs?.monthly ?? 0
-  const hourlyUsage = usageData?.costs?.hourly ?? 0
+  const dailyUsage = usageData?.costs?.current?.daily ?? 0
+  const monthlyUsage = usageData?.costs?.current?.monthly ?? 0
+  const hourlyUsage = usageData?.costs?.current?.hourly ?? 0
   const usage = usageData?.usage
   const status = usageData?.status ?? 'normal'
-
-  // Calculate days remaining for insufficient credits warning
-  const daysRemaining = dailyUsage > 0 ? Math.floor(currentBalance / dailyUsage) : 0
 
   if (usageLoading) {
     return (
@@ -162,28 +161,28 @@ export default function BillingScreen() {
         </div>
 
         {/* Warning Alerts */}
-        {(status === 'limit_reached' || status === 'insufficient_credits') && (
+        {(status === 'resource_limits_reached_for_current_usage' || status === 'insufficient_credits_for_current_usage') && (
           <Alert className='mb-6' variant="destructive">
             <AlertTriangle className='h-5 w-5' />
             <AlertDescription> 
               <div className='flex-1'>
                 <h4 className='font-semibold mb-2'>
-                  {status === 'limit_reached' ? 'Resource Limit Reached' : 'Low Credit Balance'}
+                  {status === 'resource_limits_reached_for_current_usage' ? 'Resource Limit Reached' : 'Insufficient Credits'}
                 </h4>
                 <p className='text-sm mb-4'>
-                  {status === 'limit_reached'
+                  {status === 'resource_limits_reached_for_current_usage'
                     ? 'One or more of your resources (CPU, Memory, or Storage) has reached its limit. Your containers may be throttled or stopped.'
-                    : `Your current balance (${currentBalance.toLocaleString()} credits) is below your daily usage (~${dailyUsage.toLocaleString()} credits/day). ${daysRemaining > 0 ? `Estimated ${daysRemaining} days remaining.` : 'Consider adding credits soon.'}`}
+                    : `Your current balance (${currentBalance.toLocaleString()} credits) is below your hourly usage (~${hourlyUsage.toLocaleString()} credits/hours). You have 24h from the start of the threshold breach to add credits.`}
                 </p>
                 <Button
                   size='sm'
                   onClick={() => {
-                    status === 'limit_reached' ? setResourceLimitsDialogOpen(true) : setPurchaseDialogOpen(true)
+                    status === 'resource_limits_reached_for_current_usage' ? setResourceLimitsDialogOpen(true) : setPurchaseDialogOpen(true)
                   }}
                   variant="destructive"
                 >
-                  {status === 'limit_reached' ? <Settings className='h-4 w-4 mr-2' /> : <Plus className='h-4 w-4 mr-2' />}
-                  {status === 'limit_reached' ? 'Ajust limits' : 'Add Credits'}
+                  {status === 'resource_limits_reached_for_current_usage' ? <Settings className='h-4 w-4 mr-2' /> : <Plus className='h-4 w-4 mr-2' />}
+                  {status === 'resource_limits_reached_for_current_usage' ? 'Ajust limits' : 'Add Credits'}
                 </Button>
               </div>
             </AlertDescription>
@@ -381,7 +380,7 @@ export default function BillingScreen() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant={usage.storage.percentage >= 80 ? 'destructive' : 'secondary'}>
+                      <Badge variant={usage.storage.percentage >= 90 ? 'destructive' : 'secondary'}>
                         {usage.storage.percentage}%
                       </Badge>
                     </div>

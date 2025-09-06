@@ -9,6 +9,8 @@ import logs from './logs.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
+import checkUsage from 'api/server/billing/check_usage.ts'
+import { parseResourceValue } from 'lib/billing/utils.ts'
 
 export const Meta = {
   aliases: {
@@ -55,21 +57,22 @@ export const Input = z.object({
     .default(1)
     .describe('Number of replicas: single number (e.g., 3) or range (e.g., "1-5" for min-max)'),
   cpu: z.union([
-    z.number().min(1).max(4),
     z.string().regex(/^\d+m$/, 'CPU limit must be in the format <number>m (e.g., "250m") or <number> (e.g., "1")'),
   ])
     .default('250m')
     .describe('CPU limit for the container: single number (e.g., 1) or number followed by "m" (e.g., "250m")'),
   memory: z.string()
-    .regex(/^\d+[GM]i$/, 'Memory limit must be a positive integer followed by "Mi" or "Gi" (e.g., "128Mi", "1Gi")')
-    .default('256Mi')
+    .regex(/^\d+[GM]$/, 'Memory limit must be a positive integer followed by "M" or "G" (e.g., "128M", "1G")')
+    .default('256M')
     .describe('Memory limit for the container'),
   clusters: z.array(z.enum(clusterNames)).optional().describe('Clusters to run the container on'),
 })
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
+export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
+  const { ctx, input, signal, defer } = request
+
   const {
     name,
     image,
@@ -85,6 +88,8 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
     memory,
     clusters = [clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)]],
   } = input
+
+  const ephemeralStorage = '1G'
 
   // Parse replicas parameter
   let replicaCount: number
@@ -212,7 +217,7 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
                   // CPU & Memory are namespaced scoped
                   cpu: toQuantity(cpu), // 125 milliCPU (increased from 100m for better performance)
                   memory: toQuantity(memory), // 256 MiB (increased from 256Mi)
-                  'ephemeral-storage': toQuantity('1G'), // Limit ephemeral storage
+                  'ephemeral-storage': toQuantity(ephemeralStorage), // Limit ephemeral storage
                   // TODO: Add GPU limits when GPU resources are available
                   // "nvidia.com/gpu": new Quantity(1, ""),
                 },
@@ -254,6 +259,19 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
       },
     },
   }
+
+  // Check resource usage and billing before proceeding
+  yield* checkUsage({
+    ...request,
+    input: {
+      additionalUsage: {
+        cpu,
+        memory,
+        // Ephemeral storage
+        storage: (parseResourceValue(ephemeralStorage, 'storage') / 3) + 'G',
+      },
+    },
+  })
 
   // Check if the deployment already exists
   let deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>

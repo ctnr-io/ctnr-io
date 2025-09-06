@@ -282,7 +282,7 @@ export default function ContainersTableScreen({
                 href={route}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-primary hover:text-primary/80 underline text-xs'
+                className='text-blue-600 hover:text-blue-800 underline text-xs'
                 onClick={(e) => e.stopPropagation()}
               >
                 {route.replace(/^https?:\/\//, '')}

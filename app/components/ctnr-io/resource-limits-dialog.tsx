@@ -15,7 +15,7 @@ import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
-import { calculateCost, ResourceLimits, DEFAULT_RATES } from 'lib/billing/utils.ts'
+import { calculateCost, ResourceLimits, DEFAULT_RATES, calculateTotalCostWithFreeTier } from 'lib/billing/utils.ts'
 
 interface ResourceLimitsDialogProps {
   open: boolean
@@ -32,7 +32,6 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
-  console.log({ currentLimits })
   const setLimits = useMutation(trpc.billing.setLimits.mutationOptions({}))
 
   // Convert current limits to slider values using logarithmic scaling
@@ -78,11 +77,10 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
 
   // Calculate estimated costs based on current slider values
   const calculateEstimatedCost = () => {
-    return calculateCost(
+    return calculateTotalCostWithFreeTier(
       String(cpuValue), // CPU in cores 
       memoryValue + 'G', // Memory in GB
       storageValue + 'G', // Storage in GB
-      1 // Assuming 1 replica for cost estimation
     )
   }
 
@@ -92,14 +90,6 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
     setGeneralError('')
 
     try {
-      console.log({
-        cpuValue,
-        cpu: ResourceLimits.cpu.format(cpuValue),
-        memoryValue,
-        memory: ResourceLimits.memory.format(memoryValue),
-        storageValue,
-        storage: ResourceLimits.storage.format(storageValue),
-      })
       await setLimits.mutateAsync({
         cpu: ResourceLimits.cpu.format(cpuValue),
         memory: ResourceLimits.memory.format(memoryValue),

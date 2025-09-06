@@ -54,7 +54,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     logs: [],
     isStreaming: true,
     autoScroll: true,
-    wrapLines: true,
+    wrapLines: false,
     error: null,
     searchQuery: '',
     searchResults: [],
@@ -77,7 +77,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       name: containerName,
       follow: true,
       replica: state.selectedReplicaName ? [state.selectedReplicaName] : undefined,
-      timestamps: true,
+      timestamps: false,
       tail: 100, // Show last 100 lines initially
     }, {
       onData: (data) => {
@@ -426,9 +426,8 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               placeholder='Select replica...'
               searchPlaceholder='Search replicas...'
               emptyMessage='No replica found.'
-              buttonClassName='min-w-[160px] sm:min-w-[200px]'
               popoverClassName='w-[200px]'
-              className='w-full md:w-auto'
+              className='text-foreground/0 hover:text-foreground/0 w-8 md:w-auto md:text-foreground/100 hover:md:text-foreground/100 overflow-hidden'
             />
           )}
 
@@ -455,7 +454,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               title='Refresh logs'
             >
               <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-[spin_reverse_1s_linear_infinite]' : ''}`} />
-              <span className='ml-1 hidden xl:inline'>
+              <span className='ml-1 hidden 2xl:inline'>
                 {isLoading ? 'Refreshing' : 'Refresh'}
               </span>
             </Button>

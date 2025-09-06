@@ -1092,7 +1092,6 @@ export const ensureUserNamespace = async (
   // If credits-balance === 0, set limits to Free Tier
   const creditsAnnotation = namespaceObj.metadata?.annotations?.['ctnr.io/credits-balance']
   const credits = parseInt(creditsAnnotation || '0', 10)
-  console.log({ credits })
   if (credits === 0) {
     await ensureFederatedResourceQuota(kc, namespace, {
       apiVersion: 'policy.karmada.io/v1alpha1',

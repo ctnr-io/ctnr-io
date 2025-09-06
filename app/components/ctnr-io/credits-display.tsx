@@ -9,6 +9,7 @@ import { Badge } from '../shadcn/ui/badge.tsx'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/ui/tooltip.tsx'
 import { CreditPurchaseDialog } from './billing-purchase-credits-dialog.tsx'
 import { useState } from 'react'
+import { ResourceLimitsDialog } from './resource-limits-dialog.tsx'
 
 interface ResourceIndicatorProps {
   icon: React.ComponentType<{ className?: string }>
@@ -22,14 +23,11 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge
-          title={label}
-          variant={used === '0.0' ? 'secondary' : 'outline'}
-          className={percentage >= 100 && used !== '0.0' ? 'bg-destructive text-background' : ''}
-        >
-          <Icon />
-          {used}/{limit}
-        </Badge>
+        <div className='flex items-center gap-1 *:text-xs text-xs'>
+          <Icon className={percentage >= 100 && used !== '0.0' ? 'text-destructive animate-pulse' : ''} />
+          <span className={percentage >= 100 && used !== '0.0' ? 'text-destructive' : ''}>{used}</span>
+          <span>/{limit}</span>
+        </div>
       </TooltipTrigger>
       <TooltipContent>
         <p>{label}</p>
@@ -40,6 +38,7 @@ function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: Resou
 
 export default function CreditsDisplay() {
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false)
+  const [isResourceLimitsDialogOpen, setIsResourceLimitsDialogOpen] = useState(false)
   const trpc = useTRPC()
   // Check balance on component mount and periodically
   const { data: usageData, isLoading, error } = useQuery({
@@ -51,7 +50,7 @@ export default function CreditsDisplay() {
 
   if (isLoading) {
     return (
-      <div className='flex items-center gap-2 px-4 py-2 bg-muted/50'>
+      <div className='flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg'>
         <Coins className='h-4 w-4 text-muted-foreground animate-pulse' />
         <span className='text-sm text-muted-foreground'>Loading usage...</span>
       </div>
@@ -60,7 +59,7 @@ export default function CreditsDisplay() {
 
   if (error || !usageData) {
     return (
-      <div className='flex items-center gap-2 px-4 py-2 bg-destructive/10'>
+      <div className='flex items-center gap-2 px-4 py-2 bg-destructive/10 rounded-lg'>
         <Coins className='h-4 w-4 text-destructive' />
         <span className='text-sm text-destructive'>Failed to load</span>
       </div>
@@ -68,14 +67,9 @@ export default function CreditsDisplay() {
   }
 
   // Extract data from the API response
-  const credits = usageData?.credits?.balance ?? 0
-  const usage = usageData?.usage
-  const status = usageData?.status ?? 'normal'
-  const limits = usageData?.tier?.limits ?? {
-    cpu: 1000, // 1 CPU in millicores
-    memory: 2048, // 2GB in MB
-    storage: 10240, // 10GB in MB
-  }
+  const credits = usageData.credits.balance ?? 0
+  const usage = usageData.usage
+  const status = usageData.status
 
   // Parse API values that come with units (e.g., "1000m", "2048M", "10G")
   const parseValue = (value: string): number => {
@@ -102,22 +96,27 @@ export default function CreditsDisplay() {
   const formatCredits = (amount: number) => new Intl.NumberFormat('en-US').format(amount)
 
   return (
-    <div className='flex items-center gap-4 px-4'>
-      <div className='flex items-center gap-2 py-2'>
-        {(status === 'insufficient_credits' || status === 'limit_reached') && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <AlertTriangle className='h-5 w-5 p-1' />
-            </TooltipTrigger>
-            <TooltipContent>
-              {status === 'limit_reached'
-                ? 'Limit reached'
-                : status === 'insufficient_credits'
-                ? 'Low balance'
-                : null}
-            </TooltipContent>
-          </Tooltip>
-        )}
+    <div className='flex flex-1 justify-between items-center gap-4 px-4'>
+      {/* {(status === 'insufficient_credits_for_current_usage' ||
+        status === 'resource_limits_reached_for_current_usage') && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <AlertTriangle className='h-4 w-4 text-destructive' />
+          </TooltipTrigger>
+          <TooltipContent>
+            {status === 'resource_limits_reached_for_current_usage'
+              ? 'Limit reached'
+              : status === 'insufficient_credits_for_current_usage'
+              ? 'Insufficient Credits'
+              : null}
+          </TooltipContent>
+        </Tooltip>
+      )} */}
+      <Button
+        className='flex items-center gap-4 cursor-pointer'
+        variant='secondary'
+        onClick={() => setIsResourceLimitsDialogOpen(true)}
+      >
         <ResourceIndicator
           icon={Cpu}
           label='Processor (vCPU)'
@@ -139,7 +138,7 @@ export default function CreditsDisplay() {
           limit={storageLimit}
           percentage={usage.storage.percentage}
         />
-      </div>
+      </Button>
       <div className='flex items-center gap-2'>
         <div className='flex items-center gap-2'>
           <Link href='/(main)/billing' asChild>
@@ -166,6 +165,17 @@ export default function CreditsDisplay() {
         open={isPurchaseDialogOpen}
         onOpenChange={setIsPurchaseDialogOpen}
       />
+      {usage && (
+        <ResourceLimitsDialog
+          open={isResourceLimitsDialogOpen}
+          onOpenChange={setIsResourceLimitsDialogOpen}
+          currentLimits={{
+            cpu: usage.cpu.limit,
+            memory: usage.memory.limit,
+            storage: usage.storage.limit,
+          }}
+        />
+      )}
     </div>
   )
 }

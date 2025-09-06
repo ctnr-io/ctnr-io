@@ -31,6 +31,8 @@ export default async function* ({ ctx, input, signal }: ServerRequest<Input>): S
 
   const pods = await getPodsFromAllClusters({ ctx, name, replicas, signal: signal })
 
+  const tailLines = tail ? Math.floor(tail / pods.length) : undefined
+
   // Create log streams for each pod
   const logStreams = (await Promise.all(
     pods.map(async (podInfo) => {
@@ -42,7 +44,7 @@ export default async function* ({ ctx, input, signal }: ServerRequest<Input>): S
         const stream = await clusterClient.CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
           container: containerName,
           follow,
-          tailLines: tail,
+          tailLines,
           timestamps,
           abortSignal: signal,
         })

@@ -18,9 +18,9 @@ export interface CostRates {
 
 // Default pricing rates (€0.01 = 1 credit)
 export const DEFAULT_RATES: CostRates = {
-  cpuPerHour: 1, // 1 credits per CPU core per hour (€0.01)
-  memoryPerHour: 1, // 1 credits per GB per hour (€0.01)
-  storagePerHour: 1, // 1 credits per GB per hour (€0.01)
+  cpuPerHour: 0.5, // 0.05 credits per CPU core per hour (€0.01)
+  memoryPerHour: 0.2, // 0.05 credits per GB per hour (€0.01)
+  storagePerHour: 0.05, // 0.05 credits per GB per hour (€0.01)
 }
 
 export const FreeTier = {
@@ -97,6 +97,62 @@ export function parseResourceValue(value: string | any, type: 'cpu' | 'memory' |
 }
 
 /**
+ * Parse resource usage
+ * - CPU: millicores (m)
+ * - Memory: megabytes (MB)
+ * - Storage: gigabytes (GB)
+ */
+export function parseResourceUsage(usage: {
+  cpu: string
+  memory: string
+  storage: string
+  replicas: number
+}): ResourceParsed {
+  return {
+    cpu: parseResourceValue(usage.cpu, 'cpu'),
+    memory: parseResourceValue(usage.memory, 'memory'),
+    storage: parseResourceValue(usage.storage, 'storage'),
+  }
+}
+
+/**
+ * Calculate cost per hour based on CPU, memory, and storage
+ */
+export function calculateTotalCostWithFreeTier(
+  cpu: string,
+  memory: string,
+  storage: string,
+  rates: CostRates = DEFAULT_RATES,
+): {
+  hourly: number
+  daily: number
+  monthly: number
+} {
+  // Parse resources to standardized units
+  const cpuCores = parseResourceValue(cpu, 'cpu') / 1000
+  const memoryGB = parseResourceValue(memory, 'memory') / 1024
+  const storageGB = parseResourceValue(storage, 'storage')
+
+  // Free tier allowances (per replica)
+  const freeTierCpuCores = parseResourceValue(FreeTier.cpu, 'cpu') / 1000
+  const freeTierMemoryGB = parseResourceValue(FreeTier.memory, 'memory') / 1024
+  const freeTierStorageGB = parseResourceValue(FreeTier.storage, 'storage')
+
+  // Calculate billable resources (subtract free tier allowances)
+  const billableCpuCores = Math.max(0, cpuCores - freeTierCpuCores)
+  const billableMemoryGB = Math.max(0, memoryGB - freeTierMemoryGB)
+  const billableStorageGB = Math.max(0, storageGB - freeTierStorageGB)
+
+  return calculateCost(
+    `${billableCpuCores}`,
+    `${billableMemoryGB}G`,
+    `${billableStorageGB}G`,
+    1,
+    rates,
+  )
+}
+
+/**
  * Calculate cost per hour based on CPU, memory, and storage
  */
 export function calculateCost(
@@ -110,35 +166,15 @@ export function calculateCost(
   daily: number
   monthly: number
 } {
-  console.log({
-    cpu,
-    memory,
-    storage
-  })
   // Parse resources to standardized units
-  const cpuCores = typeof cpu === 'number' ? cpu : parseResourceValue(cpu, 'cpu') / 1000
-  const memoryGB = typeof memory === 'number' ? memory : parseResourceValue(memory, 'memory') / 1024
-  const storageGB = typeof storage === 'number' ? storage : parseResourceValue(storage, 'storage')
-  console.log({
-    cpuCores,
-    memoryGB,
-    storageGB
-  })
-
-  // Free tier allowances (per replica)
-  const freeTierCpuCores = parseResourceValue(FreeTier.cpu, 'cpu') / 1000
-  const freeTierMemoryGB = parseResourceValue(FreeTier.memory, 'memory') / 1024
-  const freeTierStorageGB = parseResourceValue(FreeTier.storage, 'storage')
-
-  // Calculate billable resources (subtract free tier allowances)
-  const billableCpuCores = Math.max(0, cpuCores - freeTierCpuCores)
-  const billableMemoryGB = Math.max(0, memoryGB - freeTierMemoryGB)
-  const billableStorageGB = Math.max(0, storageGB - freeTierStorageGB)
+  const cpuCores = parseResourceValue(cpu, 'cpu') / 1000
+  const memoryGB = parseResourceValue(memory, 'memory') / 1024
+  const storageGB = parseResourceValue(storage, 'storage')
 
   // Calculate base hourly cost for one replica (only for usage above free tier)
-  const baseCostPerHour = (billableCpuCores * rates.cpuPerHour) + 
-    (billableMemoryGB * rates.memoryPerHour) + 
-    (billableStorageGB * rates.storagePerHour)
+  const baseCostPerHour = (cpuCores * rates.cpuPerHour) +
+    (memoryGB * rates.memoryPerHour) +
+    (storageGB * rates.storagePerHour)
 
   // Multiply by replicas
   const hourlyCost = baseCostPerHour * replicas
@@ -186,44 +222,44 @@ export const PaymentMetadataV1 = z.object({
 })
 export type PaymentMetadataV1 = z.infer<typeof PaymentMetadataV1>
 
-export const BillingClient =  z.union([
-    z.object({
-      type: z.literal('individual'),
-      firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
-      lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
+export const BillingClient = z.union([
+  z.object({
+    type: z.literal('individual'),
+    firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
+  }),
+  z.object({
+    type: z.literal('freelance'),
+    firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
+    vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
+  }),
+  z.object({
+    type: z.literal('company'),
+    name: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
+    vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
+  }),
+])
+  .and(z.object({
+    currency: z.enum(['EUR']),
+    locale: z.enum(['fr']),
+    billingAddress: z.object({
+      streetAddress: z.string().min(1, 'Street address is required').max(200, 'Street address too long'),
+      city: z.string().min(1, 'City is required').max(100, 'City name too long'),
+      postalCode: z.string().min(1, 'Postal code is required').max(20, 'Postal code too long'),
+      provinceCode: z.string().max(10, 'Province code too long').optional(),
+      countryCode: z.string().min(2, 'Country code must be at least 2 characters').max(3, 'Country code too long'),
+    }).refine((data) => {
+      // Province code is required only for Italian addresses
+      if (data.countryCode === 'IT') {
+        return data.provinceCode && data.provinceCode.trim().length > 0
+      }
+      return true
+    }, {
+      message: 'Province code is required for Italian addresses',
+      path: ['provinceCode'],
     }),
-    z.object({
-      type: z.literal('freelance'),
-      firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
-      lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
-      vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
-    }),
-    z.object({
-      type: z.literal('company'),
-      name: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
-      vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
-    }),
-  ])
-    .and(z.object({
-      currency: z.enum(['EUR']),
-      locale: z.enum(['fr']),
-      billingAddress: z.object({
-        streetAddress: z.string().min(1, 'Street address is required').max(200, 'Street address too long'),
-        city: z.string().min(1, 'City is required').max(100, 'City name too long'),
-        postalCode: z.string().min(1, 'Postal code is required').max(20, 'Postal code too long'),
-        provinceCode: z.string().max(10, 'Province code too long').optional(),
-        countryCode: z.string().min(2, 'Country code must be at least 2 characters').max(3, 'Country code too long'),
-      }).refine((data) => {
-        // Province code is required only for Italian addresses
-        if (data.countryCode === 'IT') {
-          return data.provinceCode && data.provinceCode.trim().length > 0;
-        }
-        return true;
-      }, {
-        message: 'Province code is required for Italian addresses',
-        path: ['provinceCode'],
-      }),
-    }))
+  }))
 
 export type BillingClient = z.infer<typeof BillingClient>
 
@@ -262,10 +298,10 @@ export const ResourceLimits = {
   cpu: {
     min: parseResourceValue(FreeTier.cpu, 'cpu') / 1000, // in cores
     max: 72, // 72 CPUs
-    step: 1,
+    step: 0.1,
     price: DEFAULT_RATES.cpuPerHour,
     format: (value: number) => `${value}`,
-    display: (value: number) => `${(value).toFixed(0)} CPU${value >= 2 ? 's' : ''}`,
+    display: (value: number) => `${value.toFixed(0)} CPU${value >= 2 ? 's' : ''}`,
     toSlider: (value: number) => logScale(value, ResourceLimits.cpu.min, ResourceLimits.cpu.max),
     fromSlider: (sliderValue: number) => {
       const rawValue = expScale(sliderValue, ResourceLimits.cpu.min, ResourceLimits.cpu.max)
@@ -277,7 +313,7 @@ export const ResourceLimits = {
   memory: {
     min: parseResourceValue(FreeTier.memory, 'memory') / 1000,
     max: 128, // 128 GB
-    step: 1,
+    step: 0.01,
     price: DEFAULT_RATES.memoryPerHour,
     format: (value: number) => `${value}G`,
     display: (value: number) => `${value} GB`,
@@ -291,8 +327,8 @@ export const ResourceLimits = {
   },
   storage: {
     min: 1, // 1 GB
-    max: 1024, // 1 TB 
-    step: 1,
+    max: 1024, // 1 TB
+    step: 0.01,
     price: DEFAULT_RATES.storagePerHour,
     format: (value: number) => value >= 1000 ? `${value}T` : `${value}G`,
     display: (value: number) => value >= 1000 ? `${(value / 1000).toFixed(1)} TB` : `${value} GB`,

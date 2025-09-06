@@ -105,7 +105,7 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
       updateState()
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [!!state])
 
   return (
     <QueryClientProvider client={queryClient}>

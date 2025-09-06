@@ -1,6 +1,4 @@
-import { z } from 'zod'
-import { ClientContext, ServerContext, WebhookContext } from 'ctx/mod.ts'
-import { Deferer } from 'lib/api/defer.ts'
+import z from 'zod'
 
 export const gatewayListeners = [
   'http',
@@ -43,23 +41,3 @@ export const Publish = z.string().transform((value) => {
 }).refine(PublishSchema.parse).describe(
   `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
 )
-
-export type ServerRequest<Input = unknown> = { ctx: ServerContext; input: Input; signal: AbortSignal; defer: Deferer }
-
-export type ServerResponse<Output> = AsyncGenerator<
-  string,
-  Output,
-  unknown
->
-
-export type WebhookRequest<Input = unknown> = { ctx: WebhookContext; input: Input; defer: Deferer }
-
-export type WebhookResponse<Output> = AsyncGenerator<string, Output, unknown>
-
-export type ClientRequest<Input> = { ctx: ClientContext; input: Input }
-
-export type ClientResponse<Output = void> = AsyncGenerator<
-  string,
-  Output,
-  unknown
->

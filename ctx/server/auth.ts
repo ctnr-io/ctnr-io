@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { AuthServerContext } from '../mod.ts'
 
 export async function createAuthServerContext(
-  opts: { auth: { accessToken: string | undefined; refreshToken: string | undefined  } }
+  opts: { auth: { accessToken: string | undefined; refreshToken: string | undefined } },
 ): Promise<AuthServerContext> {
   const config = getSupabaseConfig()
   const supabase = createClient(config.url, config.anonKey)

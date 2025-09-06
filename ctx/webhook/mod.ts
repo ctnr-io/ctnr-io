@@ -1,8 +1,8 @@
 import { WebhookContext } from '../mod.ts'
-import { createBillingContext } from '../server/billing.ts'
+import { createBillingContext } from './billing.ts'
 import { createKubeServerWebhookContext } from './kube.ts'
 
-export async function createWebhookContext(opts: {}): Promise<WebhookContext> {
+export async function createWebhookContext(_opts: object): Promise<WebhookContext> {
   const kubeContext = await createKubeServerWebhookContext()
   const billingContext = await createBillingContext()
   return {

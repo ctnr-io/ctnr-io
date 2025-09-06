@@ -1,6 +1,7 @@
 import { MollieClient } from '@mollie/api-client'
 import { KubeClient } from 'lib/kubernetes/kube-client.ts'
 import { Session, SupabaseClient } from '@supabase/supabase-js'
+import { QontoClient } from 'lib/billing/qonto/mod.ts'
 
 export type Signals =
   | 'SIGINT'
@@ -82,25 +83,30 @@ export type ProjectContext = {
 /**
  * Billing context for managing user billing information.
  */
-export type BillingContext = {
+export type BillingServerContext = {
   billing: {
-    client: MollieClient
-    webhookUrl: string
-    // tier: 'free' | 'paid'
-    // credits: number
-    // rates: {
-    //   cpu: number
-    //   memory: number
-    //   storage: number
-    //   network: number
-    // }
+    client: {
+      mollie: MollieClient
+      qonto: QontoClient
+    }
+    mollieCustomerId: string
+    qontoClientId: string | undefined
   }
 }
 
-export type ServerContext = StdioContext & KubeServerContext & AuthServerContext & ProjectContext & BillingContext & {
+export type BillingWebhookContext = {
+  billing: {
+    client: {
+      mollie: MollieClient
+      qonto: QontoClient
+    }
+  }
+}
+
+export type ServerContext = StdioContext & KubeServerContext & AuthServerContext & ProjectContext & BillingServerContext & {
   __type: 'server'
 }
-export type WebhookContext = KubeWebhookContext & BillingContext & {
+export type WebhookContext = KubeWebhookContext & BillingWebhookContext & {
   __type: 'webhook'
 }
 export type ClientContext = StdioContext & AuthClientContext & { __type: 'client' }

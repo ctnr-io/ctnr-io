@@ -43,7 +43,6 @@ export function SearchableSelect({
   searchPlaceholder = 'Search options...',
   emptyMessage = 'No option found.',
   className,
-  buttonClassName,
   popoverClassName,
   disabled = false,
   renderSelectedValue,
@@ -69,19 +68,15 @@ export function SearchableSelect({
   )
 
   return (
-    <div className={className}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant='outline'
             role='combobox'
             disabled={disabled}
-            className={`justify-between text-ellipsis ${buttonClassName || ''}`}
+            className={`justify-between text-ellipsis ${className || ''}`}
           >
-            {renderSelectedValue 
-              ? renderSelectedValue(selectedOption)
-              : defaultRenderSelectedValue(selectedOption)
-            }
+            {renderSelectedValue ? renderSelectedValue(selectedOption) : defaultRenderSelectedValue(selectedOption)}
             <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
           </Button>
         </PopoverTrigger>
@@ -106,6 +101,5 @@ export function SearchableSelect({
           </Command>
         </PopoverContent>
       </Popover>
-    </div>
   )
 }

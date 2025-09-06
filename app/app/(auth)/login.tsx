@@ -2,7 +2,7 @@ import AuthLoginPage from 'app/components/ctnr-io/auth-login-page.tsx'
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { useExpoTrpcClientContext } from 'driver/trpc/client/expo/mod.tsx'
-import loginFromApp from 'api/client/auth/login-from-app.ts'
+import loginFromApp from '../../../api/client/auth/login_from_app.ts'
 import { Redirect } from 'expo-router'
 
 export default function AuthLoginScreen() {

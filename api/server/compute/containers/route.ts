@@ -1,9 +1,11 @@
 import { z } from 'zod'
-import { ContainerName, PortName, ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ensureUserRoute } from 'lib/kubernetes/kube-client.ts'
 import { hash } from 'node:crypto'
 import * as shortUUID from '@opensrc/short-uuid'
 import { resolveTxt } from 'node:dns/promises'
+import { ContainerName, PortName } from 'lib/api/schemas.ts'
+import checkUsage from 'api/server/billing/check_usage.ts'
 
 export const Meta = {
   aliases: {
@@ -27,7 +29,9 @@ export type Input = z.infer<typeof Input>
 
 const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
 
-export default async function* ({ ctx, input, signal }: ServerRequest<Input>): ServerResponse<void> {
+export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
+  const { ctx, input, signal } = request
+
   try {
     // First, try to find the deployment
     const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(
@@ -127,7 +131,7 @@ export default async function* ({ ctx, input, signal }: ServerRequest<Input>): S
       userId: ctx.auth.user.id,
       ports: routedPorts,
       clusters,
-    })
+    }, signal)
 
     yield `Routes created successfully for container ${input.name}:`
     for (const hostname of hostnames) {
@@ -135,6 +139,6 @@ export default async function* ({ ctx, input, signal }: ServerRequest<Input>): S
     }
   } catch (error) {
     yield `Error creating route`
-    console.error(error)
+    throw error
   }
 }

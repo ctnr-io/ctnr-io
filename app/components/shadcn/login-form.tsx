@@ -1,6 +1,6 @@
 import { GalleryVerticalEnd } from 'lucide-react'
 
-import { cn } from 'app/lib/shadcn/utils.ts'
+import { cn } from 'lib/shadcn/utils.ts'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Label } from 'app/components/shadcn/ui/label.tsx'

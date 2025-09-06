@@ -2,7 +2,7 @@
 
 import 'app/global.css'
 
-import { cn } from 'app/lib/shadcn/utils.ts'
+import { cn } from 'lib/shadcn/utils.ts'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { AppLogo } from './app-logo.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../shadcn/ui/card.tsx'

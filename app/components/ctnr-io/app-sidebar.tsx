@@ -1,8 +1,8 @@
-import { Globe, Container, Database, FunctionSquare, LucideIcon, HardDrive } from 'lucide-react'
+import { Container, FunctionSquare, HardDrive, LucideIcon } from 'lucide-react'
 import * as React from 'react'
 
-import { NavMain } from 'app/components/ctnr-io/nav-main.tsx'
 import { NavUser } from 'app/components/ctnr-io/nav-user.tsx'
+import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import {
   Sidebar,
   SidebarContent,
@@ -14,10 +14,8 @@ import {
   SidebarMenuButton,
   SidebarRail,
 } from 'app/components/shadcn/ui/sidebar.tsx'
+import { Link, Route } from 'expo-router'
 import { AppSidebarLogo } from './app-sidebar-logo.tsx'
-import { Badge } from 'app/components/shadcn/ui/badge.tsx'
-import { Link } from 'expo-router'
-import { Route } from 'expo-router'
 
 // ctnr.io navigation data
 const data = {
@@ -34,46 +32,45 @@ const data = {
   //   },
   // ],
   categories: [
-      {
-        title: "Compute",
-        items: [{
-          title: "Containers",
-          url: "/containers",
-          icon: Container,
-        }, {
-          title: "Functions",
-          url: "/functions" as Route,
-          icon: FunctionSquare,
-          disabled: true,
-        }],
-      },
-      {
-        title: "Storage",
-        items: [{
-          title: "Volumes",
-          url: "/volumes" as Route,
-          icon: HardDrive,
-          disabled: true,
-        }, 
-        // {
+    {
+      title: 'Compute',
+      items: [{
+        title: 'Containers',
+        url: '/containers',
+        icon: Container,
+      }, {
+        title: 'Functions',
+        url: '/functions' as Route,
+        icon: FunctionSquare,
+        disabled: true,
+      }],
+    },
+    {
+      title: 'Storage',
+      items: [{
+        title: 'Volumes',
+        url: '/volumes' as Route,
+        icon: HardDrive,
+        disabled: true,
+      } // {
         //   title: "Database",
         //   url: "/databases" as Route,
         //   icon: Database,
         //   disabled: true,
         // }
-      ]
-      },
-      // {
-      //   title: "Network",
-      //   items: [{
-      //     title: "Domains",
-      //     url: "/network/domains" as Route,
-      //     icon: Globe,
-      //     disabled: true,
-      //   }]
-      // }
-    ] satisfies NavCategoryProps[],
-  
+      ],
+    },
+    // {
+    //   title: "Network",
+    //   items: [{
+    //     title: "Domains",
+    //     url: "/network/domains" as Route,
+    //     icon: Globe,
+    //     disabled: true,
+    //   }]
+    // }
+  ] satisfies NavCategoryProps[],
+
   navMain: [
     {
       title: 'Containers',
@@ -238,15 +235,15 @@ const data = {
 }
 
 interface NavItem {
-  title: string;
-  url: Route;
-  icon: LucideIcon;
-  disabled?: boolean;
+  title: string
+  url: Route
+  icon: LucideIcon
+  disabled?: boolean
 }
 
 interface NavCategoryProps {
-  title: string;
-  items: NavItem[];
+  title: string
+  items: NavItem[]
 }
 
 export function NavCategory({ title, items }: NavCategoryProps) {
@@ -258,15 +255,15 @@ export function NavCategory({ title, items }: NavCategoryProps) {
       <SidebarMenu>
         {items.map((item) => (
           <Link key={item.url} href={item.url} asChild>
-            <SidebarMenuButton disabled={item.disabled}>
-              <item.icon className="text-yellow-500" /> {item.title} {item.disabled && <Badge variant='outline'>Coming soon</Badge>}
+            <SidebarMenuButton disabled={item.disabled} className='cursor-pointer'>
+              <item.icon /> {item.title} {item.disabled && <Badge variant='outline'>Coming soon</Badge>}
             </SidebarMenuButton>
           </Link>
         ))}
       </SidebarMenu>
     </SidebarGroup>
   )
-} 
+}
 
 export function AppSidebar({ user, onLogout, ...props }: React.ComponentProps<typeof Sidebar> & {
   user: {

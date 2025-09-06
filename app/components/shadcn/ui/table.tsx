@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { cn } from 'app/lib/shadcn/utils.ts'
+import { cn } from 'lib/shadcn/utils.ts'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (

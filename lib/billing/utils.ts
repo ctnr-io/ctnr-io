@@ -2,6 +2,8 @@
  * Billing utility functions for cost calculation and resource parsing
  */
 
+import z from 'zod'
+
 export interface ResourceParsed {
   cpu: number // in millicores
   memory: number // in MB
@@ -10,19 +12,28 @@ export interface ResourceParsed {
 
 export interface CostRates {
   cpuPerHour: number // cost per CPU core per hour in credits
-  memoryPerHour: number // cost per MB per hour in credits
+  memoryPerHour: number // cost per GB per hour in credits
   storagePerHour: number // cost per GB per hour in credits
 }
 
 // Default pricing rates (€0.01 = 1 credit)
 export const DEFAULT_RATES: CostRates = {
-  cpuPerHour: 0.01, // 0.01 credits per CPU core per hour (€0.01)
-  memoryPerHour: 0.01, // 0.01 credits per MB per hour (€0.01)
-  storagePerHour: 0.002, // 0.002 credits per GB per hour (€0.002) - more competitive storage pricing
+  cpuPerHour: 0.5, // 0.05 credits per CPU core per hour (€0.01)
+  memoryPerHour: 0.2, // 0.05 credits per GB per hour (€0.01)
+  storagePerHour: 0.05, // 0.05 credits per GB per hour (€0.01)
+}
+
+export const FreeTier = {
+  cpu: '1G', // 1 CPU core
+  memory: '2G', // 2 GB memory
+  storage: '1G', // 1 GB storage
 }
 
 /**
  * Parse Kubernetes resource values to standardized units
+ * - CPU: millicores (m)
+ * - Memory: megabytes (MB)
+ * - Storage: gigabytes (GB)
  */
 export function parseResourceValue(value: string | any, type: 'cpu' | 'memory' | 'storage'): number {
   if (!value) return 0
@@ -86,12 +97,68 @@ export function parseResourceValue(value: string | any, type: 'cpu' | 'memory' |
 }
 
 /**
+ * Parse resource usage
+ * - CPU: millicores (m)
+ * - Memory: megabytes (MB)
+ * - Storage: gigabytes (GB)
+ */
+export function parseResourceUsage(usage: {
+  cpu: string
+  memory: string
+  storage: string
+  replicas: number
+}): ResourceParsed {
+  return {
+    cpu: parseResourceValue(usage.cpu, 'cpu'),
+    memory: parseResourceValue(usage.memory, 'memory'),
+    storage: parseResourceValue(usage.storage, 'storage'),
+  }
+}
+
+/**
+ * Calculate cost per hour based on CPU, memory, and storage
+ */
+export function calculateTotalCostWithFreeTier(
+  cpu: string,
+  memory: string,
+  storage: string,
+  rates: CostRates = DEFAULT_RATES,
+): {
+  hourly: number
+  daily: number
+  monthly: number
+} {
+  // Parse resources to standardized units
+  const cpuCores = parseResourceValue(cpu, 'cpu') / 1000
+  const memoryGB = parseResourceValue(memory, 'memory') / 1024
+  const storageGB = parseResourceValue(storage, 'storage')
+
+  // Free tier allowances (per replica)
+  const freeTierCpuCores = parseResourceValue(FreeTier.cpu, 'cpu') / 1000
+  const freeTierMemoryGB = parseResourceValue(FreeTier.memory, 'memory') / 1024
+  const freeTierStorageGB = parseResourceValue(FreeTier.storage, 'storage')
+
+  // Calculate billable resources (subtract free tier allowances)
+  const billableCpuCores = Math.max(0, cpuCores - freeTierCpuCores)
+  const billableMemoryGB = Math.max(0, memoryGB - freeTierMemoryGB)
+  const billableStorageGB = Math.max(0, storageGB - freeTierStorageGB)
+
+  return calculateCost(
+    `${billableCpuCores}`,
+    `${billableMemoryGB}G`,
+    `${billableStorageGB}G`,
+    1,
+    rates,
+  )
+}
+
+/**
  * Calculate cost per hour based on CPU, memory, and storage
  */
 export function calculateCost(
-  cpu: string | number,
-  memory: string | number,
-  storage: string | number = 0,
+  cpu: string,
+  memory: string,
+  storage: string,
   replicas: number = 1,
   rates: CostRates = DEFAULT_RATES,
 ): {
@@ -100,15 +167,13 @@ export function calculateCost(
   monthly: number
 } {
   // Parse resources to standardized units
-  const cpuMillicores = typeof cpu === 'number' ? cpu : parseResourceValue(cpu, 'cpu')
-  const memoryMB = typeof memory === 'number' ? memory : parseResourceValue(memory, 'memory')
-  const storageGB = typeof storage === 'number' ? storage : parseResourceValue(storage, 'storage')
+  const cpuCores = parseResourceValue(cpu, 'cpu') / 1000
+  const memoryGB = parseResourceValue(memory, 'memory') / 1024
+  const storageGB = parseResourceValue(storage, 'storage')
 
-  // Convert CPU millicores to cores
-  const cpuCores = cpuMillicores / 1000
-
-  // Calculate base hourly cost for one replica
-  const baseCostPerHour = (cpuCores * rates.cpuPerHour) + (memoryMB * rates.memoryPerHour) +
+  // Calculate base hourly cost for one replica (only for usage above free tier)
+  const baseCostPerHour = (cpuCores * rates.cpuPerHour) +
+    (memoryGB * rates.memoryPerHour) +
     (storageGB * rates.storagePerHour)
 
   // Multiply by replicas
@@ -116,51 +181,163 @@ export function calculateCost(
 
   // Convert to credits (€0.01 = 1 credit)
   return {
-    hourly: parseInt(String(hourlyCost)),
-    daily: parseInt(String(hourlyCost * 24)),
-    monthly: parseInt(String(hourlyCost * 24 * 30)),
+    hourly: Math.round(hourlyCost * 100) / 100,
+    daily: Math.round(hourlyCost * 24 * 100) / 100,
+    monthly: Math.round(hourlyCost * 24 * 30 * 100) / 100,
   }
 }
 
 export type TierLimits = {
-  cpu: number // in millicores
-  memory: number // in MB
-  storage: number // in MB
+  cpu: string // in millicores
+  memory: string // in MB
+  storage: string // in MB
   monthlyCreditCost: number // in credits
 }
 
 const units = {
-  cpu: 1000,
-  memory: 2048,
-  storage: 4 * 1024,
+  cpu: '1',
+  memory: '2Gi',
+  storage: '4Gi',
   monthlyCreditCost: 500,
 }
 const freeTier = {
   ...units,
   monthlyCreditCost: 0,
 }
-function computeTier(factor: number): TierLimits {
-  return {
-    cpu: units.cpu * factor,
-    memory: units.memory * factor,
-    storage: units.storage * factor,
-    monthlyCreditCost: units.monthlyCreditCost * factor,
-  }
-}
 
 export const Tier = {
   'free': freeTier,
-  'nano': computeTier(2),
-  'tiny': computeTier(3),
-  'micro': computeTier(4),
-  'small': computeTier(8),
-  'medium': computeTier(14),
-  'large': computeTier(18),
-  'huge': computeTier(100),
-  'giant': computeTier(200),
 } satisfies Record<
   string,
   TierLimits
 >
 
 export type Tier = keyof typeof Tier
+
+export const PaymentMetadataV1 = z.object({
+  version: z.literal(1),
+  userId: z.string(),
+  credits: z.number(),
+  invoiceUrl: z.string().or(z.null()),
+})
+export type PaymentMetadataV1 = z.infer<typeof PaymentMetadataV1>
+
+export const BillingClient = z.union([
+  z.object({
+    type: z.literal('individual'),
+    firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
+  }),
+  z.object({
+    type: z.literal('freelance'),
+    firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
+    vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
+  }),
+  z.object({
+    type: z.literal('company'),
+    name: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
+    vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
+  }),
+])
+  .and(z.object({
+    currency: z.enum(['EUR']),
+    locale: z.enum(['fr']),
+    billingAddress: z.object({
+      streetAddress: z.string().min(1, 'Street address is required').max(200, 'Street address too long'),
+      city: z.string().min(1, 'City is required').max(100, 'City name too long'),
+      postalCode: z.string().min(1, 'Postal code is required').max(20, 'Postal code too long'),
+      provinceCode: z.string().max(10, 'Province code too long').optional(),
+      countryCode: z.string().min(2, 'Country code must be at least 2 characters').max(3, 'Country code too long'),
+    }).refine((data) => {
+      // Province code is required only for Italian addresses
+      if (data.countryCode === 'IT') {
+        return data.provinceCode && data.provinceCode.trim().length > 0
+      }
+      return true
+    }, {
+      message: 'Province code is required for Italian addresses',
+      path: ['provinceCode'],
+    }),
+  }))
+
+export type BillingClient = z.infer<typeof BillingClient>
+
+export interface Invoice {
+  id: string
+  number: string
+  amount: {
+    value: string
+    currency: string
+  }
+  description: string
+  status: 'paid' | 'pending' | 'failed' | 'draft'
+  createdAt: string
+  paidAt?: string
+  dueAt: string
+  credits: number
+  downloadUrl?: string
+}
+
+// Logarithmic scaling functions
+const logScale = (value: number, min: number, max: number): number => {
+  const logMin = Math.log(min)
+  const logMax = Math.log(max)
+  return (Math.log(value) - logMin) / (logMax - logMin) * 100
+}
+
+const expScale = (sliderValue: number, min: number, max: number): number => {
+  const logMin = Math.log(min)
+  const logMax = Math.log(max)
+  const logValue = logMin + (sliderValue / 100) * (logMax - logMin)
+  return Math.round(Math.exp(logValue))
+}
+
+// Resource limits configuration with logarithmic scaling
+export const ResourceLimits = {
+  cpu: {
+    min: parseResourceValue(FreeTier.cpu, 'cpu') / 1000, // in cores
+    max: 72, // 72 CPUs
+    step: 0.1,
+    price: DEFAULT_RATES.cpuPerHour,
+    format: (value: number) => `${value}`,
+    display: (value: number) => `${value.toFixed(0)} CPU${value >= 2 ? 's' : ''}`,
+    toSlider: (value: number) => logScale(value, ResourceLimits.cpu.min, ResourceLimits.cpu.max),
+    fromSlider: (sliderValue: number) => {
+      const rawValue = expScale(sliderValue, ResourceLimits.cpu.min, ResourceLimits.cpu.max)
+      // Round to nearest 1000 for cleaner values
+      return rawValue
+    },
+    fromString: (value: string) => parseResourceValue(value, 'cpu') / 1000,
+  },
+  memory: {
+    min: parseResourceValue(FreeTier.memory, 'memory') / 1000,
+    max: 128, // 128 GB
+    step: 0.01,
+    price: DEFAULT_RATES.memoryPerHour,
+    format: (value: number) => `${value}G`,
+    display: (value: number) => `${value} GB`,
+    toSlider: (value: number) => logScale(value, ResourceLimits.memory.min, ResourceLimits.memory.max),
+    fromSlider: (sliderValue: number) => {
+      const rawValue = expScale(sliderValue, ResourceLimits.memory.min, ResourceLimits.memory.max)
+      // Round to nearest 1 for cleaner values
+      return Math.round(rawValue)
+    },
+    fromString: (value: string) => parseResourceValue(value, 'memory') / 1000,
+  },
+  storage: {
+    min: 1, // 1 GB
+    max: 1024, // 1 TB
+    step: 0.01,
+    price: DEFAULT_RATES.storagePerHour,
+    format: (value: number) => value >= 1000 ? `${value}T` : `${value}G`,
+    display: (value: number) => value >= 1000 ? `${(value / 1000).toFixed(1)} TB` : `${value} GB`,
+    toSlider: (value: number) => logScale(value, ResourceLimits.storage.min, ResourceLimits.storage.max),
+    fromSlider: (sliderValue: number) => {
+      const rawValue = expScale(sliderValue, ResourceLimits.storage.min, ResourceLimits.storage.max)
+      // Round to nearest 1 for cleaner values
+      return Math.round(rawValue)
+    },
+    fromString: (value: string) => parseResourceValue(value, 'storage'),
+  },
+}

@@ -3,11 +3,14 @@ import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import attach from './attach.ts'
-import { ContainerName, Publish, ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as Route from './route.ts'
 import logs from './logs.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 import { ServerContext } from 'ctx/mod.ts'
+import { ContainerName, Publish } from 'lib/api/schemas.ts'
+import checkUsage from 'api/server/billing/check_usage.ts'
+import { parseResourceValue } from 'lib/billing/utils.ts'
 
 export const Meta = {
   aliases: {
@@ -54,21 +57,22 @@ export const Input = z.object({
     .default(1)
     .describe('Number of replicas: single number (e.g., 3) or range (e.g., "1-5" for min-max)'),
   cpu: z.union([
-    z.number().min(1).max(4),
     z.string().regex(/^\d+m$/, 'CPU limit must be in the format <number>m (e.g., "250m") or <number> (e.g., "1")'),
   ])
     .default('250m')
     .describe('CPU limit for the container: single number (e.g., 1) or number followed by "m" (e.g., "250m")'),
   memory: z.string()
-    .regex(/^\d+[GM]i$/, 'Memory limit must be a positive integer followed by "Mi" or "Gi" (e.g., "128Mi", "1Gi")')
-    .default('256Mi')
+    .regex(/^\d+[GM]$/, 'Memory limit must be a positive integer followed by "M" or "G" (e.g., "128M", "1G")')
+    .default('256M')
     .describe('Memory limit for the container'),
   clusters: z.array(z.enum(clusterNames)).optional().describe('Clusters to run the container on'),
 })
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
+export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
+  const { ctx, input, signal, defer } = request
+
   const {
     name,
     image,
@@ -84,6 +88,8 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
     memory,
     clusters = [clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)]],
   } = input
+
+  const ephemeralStorage = '1G'
 
   // Parse replicas parameter
   let replicaCount: number
@@ -101,36 +107,6 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
     replicaCount = replicas as number
     minReplicas = replicaCount
     maxReplicas = replicaCount
-  }
-
-  // Check resource limits before creating container
-  try {
-    const checkResourceLimits = await import('api/server/billing/check-resource-limits.ts')
-    const limitCheckGenerator = checkResourceLimits.default({
-      ctx,
-      input: {
-        cpu: typeof cpu === 'string' ? cpu : `${cpu}`,
-        memory,
-        storage: '0Gi', // Containers don't directly request storage
-        replicas: replicaCount,
-      },
-      signal,
-      defer,
-    })
-
-    const limitCheck = await limitCheckGenerator.next()
-    const result = limitCheck.value
-
-    if (result && typeof result === 'object' && 'allowed' in result && !result.allowed) {
-      yield `❌ Resource limit exceeded: ${result.reason}`
-      if (result.upgradeUrl) {
-        yield `💳 Upgrade your plan to create more containers: ${result.upgradeUrl}`
-      }
-      return
-    }
-  } catch (error) {
-    console.warn('Failed to check resource limits:', error)
-    // Continue with container creation if limit check fails
   }
 
   const labels: Record<string, string> = {}
@@ -241,7 +217,7 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
                   // CPU & Memory are namespaced scoped
                   cpu: toQuantity(cpu), // 125 milliCPU (increased from 100m for better performance)
                   memory: toQuantity(memory), // 256 MiB (increased from 256Mi)
-                  'ephemeral-storage': toQuantity('1G'), // Limit ephemeral storage
+                  'ephemeral-storage': toQuantity(ephemeralStorage), // Limit ephemeral storage
                   // TODO: Add GPU limits when GPU resources are available
                   // "nvidia.com/gpu": new Quantity(1, ""),
                 },
@@ -283,6 +259,19 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
       },
     },
   }
+
+  // Check resource usage and billing before proceeding
+  yield* checkUsage({
+    ...request,
+    input: {
+      additionalUsage: {
+        cpu,
+        memory,
+        // Ephemeral storage
+        storage: (parseResourceValue(ephemeralStorage, 'storage') / 3) + 'G',
+      },
+    },
+  })
 
   // Check if the deployment already exists
   let deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>

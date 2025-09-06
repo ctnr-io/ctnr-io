@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
-import { ServerRequest, ServerResponse } from '../../_common.ts'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as YAML from '@std/yaml'
 import { calculateCost } from 'lib/billing/utils.ts'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
@@ -445,7 +445,8 @@ function extractResourceUsageFromMetrics(
         }
 
         // Parse Storage (format: "123Gi", etc.)
-        const storageUsage = deployment.spec?.template?.spec?.containers?.[0]?.resources?.limits?.['ephemeral-storage'].serialize() || '0'
+        const storageUsage =
+          deployment.spec?.template?.spec?.containers?.[0]?.resources?.limits?.['ephemeral-storage'].serialize() || '0'
         if (storageUsage.endsWith('Gi')) {
           totalStorageGB += parseInt(storageUsage.slice(0, -2))
         } else {

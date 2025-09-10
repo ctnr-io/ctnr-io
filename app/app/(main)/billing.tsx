@@ -1,17 +1,30 @@
 'use dom'
 
-import React, { useState } from 'react'
-import { AlertTriangle, CreditCard, Download, Plus, Receipt, Settings, TrendingUp, Wallet, Zap, Database, Cpu, MemoryStick, HardDrive } from 'lucide-react'
+import { useState } from 'react'
+import {
+  AlertTriangle,
+  Cpu,
+  CreditCard,
+  Database,
+  Download,
+  HardDrive,
+  MemoryStick,
+  Plus,
+  Receipt,
+  Settings,
+  TrendingUp,
+  Wallet,
+  Zap,
+} from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { Progress } from 'app/components/shadcn/ui/progress.tsx'
-import { Invoice } from 'lib/billing/utils.ts'
 import { CreditPurchaseDialog } from 'app/components/ctnr-io/billing-purchase-credits-dialog.tsx'
 import { ResourceLimitsDialog } from 'app/components/ctnr-io/resource-limits-dialog.tsx'
 
@@ -24,17 +37,32 @@ export default function BillingScreen() {
   // Fetch data using tRPC queries
   const { data: usageData, isLoading: usageLoading } = useQuery(trpc.billing.getUsage.queryOptions({}))
 
-  // TODO: query invoices only when on tab
-  const { data: invoicesData, isLoading: invoicesLoading } = useQuery(
-    trpc.billing.getInvoices.queryOptions({ limit: 50 }),
+  // Infinite query for invoices
+  const invoiceLimit = 20
+  const [page, setPage] = useState(0)
+  const {
+    data: invoicePages,
+    isLoading: invoicesLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery(
+    trpc.billing.getInvoices.infiniteQueryOptions({
+      cursor: undefined,
+      limit: invoiceLimit,
+    }, {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.length < invoiceLimit) return undefined
+        return lastPage[lastPage.length - 1].id
+      },
+    }),
   )
 
+  // Flatten all invoices from pages
+  const invoices = invoicePages?.pages[page] ?? []
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
+    return new Date(dateString).toLocaleString()
   }
 
   const getStatusColor = (status: string) => {
@@ -53,14 +81,14 @@ export default function BillingScreen() {
   }
 
   // Define table columns for invoices
-  const columns: TableColumn<Invoice>[] = [
+  const columns: TableColumn<typeof invoices[number]>[] = [
     {
-      key: 'number',
+      key: 'createdAt',
       label: 'Invoice',
       render: (value, item) => (
         <div className='flex items-center gap-2'>
           <Receipt className='h-4 w-4 text-muted-foreground' />
-          <span className='font-medium'>{value}</span>
+          <span className='font-medium'>{formatDate(value)}</span>
         </div>
       ),
       className: 'font-medium',
@@ -74,7 +102,7 @@ export default function BillingScreen() {
       key: 'credits',
       label: 'Credits',
       render: (value) => (
-        <Badge variant="secondary" className="font-mono">
+        <Badge variant='secondary' className='font-mono'>
           +{value.toLocaleString()}
         </Badge>
       ),
@@ -94,23 +122,17 @@ export default function BillingScreen() {
       label: 'Status',
       render: (value) => (
         <Badge
-          variant="outline"
+          variant='outline'
           className={getStatusColor(value)}
         >
           {value.charAt(0).toUpperCase() + value.slice(1)}
         </Badge>
       ),
     },
-    {
-      key: 'createdAt',
-      label: 'Date',
-      render: (value) => formatDate(value),
-      className: 'text-sm text-muted-foreground',
-    },
   ]
 
   // Define table actions for invoices
-  const actions: TableAction<Invoice>[] = [
+  const actions: TableAction[] = [
     {
       icon: Download,
       label: 'Download Invoice',
@@ -127,7 +149,8 @@ export default function BillingScreen() {
   const currentBalance = usageData?.balance.credits ?? 0
   const tier = usageData?.tier ?? 'free'
   const isPaidPlan = usageData?.tier !== 'free'
-  const invoices = invoicesData || []
+  // Map backend invoices to Invoice type expected by DataTableScreen
+
   const dailyUsage = usageData?.costs?.current?.daily ?? 0
   const monthlyUsage = usageData?.costs?.current?.monthly ?? 0
   const hourlyUsage = usageData?.costs?.current?.hourly ?? 0
@@ -162,13 +185,16 @@ export default function BillingScreen() {
         </div>
 
         {/* Warning Alerts */}
-        {(status === 'resource_limits_reached_for_current_usage' || status === 'insufficient_credits_for_current_usage') && (
-          <Alert className='mb-6' variant="destructive">
+        {(status === 'resource_limits_reached_for_current_usage' ||
+          status === 'insufficient_credits_for_current_usage') && (
+          <Alert className='mb-6' variant='destructive'>
             <AlertTriangle className='h-5 w-5' />
-            <AlertDescription> 
+            <AlertDescription>
               <div className='flex-1'>
                 <h4 className='font-semibold mb-2'>
-                  {status === 'resource_limits_reached_for_current_usage' ? 'Resource Limit Reached' : 'Insufficient Credits'}
+                  {status === 'resource_limits_reached_for_current_usage'
+                    ? 'Resource Limit Reached'
+                    : 'Insufficient Credits'}
                 </h4>
                 <p className='text-sm mb-4'>
                   {status === 'resource_limits_reached_for_current_usage'
@@ -178,11 +204,15 @@ export default function BillingScreen() {
                 <Button
                   size='sm'
                   onClick={() => {
-                    status === 'resource_limits_reached_for_current_usage' ? setResourceLimitsDialogOpen(true) : setPurchaseDialogOpen(true)
+                    status === 'resource_limits_reached_for_current_usage'
+                      ? setResourceLimitsDialogOpen(true)
+                      : setPurchaseDialogOpen(true)
                   }}
-                  variant="destructive"
+                  variant='destructive'
                 >
-                  {status === 'resource_limits_reached_for_current_usage' ? <Settings className='h-4 w-4 mr-2' /> : <Plus className='h-4 w-4 mr-2' />}
+                  {status === 'resource_limits_reached_for_current_usage'
+                    ? <Settings className='h-4 w-4 mr-2' />
+                    : <Plus className='h-4 w-4 mr-2' />}
                   {status === 'resource_limits_reached_for_current_usage' ? 'Ajust limits' : 'Add Credits'}
                 </Button>
               </div>
@@ -329,7 +359,9 @@ export default function BillingScreen() {
                           <p className='font-medium text-foreground'>CPU</p>
                           <p className='text-sm text-muted-foreground'>
                             {(parseFloat(resources.cpu.used.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} /{' '}
-                            {resources.cpu.limit === 'Infinity' ? '∞' : (parseFloat(resources.cpu.limit.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} cores
+                            {resources.cpu.limit === 'Infinity'
+                              ? '∞'
+                              : (parseFloat(resources.cpu.limit.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} cores
                           </p>
                         </div>
                       </div>
@@ -337,9 +369,9 @@ export default function BillingScreen() {
                         {resources.cpu.percentage}%
                       </Badge>
                     </div>
-                    <Progress 
-                      value={resources.cpu.percentage} 
-                      className="h-2"
+                    <Progress
+                      value={resources.cpu.percentage}
+                      className='h-2'
                     />
                   </div>
 
@@ -353,7 +385,9 @@ export default function BillingScreen() {
                           <p className='font-medium text-foreground'>Memory</p>
                           <p className='text-sm text-muted-foreground'>
                             {(parseFloat(resources.memory.used.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} /{' '}
-                            {resources.memory.limit === 'Infinity' ? '∞' : (parseFloat(resources.memory.limit.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} GB
+                            {resources.memory.limit === 'Infinity'
+                              ? '∞'
+                              : (parseFloat(resources.memory.limit.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} GB
                           </p>
                         </div>
                       </div>
@@ -361,9 +395,9 @@ export default function BillingScreen() {
                         {resources.memory.percentage}%
                       </Badge>
                     </div>
-                    <Progress 
-                      value={resources.memory.percentage} 
-                      className="h-2"
+                    <Progress
+                      value={resources.memory.percentage}
+                      className='h-2'
                     />
                   </div>
 
@@ -377,7 +411,9 @@ export default function BillingScreen() {
                           <p className='font-medium text-foreground'>Storage</p>
                           <p className='text-sm text-muted-foreground'>
                             {parseFloat(resources.storage.used.replace(/[a-zA-Z]/g, '')).toFixed(1)} /{' '}
-                            {resources.storage.limit === 'Infinity' ? '∞' : parseFloat(resources.storage.limit.replace(/[a-zA-Z]/g, '')).toFixed(1)} GB
+                            {resources.storage.limit === 'Infinity'
+                              ? '∞'
+                              : parseFloat(resources.storage.limit.replace(/[a-zA-Z]/g, '')).toFixed(1)} GB
                           </p>
                         </div>
                       </div>
@@ -385,9 +421,9 @@ export default function BillingScreen() {
                         {resources.storage.percentage}%
                       </Badge>
                     </div>
-                    <Progress 
-                      value={resources.storage.percentage} 
-                      className="h-2"
+                    <Progress
+                      value={resources.storage.percentage}
+                      className='h-2'
                     />
                   </div>
                 </CardContent>
@@ -407,15 +443,15 @@ export default function BillingScreen() {
                   <div className='space-y-4'>
                     <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
                       <span className='text-foreground font-medium'>CPU per core/hour</span>
-                      <Badge variant="outline" className='font-mono'>1 credit</Badge>
+                      <Badge variant='outline' className='font-mono'>1 credit</Badge>
                     </div>
                     <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
                       <span className='text-foreground font-medium'>Memory per GB/hour</span>
-                      <Badge variant="outline" className='font-mono'>1 credit</Badge>
+                      <Badge variant='outline' className='font-mono'>1 credit</Badge>
                     </div>
                     <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
                       <span className='text-foreground font-medium'>Storage per GB/hour</span>
-                      <Badge variant="outline" className='font-mono'>1 credit</Badge>
+                      <Badge variant='outline' className='font-mono'>1 credit</Badge>
                     </div>
                   </div>
                   <div className='flex items-center justify-center'>
@@ -432,7 +468,7 @@ export default function BillingScreen() {
           {/* Invoices Tab */}
           <TabsContent value='invoices'>
             <Card>
-              <DataTableScreen<Invoice>
+              <DataTableScreen
                 title='Billing History'
                 description='View and download your invoices'
                 icon={Receipt}
@@ -440,23 +476,32 @@ export default function BillingScreen() {
                 columns={columns}
                 actions={actions}
                 tableTitle='All Invoices'
-                tableDescription={`${invoices.length} invoices • ${
-                  invoices.filter((i: Invoice) => i.status === 'paid').length
-                } paid`}
-                mobileCardTitle={(item) => item.number}
+                tableDescription='Your past invoices and payments'
+                mobileCardTitle={(item) => formatDate(item.createdAt)}
                 mobileCardStatus={(item) => ({
                   label: item.status,
                   className: getStatusColor(item.status),
                 })}
+								rowClickable
+								onRowClick={invoice => {
+									globalThis.open(invoice.downloadUrl, '_blank')
+								}}
                 mobileCardIcon={() => <Receipt className='h-4 w-4' />}
-                searchable
                 searchPlaceholder='Search invoices...'
-                searchKeys={['number', 'description', 'status']}
-                columnFilterable
-                defaultVisibleColumns={['number', 'description', 'credits', 'amount', 'status', 'createdAt']}
-                mobileVisibleColumns={['credits']}
+                searchKeys={['description', 'status']}
+                defaultVisibleColumns={['description', 'credits', 'amount', 'status', 'createdAt']}
                 emptyMessage='No invoices found. Your purchases will appear here.'
-                loading={invoicesLoading}
+                loading={invoicesLoading || isFetchingNextPage}
+                pagination
+                page={page}
+                onPageChange={(page) => {
+                  if (!invoicePages?.pages[page]) {
+                    fetchNextPage()
+                  }
+                  setPage(page)
+                }}
+                hasNextPage={(!isFetchingNextPage && hasNextPage) || page < (invoicePages?.pages.length || 0) - 1}
+                hasPrevPage={page > 0}
               />
             </Card>
           </TabsContent>

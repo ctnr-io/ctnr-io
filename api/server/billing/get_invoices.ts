@@ -7,13 +7,14 @@ import { PaymentStatus } from '@mollie/api-client'
 export const Meta = {}
 
 export const Input = z.object({
-  from: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
+  cursor: z.string().optional(),
+  limit: z.number().min(1).max(100).default(20).optional(),
 })
 
 export type Input = z.infer<typeof Input>
 
 export type Output = Array<{
+  id: string
   amount: {
     value: string
     currency: string
@@ -30,12 +31,14 @@ export type Output = Array<{
 export default async function* GetInvoices({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
   const userPayments = await ctx.billing.client['mollie'].customerPayments.page({
     customerId: ctx.billing.mollieCustomerId,
-    limit: input.limit ?? 20,
+    limit: input.limit,
+    from: input.cursor,
   })
   const invoices = userPayments.map((payment): Output[number] => {
     // Check metadata is ok
     const metadata = payment.metadata as PaymentMetadataV1
     return ({
+      id: payment.id,
       amount: {
         value: payment.amount.value,
         currency: payment.amount.currency,

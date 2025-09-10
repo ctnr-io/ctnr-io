@@ -4,11 +4,18 @@ import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
 import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
-import { Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
 import { ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
-import { Card, CardHeader, CardContent } from '../shadcn/ui/card.tsx'
+import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '../shadcn/ui/pagination.tsx'
 
 export interface TableColumn<T = any> {
   key: string
@@ -76,6 +83,12 @@ export interface DataTableScreenProps<T = any> {
   // Loading and empty states
   loading?: boolean
   emptyMessage?: string
+
+  pagination?: boolean
+  page?: number // Current page number (0-indexed)
+  onPageChange?: (newPage: number) => void
+  hasNextPage?: boolean
+  hasPrevPage?: boolean
 }
 
 export function DataTableScreen<T = any>({
@@ -103,6 +116,11 @@ export function DataTableScreen<T = any>({
   mobileVisibleColumns,
   loading = false,
   emptyMessage = 'No data available',
+  pagination = false,
+  page = 0,
+  onPageChange,
+  hasNextPage,
+  hasPrevPage,
 }: DataTableScreenProps<T>) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showColumnFilter, setShowColumnFilter] = useState(false)
@@ -227,11 +245,11 @@ export function DataTableScreen<T = any>({
 
     return (
       <CardContent className='hidden md:block overflow-x-auto px-0'>
-        <Table >
+        <Table>
           <TableHeader>
             <TableRow>
               {visibleColumnsArray.map((column) => (
-                <TableHead key={column.key} className={cn(column.className, "px-6")}>
+                <TableHead key={column.key} className={cn(column.className, 'px-6')}>
                   {column.label}
                 </TableHead>
               ))}
@@ -245,7 +263,7 @@ export function DataTableScreen<T = any>({
                 [...Array(5)].map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
                     {visibleColumnsArray.map((column) => (
-                      <TableCell key={column.key} className={cn(column.className, "px-6")}>
+                      <TableCell key={column.key} className={cn(column.className, 'px-6')}>
                         <Skeleton className='h-4' style={{ width: `${Math.random() * 40 + 60}%` }} />
                       </TableCell>
                     ))}
@@ -273,7 +291,7 @@ export function DataTableScreen<T = any>({
                       const displayValue = column.render ? column.render(value, item) : String(value || '')
 
                       return (
-                        <TableCell key={column.key} className={cn(column.className, "px-6")}>
+                        <TableCell key={column.key} className={cn(column.className, 'px-6')}>
                           {displayValue}
                         </TableCell>
                       )
@@ -346,7 +364,7 @@ export function DataTableScreen<T = any>({
 
         {/* Data Table */}
         <Card className='overflow-hidden gap-0 pb-0'>
-          <CardHeader className="border-b">
+          <CardHeader className='border-b'>
             <h2 className='text-lg sm:text-xl font-semibold'>{tableTitle}</h2>
             {tableDescription && (
               <p className='text-xs sm:text-sm text-muted-foreground'>
@@ -485,6 +503,30 @@ export function DataTableScreen<T = any>({
                 {renderDesktopTable()}
               </>
             )}
+          {/* Pagination controls */}
+          {pagination && (
+            <CardFooter className='flex justify-center gap-3 border-t !py-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                className='cursor-pointer'
+                onClick={() => onPageChange?.(page - 1)}
+                disabled={!hasPrevPage}
+              >
+                <ArrowLeft /> Previous
+              </Button>
+              <span className='text-sm'>Page {page + 1}</span>
+              <Button
+                variant='outline'
+                size='sm'
+                className='cursor-pointer'
+                onClick={() => onPageChange?.(page + 1)}
+                disabled={!hasNextPage}
+              >
+                Next <ArrowRight />
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}

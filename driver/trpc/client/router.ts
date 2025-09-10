@@ -115,34 +115,34 @@ export const clientRouter = trpc.router({
   ),
 
   // Billing procedures
-  purchaseCredits: trpc.procedure.meta(PurchaseCredits.Meta).input(PurchaseCredits.Input).mutation((
-    { input, signal, ctx },
-  ) =>
-    ctx.connect(
-      (server) => server.billing.purchaseCredits.mutate(input, { signal, context: ctx }),
-    )
-  ),
-  getClient: trpc.procedure.meta(GetClient.Meta).input(GetClient.Input).query(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => server.billing.getClient.query(input, { signal, context: ctx }),
-    )
-  ),
+  // purchaseCredits: trpc.procedure.meta(PurchaseCredits.Meta).input(PurchaseCredits.Input).mutation((
+  //   { input, signal, ctx },
+  // ) =>
+  //   ctx.connect(
+  //     (server) => server.billing.purchaseCredits.mutate(input, { signal, context: ctx }),
+  //   )
+  // ),
+  // getClient: trpc.procedure.meta(GetClient.Meta).input(GetClient.Input).query(({ input, signal, ctx }) =>
+  //   ctx.connect(
+  //     (server) => server.billing.getClient.query(input, { signal, context: ctx }),
+  //   )
+  // ),
 
-  getInvoices: trpc.procedure.meta(GetInvoices.Meta).input(GetInvoices.Input).query(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => server.billing.getInvoices.query(input, { signal, context: ctx }),
-    )
-  ),
-  getUsage: trpc.procedure.meta(GetUsage.Meta).input(GetUsage.Input).query(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => server.billing.getUsage.query(input, { signal, context: ctx }),
-    )
-  ),
-  setLimits: trpc.procedure.meta(SetLimits.Meta).input(SetLimits.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => server.billing.setLimits.mutate(input, { signal, context: ctx }),
-    )
-  ),
+  // getInvoices: trpc.procedure.meta(GetInvoices.Meta).input(GetInvoices.Input).query(({ input, signal, ctx }) =>
+  //   ctx.connect(
+  //     (server) => server.billing.getInvoices.query(input, { signal, context: ctx }),
+  //   )
+  // ),
+  // getUsage: trpc.procedure.meta(GetUsage.Meta).input(GetUsage.Input).query(({ input, signal, ctx }) =>
+  //   ctx.connect(
+  //     (server) => server.billing.getUsage.query(input, { signal, context: ctx }),
+  //   )
+  // ),
+  // setLimits: trpc.procedure.meta(SetLimits.Meta).input(SetLimits.Input).mutation(({ input, signal, ctx }) =>
+  //   ctx.connect(
+  //     (server) => server.billing.setLimits.mutate(input, { signal, context: ctx }),
+  //   )
+  // ),
 })
 
 export type clientRouter = typeof clientRouter

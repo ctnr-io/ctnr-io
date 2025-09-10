@@ -66,7 +66,6 @@ export function ThemeProvider({
     isLight: theme === 'light' ||
       (theme === 'system' && globalThis.matchMedia('(prefers-color-scheme: light)').matches),
   }
-console.log({ value})
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
       {children}

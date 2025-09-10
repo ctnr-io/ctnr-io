@@ -1,7 +1,7 @@
 'use dom'
 
 import React, { useState, useTransition } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Lock } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import {
   Dialog,
@@ -15,11 +15,14 @@ import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
-import { calculateCost, calculateTotalCostWithFreeTier, DEFAULT_RATES, ResourceLimits } from 'lib/billing/utils.ts'
+import { ResourceLimits } from 'lib/billing/utils.ts'
+import { calculateTotalCostWithFreeTier, DEFAULT_RATES } from 'lib/billing/cost.ts'
+import { CreditPurchaseDialog } from './billing-purchase-credits-dialog.tsx'
 
 interface ResourceLimitsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  tier: 'free' | 'paid'
   currentLimits: {
     cpu: string
     memory: string
@@ -27,8 +30,9 @@ interface ResourceLimitsDialogProps {
   }
 }
 
-export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: ResourceLimitsDialogProps) {
+export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }: ResourceLimitsDialogProps) {
   const [generalError, setGeneralError] = useState<string>('')
+  const [creditPurchaseOpen, setCreditPurchaseOpen] = useState(false)
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
@@ -137,6 +141,15 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
           </Alert>
         )}
 
+        {tier === 'free' && (
+          <Alert>
+            <Lock className='h-4 w-4' />
+            <AlertDescription>
+              Resource limit adjustments are only available for paid tier users. You're currently on the free tier with fixed limits: 1 CPU core, 2 GB memory, and 1 GB storage.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className='space-y-4'>
           {/* Resource Limits Card */}
           <Card>
@@ -150,66 +163,84 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
               {/* CPU Slider */}
               <div className='space-y-3'>
                 <div className='flex justify-between items-center'>
-                  <label className='text-sm font-medium text-foreground'>CPU Limit</label>
+                  <label className='text-sm font-medium text-foreground flex items-center gap-2'>
+                    CPU Limit
+                    {tier === 'free' && <Lock className='h-3 w-3 text-muted-foreground' />}
+                  </label>
                   <span className='text-sm font-semibold text-primary'>
                     {ResourceLimits.cpu.display(cpuValue)}
                   </span>
                 </div>
                 <Slider
                   value={cpuSlider}
-                  onValueChange={setCpuSlider}
+                  onValueChange={tier === 'free' ? undefined : setCpuSlider}
                   min={0}
                   max={100}
                   step={ResourceLimits.cpu.step}
-                  className='w-full'
+                  className={`w-full ${tier === 'free' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={tier === 'free'}
                 />
                 <p className='text-xs text-muted-foreground'>
-                  Range: {ResourceLimits.cpu.display(ResourceLimits.cpu.min)} -{' '}
-                  {ResourceLimits.cpu.display(ResourceLimits.cpu.max)}
+                  {tier === 'free' 
+                    ? 'Fixed at 1 CPU core for free tier users'
+                    : `Range: ${ResourceLimits.cpu.display(ResourceLimits.cpu.min)} - ${ResourceLimits.cpu.display(ResourceLimits.cpu.max)}`
+                  }
                 </p>
               </div>
 
               {/* Memory Slider */}
               <div className='space-y-3'>
                 <div className='flex justify-between items-center'>
-                  <label className='text-sm font-medium text-foreground'>Memory Limit</label>
+                  <label className='text-sm font-medium text-foreground flex items-center gap-2'>
+                    Memory Limit
+                    {tier === 'free' && <Lock className='h-3 w-3 text-muted-foreground' />}
+                  </label>
                   <span className='text-sm font-semibold text-primary'>
                     {ResourceLimits.memory.display(memoryValue)}
                   </span>
                 </div>
                 <Slider
                   value={memorySlider}
-                  onValueChange={setMemorySlider}
+                  onValueChange={tier === 'free' ? undefined : setMemorySlider}
                   min={0}
                   max={100}
                   step={ResourceLimits.memory.step}
-                  className='w-full'
+                  className={`w-full ${tier === 'free' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={tier === 'free'}
                 />
                 <p className='text-xs text-muted-foreground'>
-                  Range: {ResourceLimits.memory.display(ResourceLimits.memory.min)} -{' '}
-                  {ResourceLimits.memory.display(ResourceLimits.memory.max)}
+                  {tier === 'free' 
+                    ? 'Fixed at 2 GB memory for free tier users'
+                    : `Range: ${ResourceLimits.memory.display(ResourceLimits.memory.min)} - ${ResourceLimits.memory.display(ResourceLimits.memory.max)}`
+                  }
                 </p>
               </div>
 
               {/* Storage Slider */}
               <div className='space-y-3'>
                 <div className='flex justify-between items-center'>
-                  <label className='text-sm font-medium text-foreground'>Storage Limit</label>
+                  <label className='text-sm font-medium text-foreground flex items-center gap-2'>
+                    Storage Limit
+                    {tier === 'free' && <Lock className='h-3 w-3 text-muted-foreground' />}
+                  </label>
                   <span className='text-sm font-semibold text-primary'>
                     {ResourceLimits.storage.display(storageValue)}
                   </span>
                 </div>
                 <Slider
                   value={storageSlider}
-                  onValueChange={setStorageSlider}
+                  onValueChange={tier === 'free' ? undefined : setStorageSlider}
                   min={0}
                   max={100}
                   step={ResourceLimits.storage.step}
-                  className='w-full'
+                  className={`w-full ${tier === 'free' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={tier === 'free'}
                 />
                 <p className='text-xs text-muted-foreground'>
-                  Range: {ResourceLimits.storage.display(ResourceLimits.storage.min)} -{' '}
-                  {ResourceLimits.storage.display(ResourceLimits.storage.max)}
+                  {tier === 'free' 
+                    ? 'Fixed at 1 GB storage for free tier users'
+                    : `Range: ${ResourceLimits.storage.display(ResourceLimits.storage.min)} - ${ResourceLimits.storage.display(ResourceLimits.storage.max)}`
+                  }
                 </p>
               </div>
             </CardContent>
@@ -268,16 +299,30 @@ export function ResourceLimitsDialog({ open, onOpenChange, currentLimits }: Reso
 
         <div className='flex justify-end gap-2 pt-4'>
           <Button variant='outline' type='button' onClick={handleCancel}>
-            Cancel
+            {tier === 'free' ? 'Close' : 'Cancel'}
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitPending}
-          >
-            {isSubmitPending ? 'Updating...' : 'Update Limits'}
-          </Button>
+          {tier === 'free' ? (
+            <Button onClick={() => {
+              onOpenChange(false)
+              setCreditPurchaseOpen(true)
+            }}>
+              Upgrade to Paid Plan
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitPending}
+            >
+              {isSubmitPending ? 'Updating...' : 'Update Limits'}
+            </Button>
+          )}
         </div>
       </DialogContent>
+      
+      <CreditPurchaseDialog 
+        open={creditPurchaseOpen} 
+        onOpenChange={setCreditPurchaseOpen} 
+      />
     </Dialog>
   )
 }

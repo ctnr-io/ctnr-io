@@ -11,6 +11,7 @@ import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
 import checkUsage from 'api/server/billing/check_usage.ts'
 import { parseResourceValue } from 'lib/billing/utils.ts'
+import { match } from 'ts-pattern'
 
 export const Meta = {
   aliases: {
@@ -66,6 +67,9 @@ export const Input = z.object({
     .default('256M')
     .describe('Memory limit for the container'),
   clusters: z.array(z.enum(clusterNames)).optional().describe('Clusters to run the container on'),
+  restart: z.enum(['always', 'on-failure', 'never']).optional().default('never').describe(
+    'Restart policy for the container',
+  ),
 })
 
 export type Input = z.infer<typeof Input>
@@ -221,11 +225,14 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
                   // TODO: Add GPU limits when GPU resources are available
                   // "nvidia.com/gpu": new Quantity(1, ""),
                 },
-                // requests: {
-                //   cpu: new Quantity(100, "m"), // 100 milliCPU request
-                //   memory: new Quantity(128, "Mi"), // 128 MiB request
-                //   "ephemeral-storage": new Quantity(100, "Mi"), // Request ephemeral storage
-                // },
+                requests: {
+                  // CPU & Memory are namespaced scoped
+                  cpu: toQuantity(cpu), // 125 milliCPU (increased from 100m for better performance)
+                  memory: toQuantity(memory), // 256 MiB (increased from 256Mi)
+                  'ephemeral-storage': toQuantity(ephemeralStorage), // Limit ephemeral storage
+                  // TODO: Add GPU limits when GPU resources are available
+                  // "nvidia.com/gpu": new Quantity(1, ""),
+                },
               },
             },
           ],

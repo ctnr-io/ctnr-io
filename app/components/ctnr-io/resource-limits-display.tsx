@@ -65,7 +65,8 @@ export function ResourceLimitsDisplay() {
   }
 
   // Extract data from the API response
-  const usage = usageData.usage
+  const tier = usageData.tier
+  const resources = usageData.resources
 
   // Parse API values that come with units (e.g., "1000m", "2048M", "10G")
   const parseValue = (value: string): number => {
@@ -74,12 +75,12 @@ export function ResourceLimitsDisplay() {
     return parseFloat(numStr) || 0
   }
 
-  const cpuUsedNum = parseValue(usage.cpu.used)
-  const cpuLimitNum = usage.cpu.limit === 'Infinity' ? Infinity : parseValue(usage.cpu.limit)
-  const memoryUsedNum = parseValue(usage.memory.used)
-  const memoryLimitNum = usage.memory.limit === 'Infinity' ? Infinity : parseValue(usage.memory.limit)
-  const storageUsedNum = parseValue(usage.storage.used)
-  const storageLimitNum = usage.storage.limit === 'Infinity' ? Infinity : parseValue(usage.storage.limit)
+  const cpuUsedNum = parseValue(resources.cpu.used)
+  const cpuLimitNum = resources.cpu.limit === 'Infinity' ? Infinity : parseValue(resources.cpu.limit)
+  const memoryUsedNum = parseValue(resources.memory.used)
+  const memoryLimitNum = resources.memory.limit === 'Infinity' ? Infinity : parseValue(resources.memory.limit)
+  const storageUsedNum = parseValue(resources.storage.used)
+  const storageLimitNum = resources.storage.limit === 'Infinity' ? Infinity : parseValue(resources.storage.limit)
 
   // Format display values
   const cpuUsed = (cpuUsedNum / 1000).toFixed(1) // millicores to cores
@@ -118,31 +119,32 @@ export function ResourceLimitsDisplay() {
           label='Processor (vCPU)'
           used={cpuUsed}
           limit={cpuLimit}
-          percentage={usage.cpu.percentage}
+          percentage={resources.cpu.percentage}
         />
         <ResourceIndicator
           icon={MemoryStick}
           label='Memory (GB)'
           used={memoryUsed}
           limit={memoryLimit}
-          percentage={usage.memory.percentage}
+          percentage={resources.memory.percentage}
         />
         <ResourceIndicator
           icon={HardDrive}
           label='Storage (GB)'
           used={storageUsed}
           limit={storageLimit}
-          percentage={usage.storage.percentage}
+          percentage={resources.storage.percentage}
         />
       </Button>
-      {usage && (
+      {resources && (
         <ResourceLimitsDialog
           open={isResourceLimitsDialogOpen}
           onOpenChange={setIsResourceLimitsDialogOpen}
+          tier={tier}
           currentLimits={{
-            cpu: usage.cpu.limit,
-            memory: usage.memory.limit,
-            storage: usage.storage.limit,
+            cpu: resources.cpu.limit,
+            memory: resources.memory.limit,
+            storage: resources.storage.limit,
           }}
         />
       )}

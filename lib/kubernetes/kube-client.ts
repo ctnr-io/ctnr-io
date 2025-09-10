@@ -13,6 +13,7 @@ import { yaml } from '@tmpl/core'
 import process from 'node:process'
 import { DeleteOpts, GetListOpts, GetOpts, PatchOpts, PutOpts } from '@cloudydeno/kubernetes-apis/operations.ts'
 import { FreeTier } from '../billing/utils.ts'
+import { getNamespaceBalance } from '../billing/balance.ts'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
@@ -460,7 +461,7 @@ export type DNSEndpoint = {
   }
 }
 
-type CiliumNetworkPolicy = {
+export type CiliumNetworkPolicy = {
   apiVersion: 'cilium.io/v2'
   kind: 'CiliumNetworkPolicy'
   metadata: {
@@ -495,7 +496,7 @@ type CiliumNetworkPolicy = {
   }
 }
 
-type CertManagerV1Certificate = {
+export type CertManagerV1Certificate = {
   apiVersion: 'cert-manager.io/v1'
   kind: 'Certificate'
   metadata: {
@@ -514,7 +515,7 @@ type CertManagerV1Certificate = {
   }
 }
 
-type GatewayV1 = {
+export type GatewayV1 = {
   apiVersion: 'gateway.networking.k8s.io/v1'
   kind: 'Gateway'
   metadata: {
@@ -540,7 +541,7 @@ type GatewayV1 = {
   }
 }
 
-type GatewayV1Beta1ReferenceGrant = {
+export type GatewayV1Beta1ReferenceGrant = {
   apiVersion: 'gateway.networking.k8s.io/v1beta1'
   kind: 'ReferenceGrant'
   metadata: {
@@ -563,7 +564,7 @@ type GatewayV1Beta1ReferenceGrant = {
   }
 }
 
-type KarmadaV1Alpha1PropagationPolicy = {
+export type KarmadaV1Alpha1PropagationPolicy = {
   apiVersion: 'policy.karmada.io/v1alpha1'
   kind: 'PropagationPolicy'
   metadata: {
@@ -589,7 +590,7 @@ type KarmadaV1Alpha1PropagationPolicy = {
   }
 }
 
-type KarmadaV1Alpha1FederatedResourceQuota = {
+export type KarmadaV1Alpha1FederatedResourceQuota = {
   apiVersion: 'policy.karmada.io/v1alpha1'
   kind: 'FederatedResourceQuota'
   metadata: {
@@ -637,7 +638,7 @@ export async function ensureFederatedResourceQuota(
     )
     // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
     .with(federatedResourceQuota as any, () => true)
-    .otherwise(async (current) => {
+    .otherwise(async () => {
       console.debug('Replacing existing FederatedResourceQuota', federatedResourceQuotaName)
       // Delete the existing federated resource quota first
       await kc.KarmadaV1Alpha1(namespace).deleteFederatedResourceQuota(federatedResourceQuotaName, { abortSignal })
@@ -1090,9 +1091,8 @@ export const ensureUserNamespace = async (
   }
 
   // If credits-balance === 0, set limits to Free Tier
-  const creditsAnnotation = namespaceObj.metadata?.annotations?.['ctnr.io/credits-balance']
-  const credits = parseInt(creditsAnnotation || '0', 10)
-  if (credits === 0) {
+  const balance = getNamespaceBalance(namespaceObj)
+  if (balance.credits === 0) {
     await ensureFederatedResourceQuota(kc, namespace, {
       apiVersion: 'policy.karmada.io/v1alpha1',
       kind: 'FederatedResourceQuota',

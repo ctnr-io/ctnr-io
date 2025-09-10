@@ -3,6 +3,7 @@ import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import z from 'zod'
 import { ensureFederatedResourceQuota } from 'lib/kubernetes/kube-client.ts'
 import { ResourceLimits } from 'lib/billing/utils.ts'
+import { getNamespaceBalance } from 'lib/billing/balance.ts'
 
 export const Meta = {}
 
@@ -49,8 +50,7 @@ export default async function* (
 
   const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace)
 
-  const creditsAnnotation = namespaceObj.metadata?.annotations?.['ctnr.io/credits-balance']
-  const credits = parseInt(creditsAnnotation || '0', 10)
+  const { credits } = getNamespaceBalance(namespaceObj)
   if (credits === 0) {
     // Set requests to default
     await ensureFederatedResourceQuota(kubeClient, namespace, {

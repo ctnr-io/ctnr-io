@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { ServerContext } from 'ctx/mod.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as YAML from '@std/yaml'
-import { calculateCost } from 'lib/billing/utils.ts'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 
 export const Meta = {
@@ -59,11 +58,6 @@ export type Container = {
   workingDir: string
   environment: Record<string, string>
   volumes: string[]
-  cost: {
-    hourly: number
-    daily: number
-    monthly: number
-  }
 }
 
 type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
@@ -209,8 +203,6 @@ export default async function* (
     const cpu = containerData.cpu || '100m'
     const memory = containerData.memory || '128Mi'
     const storage = containerData.storage || '1Gi'
-    const currentReplicas = containerData.replicas?.current || 0
-    const cost = calculateCost(cpu, memory, storage, currentReplicas)
 
     // Return with defaults for missing fields to maintain type compatibility
     return {
@@ -230,7 +222,6 @@ export default async function* (
       workingDir: containerData.workingDir || '/',
       environment: containerData.environment || {},
       volumes: containerData.volumes || [],
-      cost: cost,
     }
   })
 

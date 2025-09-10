@@ -34,6 +34,8 @@ export type KubeWebhookContext = {
   }
 }
 
+export type KubeWorkerContext = KubeWebhookContext
+
 /**
  * User should always be authenticated in server context.
  */
@@ -103,10 +105,15 @@ export type BillingWebhookContext = {
   }
 }
 
+export type BillingWorkerContext = BillingWebhookContext
+
 export type ServerContext = StdioContext & KubeServerContext & AuthServerContext & ProjectContext & BillingServerContext & {
   __type: 'server'
 }
 export type WebhookContext = KubeWebhookContext & BillingWebhookContext & {
   __type: 'webhook'
+}
+export type WorkerContext = KubeWorkerContext & BillingWorkerContext & {
+  __type: 'worker'
 }
 export type ClientContext = StdioContext & AuthClientContext & { __type: 'client' }

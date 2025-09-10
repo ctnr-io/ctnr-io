@@ -2,7 +2,7 @@
 
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { ChevronsUpDown } from 'lucide-react'
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import {
   Command,
   CommandEmpty,
@@ -67,39 +67,44 @@ export function SearchableSelect({
     </div>
   )
 
+  const [open, setOpen] = useState(false);
+
   return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant='outline'
-            role='combobox'
-            disabled={disabled}
-            className={`justify-between text-ellipsis ${className || ''}`}
-          >
-            {renderSelectedValue ? renderSelectedValue(selectedOption) : defaultRenderSelectedValue(selectedOption)}
-            <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className={`p-0 ${popoverClassName || ''}`}>
-          <Command>
-            <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
-              <CommandGroup>
-                {options.map((option) => (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant='outline'
+          role='combobox'
+          disabled={disabled}
+          className={`justify-between text-ellipsis ${className || ''}`}
+        >
+          {renderSelectedValue ? renderSelectedValue(selectedOption) : defaultRenderSelectedValue(selectedOption)}
+          <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className={`p-0 ${popoverClassName || ''}`}>
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
                   <CommandItem
                     key={option.value}
-                    value={option.value}
+                    value={`${option.label} ${option.value}`}
                     disabled={option.disabled}
-                    onSelect={() => onValueChange(option.value)}
+                    onSelect={() => {
+                      setOpen(false)
+                      onValueChange(option.value)
+                    }}
                   >
                     {renderOption ? renderOption(option) : defaultRenderOption(option)}
                   </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }

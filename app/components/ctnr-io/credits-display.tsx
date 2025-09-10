@@ -27,7 +27,7 @@ export function CreditsDisplay() {
   }
 
   // Extract data from the API response
-  const credits = usageData.credits.balance ?? 0
+  const credits = usageData.balance.credits
 
   return (
     <div className='flex items-center gap-2'>

@@ -124,13 +124,14 @@ export default function BillingScreen() {
   ]
 
   // Use actual data from the updated API
-  const currentBalance = usageData?.credits?.balance ?? 0
-  const isPaidPlan = usageData?.tier?.type !== 'free'
+  const currentBalance = usageData?.balance.credits ?? 0
+  const tier = usageData?.tier ?? 'free'
+  const isPaidPlan = usageData?.tier !== 'free'
   const invoices = invoicesData || []
   const dailyUsage = usageData?.costs?.current?.daily ?? 0
   const monthlyUsage = usageData?.costs?.current?.monthly ?? 0
   const hourlyUsage = usageData?.costs?.current?.hourly ?? 0
-  const usage = usageData?.usage
+  const resources = usageData?.resources ?? null
   const status = usageData?.status ?? 'normal'
 
   if (usageLoading) {
@@ -297,7 +298,7 @@ export default function BillingScreen() {
             </div>
 
             {/* Resource Usage */}
-            {usage && (
+            {resources && (
               <Card>
                 <CardHeader>
                   <div className='flex items-center justify-between'>
@@ -327,17 +328,17 @@ export default function BillingScreen() {
                         <div>
                           <p className='font-medium text-foreground'>CPU</p>
                           <p className='text-sm text-muted-foreground'>
-                            {(parseFloat(usage.cpu.used.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} /{' '}
-                            {usage.cpu.limit === 'Infinity' ? '∞' : (parseFloat(usage.cpu.limit.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} cores
+                            {(parseFloat(resources.cpu.used.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} /{' '}
+                            {resources.cpu.limit === 'Infinity' ? '∞' : (parseFloat(resources.cpu.limit.replace(/[a-zA-Z]/g, '')) / 1000).toFixed(1)} cores
                           </p>
                         </div>
                       </div>
-                      <Badge variant={usage.cpu.percentage >= 80 ? 'destructive' : 'secondary'}>
-                        {usage.cpu.percentage}%
+                      <Badge variant={resources.cpu.percentage >= 80 ? 'destructive' : 'secondary'}>
+                        {resources.cpu.percentage}%
                       </Badge>
                     </div>
                     <Progress 
-                      value={usage.cpu.percentage} 
+                      value={resources.cpu.percentage} 
                       className="h-2"
                     />
                   </div>
@@ -351,17 +352,17 @@ export default function BillingScreen() {
                         <div>
                           <p className='font-medium text-foreground'>Memory</p>
                           <p className='text-sm text-muted-foreground'>
-                            {(parseFloat(usage.memory.used.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} /{' '}
-                            {usage.memory.limit === 'Infinity' ? '∞' : (parseFloat(usage.memory.limit.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} GB
+                            {(parseFloat(resources.memory.used.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} /{' '}
+                            {resources.memory.limit === 'Infinity' ? '∞' : (parseFloat(resources.memory.limit.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} GB
                           </p>
                         </div>
                       </div>
-                      <Badge variant={usage.memory.percentage >= 80 ? 'destructive' : 'secondary'}>
-                        {usage.memory.percentage}%
+                      <Badge variant={resources.memory.percentage >= 80 ? 'destructive' : 'secondary'}>
+                        {resources.memory.percentage}%
                       </Badge>
                     </div>
                     <Progress 
-                      value={usage.memory.percentage} 
+                      value={resources.memory.percentage} 
                       className="h-2"
                     />
                   </div>
@@ -375,17 +376,17 @@ export default function BillingScreen() {
                         <div>
                           <p className='font-medium text-foreground'>Storage</p>
                           <p className='text-sm text-muted-foreground'>
-                            {parseFloat(usage.storage.used.replace(/[a-zA-Z]/g, '')).toFixed(1)} /{' '}
-                            {usage.storage.limit === 'Infinity' ? '∞' : parseFloat(usage.storage.limit.replace(/[a-zA-Z]/g, '')).toFixed(1)} GB
+                            {parseFloat(resources.storage.used.replace(/[a-zA-Z]/g, '')).toFixed(1)} /{' '}
+                            {resources.storage.limit === 'Infinity' ? '∞' : parseFloat(resources.storage.limit.replace(/[a-zA-Z]/g, '')).toFixed(1)} GB
                           </p>
                         </div>
                       </div>
-                      <Badge variant={usage.storage.percentage >= 90 ? 'destructive' : 'secondary'}>
-                        {usage.storage.percentage}%
+                      <Badge variant={resources.storage.percentage >= 90 ? 'destructive' : 'secondary'}>
+                        {resources.storage.percentage}%
                       </Badge>
                     </div>
                     <Progress 
-                      value={usage.storage.percentage} 
+                      value={resources.storage.percentage} 
                       className="h-2"
                     />
                   </div>
@@ -463,14 +464,15 @@ export default function BillingScreen() {
 
         {/* Dialogs */}
         <CreditPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} />
-        {usage && (
+        {resources && (
           <ResourceLimitsDialog
             open={resourceLimitsDialogOpen}
             onOpenChange={setResourceLimitsDialogOpen}
+            tier={tier}
             currentLimits={{
-              cpu: usage.cpu.limit,
-              memory: usage.memory.limit,
-              storage: usage.storage.limit,
+              cpu: resources.cpu.limit,
+              memory: resources.memory.limit,
+              storage: resources.storage.limit,
             }}
           />
         )}

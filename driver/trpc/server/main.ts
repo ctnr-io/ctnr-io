@@ -9,6 +9,7 @@ import process from 'node:process'
 import { createOpenApiHttpHandler } from 'trpc-to-openapi'
 import { Readable } from 'node:stream'
 import querystring from 'node:querystring'
+import { createWorkerContext } from 'ctx/worker/mod.ts'
 
 // Create tRPC HTTP handler
 const httpHandler = createOpenApiHttpHandler({
@@ -111,3 +112,74 @@ process.on('SIGTERM', () => {
 httpServer.listen(3000)
 
 console.info(`✅ HTTP Server listening on http://localhost:3000`)
+
+// Run worker procedures
+async function runWorkerProcedures() {
+  try {
+    // Create a worker context
+    const workerCtx = await createWorkerContext({})
+    
+    // Create a minimal tRPC server context for worker procedures (without WebSocket dependencies)
+    const mockStdio = {
+      stdin: new ReadableStream({
+        start(controller) {
+          controller.close()
+        }
+      }),
+      stdout: new WritableStream({
+        write() {
+          // No-op for worker procedures
+        }
+      }),
+      stderr: new WritableStream({
+        write() {
+          // No-op for worker procedures
+        }
+      }),
+      exit: () => {},
+      setRaw: () => {},
+      signalChan: () => (async function*() {})(),
+      terminalSizeChan: () => (async function*() {})(),
+    }
+    
+    const serverCtx = {
+      auth: {
+        accessToken: undefined,
+        refreshToken: undefined,
+      },
+      stdio: mockStdio,
+    }
+    
+    // Merge worker context into server context
+    const ctx = { ...serverCtx, ...workerCtx }
+    const caller = router.createCaller(ctx)
+    
+    // Get all procedures from the router definition
+    const procedures = router._def.procedures
+    
+    for (const [name, procedure] of Object.entries(procedures)) {
+      if (name.match(/[wW]orker$/)) {
+        console.info(`🚀 Running worker procedure: ${name}`)
+        try {
+          // Call the worker procedure with proper typing
+          const procedureCall = (caller as any)[name]
+          if (typeof procedureCall === 'function') {
+            await procedureCall()
+            console.info(`✅ Worker procedure ${name} completed`)
+          } else {
+            console.warn(`⚠️ Worker procedure ${name} is not callable`)
+          }
+        } catch (err) {
+          console.error(`❌ Worker procedure ${name} failed`, err)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error initializing worker procedures', err)
+    throw err
+  }
+}
+runWorkerProcedures().catch((err) => {
+  console.error('❌ Error running worker procedures', err)
+  Deno.exit(1)
+})

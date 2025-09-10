@@ -25,14 +25,14 @@ export default async function* (
   // Display current usage information
   yield `${usage.tier === 'free' ? '🆓' : '⚡️'} Account Status: ${
     usage.tier === 'free' ? 'Free Tier' : 'Paid'
-  } | Credits: ${usage.credits.balance}`
+  } | Credits: ${usage.balance.credits}`
 
   // Check status and provide appropriate messages
   switch (usage.status) {
     case 'insufficient_credits_for_current_usage': {
       yield `🚨 Credit breach! Current usage (${
         usage.costs.current.hourly.toFixed(4)
-      } credits/hour) exceeds your balance (${usage.credits.balance} credits)`
+      } credits/hour) exceeds your balance (${usage.balance.credits} credits)`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits immediately.`
 
       // Retrieve last threshold breach time
@@ -68,7 +68,7 @@ export default async function* (
 
     case 'insufficient_credits_for_additional_resource': {
       yield `⚠️  Insufficient credits for additional provisioning! Next usage would exceed your balance.`
-      yield `💰 Balance: ${usage.credits.balance} credits, Next cost: ${
+      yield `💰 Balance: ${usage.balance.credits} credits, Next cost: ${
         usage.costs.next.hourly.toFixed(4)
       } credits/hour`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits.`
@@ -77,12 +77,12 @@ export default async function* (
 
     case 'resource_limits_reached_for_current_usage': {
       const limitWarnings = []
-      if (usage.usage.cpu.percentage >= 100) limitWarnings.push(`CPU (${usage.usage.cpu.percentage}%)`)
-      if (usage.usage.memory.percentage >= 100) limitWarnings.push(`Memory (${usage.usage.memory.percentage}%)`)
-      if (usage.usage.storage.percentage >= 100) limitWarnings.push(`Storage (${usage.usage.storage.percentage}%)`)
+      if (usage.resources.cpu.percentage >= 100) limitWarnings.push(`CPU (${usage.resources.cpu.percentage}%)`)
+      if (usage.resources.memory.percentage >= 100) limitWarnings.push(`Memory (${usage.resources.memory.percentage}%)`)
+      if (usage.resources.storage.percentage >= 100) limitWarnings.push(`Storage (${usage.resources.storage.percentage}%)`)
 
       yield `⚠️  Resource limit reached for: ${limitWarnings.join(', ')}`
-      yield `📊 Current usage: CPU ${usage.usage.cpu.used}/${usage.usage.cpu.limit}, Memory ${usage.usage.memory.used}/${usage.usage.memory.limit}, Storage ${usage.usage.storage.used}/${usage.usage.storage.limit}`
+      yield `📊 Current usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.used}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.used}/${usage.resources.storage.limit}`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
       throw new Error('Resource limits reached')
     }
@@ -91,13 +91,13 @@ export default async function* (
 
     case 'free_tier':
       yield `✅ Free tier usage check passed`
-      yield `📊 Usage: CPU ${usage.usage.cpu.used}/${usage.usage.cpu.limit} (${usage.usage.cpu.percentage}%), Memory ${usage.usage.memory.used}/${usage.usage.memory.limit} (${usage.usage.memory.percentage}%), Storage ${usage.usage.storage.used}/${usage.usage.storage.limit} (${usage.usage.storage.percentage}%)`
+      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
       break
 
     case 'normal':
       yield `✅ Usage and credit check passed`
-      yield `📊 Usage: CPU ${usage.usage.cpu.used}/${usage.usage.cpu.limit} (${usage.usage.cpu.percentage}%), Memory ${usage.usage.memory.used}/${usage.usage.memory.limit} (${usage.usage.memory.percentage}%), Storage ${usage.usage.storage.used}/${usage.usage.storage.limit} (${usage.usage.storage.percentage}%)`
-      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.credits.balance} credits)`
+      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
+      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.balance.credits} credits)`
       break
 
     default:

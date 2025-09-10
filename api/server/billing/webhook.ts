@@ -3,6 +3,7 @@ import z from 'zod'
 import { ensureUserNamespace } from 'lib/kubernetes/kube-client.ts'
 import { PaymentMetadataV1 } from 'lib/billing/utils.ts'
 import { formatDate } from 'date-fns'
+import { addCredits, getNamespaceBalance } from 'lib/billing/balance.ts'
 
 export const Meta = {
   openapi: { method: 'POST', path: '/billing/webhook' },
@@ -99,24 +100,10 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     // Handle successful payment
     console.info(`Payment ${paymentId} succeeded:`, payment)
 
-    // Get current balance
-    const currentBalanceAnnotation = namespaceObj.metadata?.annotations?.['ctnr.io/credits-balance']
-    const currentBalance = parseInt(currentBalanceAnnotation || '0')
-
-
-    const addedBalance = Number(payment.amount.value) * 100
-    const newBalance = currentBalance + addedBalance
-
-    // Update the namespace
-    await ctx.kube.client['eu'].CoreV1.patchNamespace(namespace, 'json-merge', {
-      metadata: {
-        annotations: {
-          'ctnr.io/credits-balance': newBalance.toString(),
-        },
-      },
-    })
+    const newBalance = await addCredits(ctx.kube.client['eu'], namespace, metadata.data.credits, controller.signal)
 
     console.info(`New balance for user ${userId}:`, newBalance)
+
     return new Response('Payment processed successfully')
   }
   return new Response('Payment not processed', { status: 400 })

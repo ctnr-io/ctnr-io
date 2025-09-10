@@ -3,7 +3,6 @@
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { Coins, Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
-import { calculateCost } from 'lib/billing/utils.ts'
 
 // Container type definition
 interface ContainerData {
@@ -22,14 +21,9 @@ interface ContainerData {
   }
   routes: string[]
   clusters: string[]
-  cost: {
-    hourly: number
-    daily: number
-    monthly: number
-  }
 }
 
-// Mock data for containers with calculated costs
+// Mock data for containers
 const containers: ContainerData[] = [
   {
     id: 'cont_1a2b3c4d',
@@ -47,7 +41,6 @@ const containers: ContainerData[] = [
     },
     routes: ['https://web-app-frontend-user123.ctnr.io', 'https://myapp.example.com'],
     clusters: ['eu-0', 'us-west-2'],
-    cost: calculateCost('250m', '512Mi', '3G'),
   },
   {
     id: 'cont_5e6f7g8h',
@@ -65,7 +58,6 @@ const containers: ContainerData[] = [
     },
     routes: ['https://api-backend-user123.ctnr.io'],
     clusters: ['eu-0'],
-    cost: calculateCost('500m', '512Mi', '2G'),
   },
   {
     id: 'cont_9i0j1k2l',
@@ -83,7 +75,6 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['eu-2', 'us-east-1'],
-    cost: calculateCost('250m', '512Mi', '0G'),
   },
   {
     id: 'cont_3m4n5o6p',
@@ -101,7 +92,6 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['eu-0', 'eu-2', 'us-east-1'],
-    cost: calculateCost('250m', '512Mi', '1G'),
   },
   {
     id: 'cont_7q8r9s0t',
@@ -119,7 +109,6 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['development'],
-    cost: calculateCost('300m', '512Mi', '3G'),
   },
 ]
 
@@ -225,16 +214,6 @@ export default function ContainersTableScreen({
       key: 'memory',
       label: 'Memory',
       className: 'font-mono text-sm',
-    },
-    {
-      key: 'cost',
-      label: 'Daily cost',
-      render: (_value, item) => (
-        <div className='text-sm inline-flex gap-1'>
-          <Coins className='h-3 w-3 text-muted-foreground self-center' /> {item.cost.daily}
-        </div>
-      ),
-      className: 'text-sm',
     },
     {
       key: 'clusters',

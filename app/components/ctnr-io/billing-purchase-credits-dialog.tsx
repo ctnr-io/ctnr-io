@@ -22,6 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BillingClient } from 'lib/billing/utils.ts'
 import { CountryCodes } from 'lib/billing/country_codes.ts'
+import { SearchableSelect } from './searchable-select.tsx'
 
 // Create form schema combining amount with BillingClient
 const CreditPurchaseFormSchema = z.object({
@@ -41,7 +42,7 @@ function ClientInfoForm({ form, watchedType }: {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Billing Information</CardTitle>
+        <CardTitle className='text-lg'>Billing Information</CardTitle>
         <CardDescription>
           Provide your billing details for the invoice
         </CardDescription>
@@ -154,7 +155,7 @@ function BillingAddressForm({ form }: { form: any }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Billing Address</CardTitle>
+        <CardTitle className='text-lg'>Billing Address</CardTitle>
         <CardDescription>
           Add billing address to your invoice
         </CardDescription>
@@ -208,41 +209,39 @@ function BillingAddressForm({ form }: { form: any }) {
             <div className='grid grid-cols-2 gap-4'>
               <FormField
                 control={form.control}
-                name='billingAddress.provinceCode'
+                name='billingAddress.countryCode'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Province/State Code</FormLabel>
+                    <FormLabel>Country</FormLabel>
                     <FormControl>
-                      <Input placeholder='e.g. CA, NY, MI' {...field} />
+                      <SearchableSelect
+                        value={field.value}
+                        options={Object.entries(CountryCodes).map(([code, name]) => ({
+                          label: `${name} (${code})`,
+                          value: code,
+                        }))}
+                        onValueChange={field.onChange}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name='billingAddress.countryCode'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Country</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+              {form.watch('billingAddress.countryCode') === 'IT' && (
+                <FormField
+                  control={form.control}
+                  name='billingAddress.provinceCode'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Province/State Code</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder='Select country' />
-                        </SelectTrigger>
+                        <Input placeholder='e.g. MI, RM, TO' {...field} />
                       </FormControl>
-                      <SelectContent>
-                        {Object.entries(CountryCodes).map(([code, name]) => (
-                          <SelectItem key={code} value={code}>
-                            {name} ({code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
           </div>
         )}
@@ -252,13 +251,13 @@ function BillingAddressForm({ form }: { form: any }) {
 }
 
 // Credit Purchase Form Component
-function CreditPurchaseForm({ 
-  onSubmit, 
-  onCancel, 
+function CreditPurchaseForm({
+  onSubmit,
+  onCancel,
   isSubmitting,
   clientData,
-  clientLoading
-}: { 
+  clientLoading,
+}: {
   onSubmit: (data: CreditPurchaseFormData) => Promise<void>
   onCancel: () => void
   isSubmitting: boolean
@@ -366,7 +365,7 @@ function CreditPurchaseForm({
         {step === 'amount' && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Select Credit Amount</CardTitle>
+              <CardTitle className='text-lg'>Select Credit Amount</CardTitle>
               <CardDescription>
                 Choose how many credits you'd like to purchase
               </CardDescription>
@@ -441,19 +440,21 @@ function CreditPurchaseForm({
 
         {step === 'client' && (
           <div className='space-y-4'>
-            {clientLoading ? (
-              <div className='flex items-center justify-center py-8'>
-                <div className='flex items-center gap-3'>
-                  <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-primary'></div>
-                  <span className='text-sm text-muted-foreground'>Loading billing information...</span>
+            {clientLoading
+              ? (
+                <div className='flex items-center justify-center py-8'>
+                  <div className='flex items-center gap-3'>
+                    <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-primary'></div>
+                    <span className='text-sm text-muted-foreground'>Loading billing information...</span>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <ClientInfoForm form={form} watchedType={watchedType} />
-                <BillingAddressForm form={form} />
-              </>
-            )}
+              )
+              : (
+                <>
+                  <ClientInfoForm form={form} watchedType={watchedType} />
+                  <BillingAddressForm form={form} />
+                </>
+              )}
           </div>
         )}
 
@@ -556,7 +557,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
         </DialogHeader>
 
         {generalError && (
-          <Alert variant="destructive">
+          <Alert variant='destructive'>
             <AlertTriangle className='h-4 w-4' />
             <AlertDescription>
               {generalError}

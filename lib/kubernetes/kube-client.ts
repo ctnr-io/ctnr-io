@@ -6,12 +6,13 @@ import { RawKubeConfig } from '@cloudydeno/kubernetes-client/lib/kubeconfig.ts'
 import { ApiextensionsV1Api } from '@cloudydeno/kubernetes-apis/apiextensions.k8s.io/v1'
 import { AutoscalingV1Api } from '@cloudydeno/kubernetes-apis/autoscaling.k8s.io/v1'
 import * as YAML from '@std/yaml'
-import { Quantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import { match } from 'ts-pattern'
 import { yaml } from '@tmpl/core'
 import process from 'node:process'
 import { DeleteOpts, GetListOpts, GetOpts, PatchOpts, PutOpts } from '@cloudydeno/kubernetes-apis/operations.ts'
+import { FreeTier } from '../billing/utils.ts'
+import { getNamespaceBalance } from '../billing/balance.ts'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
@@ -459,7 +460,7 @@ export type DNSEndpoint = {
   }
 }
 
-type CiliumNetworkPolicy = {
+export type CiliumNetworkPolicy = {
   apiVersion: 'cilium.io/v2'
   kind: 'CiliumNetworkPolicy'
   metadata: {
@@ -494,7 +495,7 @@ type CiliumNetworkPolicy = {
   }
 }
 
-type CertManagerV1Certificate = {
+export type CertManagerV1Certificate = {
   apiVersion: 'cert-manager.io/v1'
   kind: 'Certificate'
   metadata: {
@@ -513,7 +514,7 @@ type CertManagerV1Certificate = {
   }
 }
 
-type GatewayV1 = {
+export type GatewayV1 = {
   apiVersion: 'gateway.networking.k8s.io/v1'
   kind: 'Gateway'
   metadata: {
@@ -539,7 +540,7 @@ type GatewayV1 = {
   }
 }
 
-type GatewayV1Beta1ReferenceGrant = {
+export type GatewayV1Beta1ReferenceGrant = {
   apiVersion: 'gateway.networking.k8s.io/v1beta1'
   kind: 'ReferenceGrant'
   metadata: {
@@ -562,7 +563,7 @@ type GatewayV1Beta1ReferenceGrant = {
   }
 }
 
-type KarmadaV1Alpha1PropagationPolicy = {
+export type KarmadaV1Alpha1PropagationPolicy = {
   apiVersion: 'policy.karmada.io/v1alpha1'
   kind: 'PropagationPolicy'
   metadata: {
@@ -588,7 +589,7 @@ type KarmadaV1Alpha1PropagationPolicy = {
   }
 }
 
-type KarmadaV1Alpha1FederatedResourceQuota = {
+export type KarmadaV1Alpha1FederatedResourceQuota = {
   apiVersion: 'policy.karmada.io/v1alpha1'
   kind: 'FederatedResourceQuota'
   metadata: {
@@ -609,7 +610,6 @@ type KarmadaV1Alpha1FederatedResourceQuota = {
         | 'requests.ephemeral-storage'
         | 'limits.cpu'
         | 'limits.memory'
-        | 'limits.storage'
         | 'limits.ephemeral-storage',
         string
       >
@@ -617,26 +617,32 @@ type KarmadaV1Alpha1FederatedResourceQuota = {
   }
 }
 
-async function ensureFederatedResourceQuota(
+export async function ensureFederatedResourceQuota(
   kc: KubeClient,
   namespace: string,
   federatedResourceQuota: KarmadaV1Alpha1FederatedResourceQuota,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   const federatedResourceQuotaName = federatedResourceQuota.metadata.name
   await match(
     // Get the federated resource quota and return null if it does not exist
-    await kc.KarmadaV1Alpha1(namespace).getFederatedResourceQuota(federatedResourceQuotaName).catch(() => null),
+    await kc.KarmadaV1Alpha1(namespace).getFederatedResourceQuota(federatedResourceQuotaName, { abortSignal }).catch(
+      () => null,
+    ),
   )
     // if federated resource quota does not exist, create it
-    .with(null, () => kc.KarmadaV1Alpha1(namespace).createFederatedResourceQuota(federatedResourceQuota))
+    .with(
+      null,
+      () => kc.KarmadaV1Alpha1(namespace).createFederatedResourceQuota(federatedResourceQuota, { abortSignal }),
+    )
     // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
     .with(federatedResourceQuota as any, () => true)
     .otherwise(async () => {
       console.debug('Replacing existing FederatedResourceQuota', federatedResourceQuotaName)
       // Delete the existing federated resource quota first
-      await kc.KarmadaV1Alpha1(namespace).deleteFederatedResourceQuota(federatedResourceQuotaName)
+      await kc.KarmadaV1Alpha1(namespace).deleteFederatedResourceQuota(federatedResourceQuotaName, { abortSignal })
       // Then create the new one
-      return kc.KarmadaV1Alpha1(namespace).createFederatedResourceQuota(federatedResourceQuota)
+      return kc.KarmadaV1Alpha1(namespace).createFederatedResourceQuota(federatedResourceQuota, { abortSignal })
     })
 }
 
@@ -644,42 +650,48 @@ async function ensurePropagationPolicy(
   kc: KubeClient,
   namespace: string,
   propagationPolicy: KarmadaV1Alpha1PropagationPolicy,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   const propagationPolicyName = propagationPolicy.metadata.name
   await match(
     // Get the federated resource quota and return null if it does not exist
-    await kc.KarmadaV1Alpha1(namespace).getPropagationPolicy(propagationPolicyName).catch(() => null),
+    await kc.KarmadaV1Alpha1(namespace).getPropagationPolicy(propagationPolicyName, { abortSignal }).catch(() => null),
   )
     // if federated resource quota does not exist, create it
-    .with(null, () => kc.KarmadaV1Alpha1(namespace).createPropagationPolicy(propagationPolicy))
+    .with(null, () => kc.KarmadaV1Alpha1(namespace).createPropagationPolicy(propagationPolicy, { abortSignal }))
     // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
     .with(propagationPolicy as any, () => true)
     .otherwise(async () => {
       console.debug('Replacing existing PropagationPolicy', propagationPolicyName)
       // Delete the existing federated resource quota first
-      await kc.KarmadaV1Alpha1(namespace).deletePropagationPolicy(propagationPolicyName)
+      await kc.KarmadaV1Alpha1(namespace).deletePropagationPolicy(propagationPolicyName, { abortSignal })
       // Then create the new one
-      return kc.KarmadaV1Alpha1(namespace).createPropagationPolicy(propagationPolicy)
+      return kc.KarmadaV1Alpha1(namespace).createPropagationPolicy(propagationPolicy, { abortSignal })
     })
 }
 
-async function ensureNamespace(kc: KubeClient, namespace: Namespace): Promise<void> {
-  const namespaceName = namespace.metadata!.name!
+async function ensureNamespace(
+  kc: KubeClient,
+  namespaceObj: Namespace,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  const namespace = namespaceObj.metadata!.name!
   await match(
     // Get the namespace and return null if it does not exist
-    await kc.CoreV1.getNamespace(namespaceName).catch(() => null),
+    await kc.CoreV1.getNamespace(namespace, { abortSignal }).catch(() => null),
   )
     // if namespace does not exist, create it
-    .with(null, () => kc.CoreV1.createNamespace(namespace))
+    .with(null, () => kc.CoreV1.createNamespace(namespaceObj, { abortSignal }))
     // if namespace exists, and match values, do nothing, else, patch it to ensure it match
     .with(namespace as any, () => true)
     .otherwise(() =>
       kc.CoreV1.patchNamespace(
-        namespaceName,
-        'apply-patch',
         namespace,
+        'apply-patch',
+        namespaceObj,
         {
           fieldManager: 'ctnr.io',
+          abortSignal,
         },
       )
     )
@@ -711,6 +723,7 @@ async function ensureCiliumNetworkPolicy(
   kc: KubeClient,
   namespace: string,
   networkPolicy: CiliumNetworkPolicy,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   const networkPolicyName = networkPolicy.metadata.name
   await match(
@@ -719,6 +732,7 @@ async function ensureCiliumNetworkPolicy(
       method: 'GET',
       path: `/apis/cilium.io/v2/namespaces/${namespace}/ciliumnetworkpolicies/${networkPolicyName}`,
       expectJson: true,
+      abortSignal,
     })
       .then((res) => res as any)
       .catch(() => null),
@@ -730,6 +744,7 @@ async function ensureCiliumNetworkPolicy(
         path: `/apis/cilium.io/v2/namespaces/${namespace}/ciliumnetworkpolicies`,
         bodyJson: networkPolicy as any,
         expectJson: true,
+        abortSignal,
       }))
     // if network policy exists, and match values, do nothing, else, replace it to ensure it match
     .with(networkPolicy, () => true)
@@ -740,6 +755,7 @@ async function ensureCiliumNetworkPolicy(
         method: 'DELETE',
         path: `/apis/cilium.io/v2/namespaces/${namespace}/ciliumnetworkpolicies/${networkPolicyName}`,
         expectJson: true,
+        abortSignal,
       })
       // Then create the new one
       return kc.performRequest({
@@ -747,24 +763,31 @@ async function ensureCiliumNetworkPolicy(
         path: `/apis/cilium.io/v2/namespaces/${namespace}/ciliumnetworkpolicies/${networkPolicyName}`,
         bodyJson: networkPolicy as any,
         expectJson: true,
+        abortSignal,
       })
     })
 }
 
-export async function ensureService(kc: KubeClient, namespace: string, service: Service): Promise<void> {
+export async function ensureService(
+  kc: KubeClient,
+  namespace: string,
+  service: Service,
+  abortSignal: AbortSignal,
+): Promise<void> {
   // Get the service and return null if it does not exist
-  const currentService = await kc.CoreV1.namespace(namespace).getService(service.metadata!.name!).catch(() => null)
+  const currentService = await kc.CoreV1.namespace(namespace).getService(service.metadata!.name!, { abortSignal })
+    .catch(() => null)
   const nextService = service
   await match(
     currentService,
   )
     // if service does not exist, create it
-    .with(null, () => kc.CoreV1.namespace(namespace).createService(service))
+    .with(null, () => kc.CoreV1.namespace(namespace).createService(service, { abortSignal }))
     // if service exists, and match values, do nothing,
     .with(nextService as any, () => true)
     .otherwise(async () => {
-      await kc.CoreV1.namespace(namespace).deleteService(service.metadata!.name!)
-      await kc.CoreV1.namespace(namespace).createService(nextService)
+      await kc.CoreV1.namespace(namespace).deleteService(service.metadata!.name!, { abortSignal })
+      await kc.CoreV1.namespace(namespace).createService(nextService, { abortSignal })
     })
 }
 
@@ -772,9 +795,12 @@ export async function ensureIngressRoute(
   kc: KubeClient,
   namespace: string,
   ingressRoute: TraefikV1Alpha1IngressRoute,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   // Ensure the ingress route
-  const currentIngressRoute = await kc.TraefikV1Alpha1(namespace).getIngressRoute(ingressRoute.metadata.name).catch(
+  const currentIngressRoute = await kc.TraefikV1Alpha1(namespace).getIngressRoute(ingressRoute.metadata.name, {
+    abortSignal,
+  }).catch(
     () => null,
   )
   const nextIngressRoute = ingressRoute
@@ -782,22 +808,28 @@ export async function ensureIngressRoute(
     currentIngressRoute,
   )
     // if ingress route does not exist, create it
-    .with(null, () => kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any))
+    .with(null, () => kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any, { abortSignal }))
     // if ingress route exists, and match values, do nothing,
     .with(nextIngressRoute as any, () => true)
     .otherwise(async () => {
       // else if the ingress route doesn't have the same name, delete it and create a new one
-      await kc.TraefikV1Alpha1(namespace).deleteIngressRoute(currentIngressRoute!.metadata.name)
-      await kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any)
+      await kc.TraefikV1Alpha1(namespace).deleteIngressRoute(currentIngressRoute!.metadata.name, { abortSignal })
+      await kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any, { abortSignal })
     })
 }
 
-export async function ensureHTTPRoute(kc: KubeClient, namespace: string, httpRoute: HTTPRoute): Promise<void> {
+export async function ensureHTTPRoute(
+  kc: KubeClient,
+  namespace: string,
+  httpRoute: HTTPRoute,
+  abortSignal: AbortSignal,
+): Promise<void> {
   // Ensure the httproute
   const currentHttpRoute = await kc.performRequest({
     method: 'GET',
     path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${httpRoute.metadata.name}`,
     expectJson: true,
+    abortSignal,
   })
     .then((res) => res as HTTPRoute)
     .catch(() => null)
@@ -812,6 +844,7 @@ export async function ensureHTTPRoute(kc: KubeClient, namespace: string, httpRou
         path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
         bodyJson: nextHttpRoute as any,
         expectJson: true,
+        abortSignal,
       }))
     .with(nextHttpRoute as any, () => true)
     .otherwise(async () => {
@@ -821,12 +854,14 @@ export async function ensureHTTPRoute(kc: KubeClient, namespace: string, httpRou
         path:
           `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${currentHttpRoute?.metadata.name}`,
         expectJson: true,
+        abortSignal,
       })
       await kc.performRequest({
         method: 'POST',
         path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
         bodyJson: nextHttpRoute as any,
         expectJson: true,
+        abortSignal,
       })
     })
 }
@@ -835,22 +870,23 @@ export async function ensureTLSRoute(
   kc: KubeClient,
   namespace: string,
   tlsRoute: TLSRoute,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   // Ensure the tlsroute
-  const currentTLSRoute = await kc.GatewayNetworkingV1Alpha2(namespace).getTLSRoute(tlsRoute.metadata.name).catch(() =>
-    null
-  )
+  const currentTLSRoute = await kc.GatewayNetworkingV1Alpha2(namespace).getTLSRoute(tlsRoute.metadata.name, {
+    abortSignal,
+  }).catch(() => null)
   const nextTLSRoute = tlsRoute
   await match(
     currentTLSRoute,
   )
     // if tlsroute does not exist, create it
-    .with(null, () => kc.GatewayNetworkingV1Alpha2(namespace).createTLSRoute(nextTLSRoute as any))
+    .with(null, () => kc.GatewayNetworkingV1Alpha2(namespace).createTLSRoute(nextTLSRoute as any, { abortSignal }))
     .with(nextTLSRoute as any, () => true)
     .otherwise(async () => {
       // else if the tlsroute doesn't have the same name, delete it and create a new one
-      await kc.GatewayNetworkingV1Alpha2(namespace).deleteTLSRoute(currentTLSRoute!.metadata.name)
-      await kc.GatewayNetworkingV1Alpha2(namespace).createTLSRoute(nextTLSRoute as any)
+      await kc.GatewayNetworkingV1Alpha2(namespace).deleteTLSRoute(currentTLSRoute!.metadata.name, { abortSignal })
+      await kc.GatewayNetworkingV1Alpha2(namespace).createTLSRoute(nextTLSRoute as any, { abortSignal })
     })
 }
 
@@ -858,9 +894,12 @@ export async function ensureDNSEndpoint(
   kc: KubeClient,
   namespace: string,
   dnsEndpoint: DNSEndpoint,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   // Ensure the dnsendpoint
-  const currentDNSEndpoint = await kc.ExternalDNSV1alpha1(namespace).getDNSEndpoint(dnsEndpoint.metadata.name).catch(
+  const currentDNSEndpoint = await kc.ExternalDNSV1alpha1(namespace).getDNSEndpoint(dnsEndpoint.metadata.name, {
+    abortSignal,
+  }).catch(
     () => null,
   )
   const nextDNSEndpoint = dnsEndpoint
@@ -868,12 +907,12 @@ export async function ensureDNSEndpoint(
     currentDNSEndpoint,
   )
     // if dnsendpoint does not exist, create it
-    .with(null, () => kc.ExternalDNSV1alpha1(namespace).createDNSEndpoint(nextDNSEndpoint as any))
+    .with(null, () => kc.ExternalDNSV1alpha1(namespace).createDNSEndpoint(nextDNSEndpoint as any, { abortSignal }))
     .with(nextDNSEndpoint as any, () => true)
     .otherwise(async () => {
       // else if the dnsendpoint doesn't have the same name, delete it and create a new one
-      await kc.ExternalDNSV1alpha1(namespace).deleteDNSEndpoint(currentDNSEndpoint!.metadata.name)
-      await kc.ExternalDNSV1alpha1(namespace).createDNSEndpoint(nextDNSEndpoint as any)
+      await kc.ExternalDNSV1alpha1(namespace).deleteDNSEndpoint(currentDNSEndpoint!.metadata.name, { abortSignal })
+      await kc.ExternalDNSV1alpha1(namespace).createDNSEndpoint(nextDNSEndpoint as any, { abortSignal })
     })
 }
 
@@ -881,22 +920,23 @@ export async function ensureCertManagerCertificate(
   kc: KubeClient,
   namespace: string,
   certificate: CertManagerV1Certificate,
+  abortSignal: AbortSignal,
 ): Promise<void> {
-  const currentCertificate = await kc.CertManagerV1(namespace).getCertificate(certificate.metadata.name).catch(() =>
-    null
-  )
+  const currentCertificate = await kc.CertManagerV1(namespace).getCertificate(certificate.metadata.name, {
+    abortSignal,
+  }).catch(() => null)
   const nextCertificate = certificate
   await match(
     currentCertificate,
   )
     // if certificate does not exist, create it
-    .with(null, () => kc.CertManagerV1(namespace).createCertificate(nextCertificate as any))
+    .with(null, () => kc.CertManagerV1(namespace).createCertificate(nextCertificate as any, { abortSignal }))
     // if certificate exists, and match values, do nothing,
     .with(nextCertificate as any, () => true)
     .otherwise(async () => {
       // else if the certificate doesn't have the same name, delete it and create a new one
-      await kc.CertManagerV1(namespace).deleteCertificate(currentCertificate!.metadata.name)
-      await kc.CertManagerV1(namespace).createCertificate(nextCertificate as any)
+      await kc.CertManagerV1(namespace).deleteCertificate(currentCertificate!.metadata.name, { abortSignal })
+      await kc.CertManagerV1(namespace).createCertificate(nextCertificate as any, { abortSignal })
     })
 }
 
@@ -943,27 +983,30 @@ async function _ensureReferenceGrant(
 export const ensureUserNamespace = async (
   kc: KubeClient,
   userId: string,
+  abortSignal: AbortSignal,
 ): Promise<string> => {
-  const namespaceName = 'ctnr-user-' + userId
-  const namespace: Namespace = {
+  const namespace = 'ctnr-user-' + userId
+  let namespaceObj: Namespace = {
     metadata: {
-      name: namespaceName,
+      name: namespace,
       labels: {
         'ctnr.io/owner-id': userId,
       },
     },
   }
 
-  await ensureNamespace(kc, namespace)
+  await ensureNamespace(kc, namespaceObj, abortSignal)
+
+  namespaceObj = await kc.CoreV1.getNamespace(namespace, { abortSignal })
 
   const clusterNames = ['eu-0', 'eu-1', 'eu-2']
 
-  await ensurePropagationPolicy(kc, namespaceName, {
+  await ensurePropagationPolicy(kc, namespace, {
     apiVersion: 'policy.karmada.io/v1alpha1',
     kind: 'PropagationPolicy',
     metadata: {
       name: 'ctnr-user-propagation-policy-all',
-      namespace: namespaceName,
+      namespace: namespace,
       labels: {
         'ctnr.io/owner-id': userId,
       },
@@ -984,7 +1027,7 @@ export const ensureUserNamespace = async (
         },
       },
     },
-  })
+  }, abortSignal)
   for (const clusterName of clusterNames) {
     const resources = [{
       apiVersion: 'v1',
@@ -1022,12 +1065,12 @@ export const ensureUserNamespace = async (
         ['cluster.ctnr.io/' + clusterName]: 'true',
       },
     }
-    await ensurePropagationPolicy(kc, namespaceName, {
+    await ensurePropagationPolicy(kc, namespace, {
       apiVersion: 'policy.karmada.io/v1alpha1',
       kind: 'PropagationPolicy',
       metadata: {
         name: 'ctnr-user-propagation-policy-' + clusterName,
-        namespace: namespaceName,
+        namespace: namespace,
         labels: {
           'ctnr.io/owner-id': userId,
         },
@@ -1043,31 +1086,31 @@ export const ensureUserNamespace = async (
           },
         },
       },
-    })
+    }, abortSignal)
   }
 
-  await ensureFederatedResourceQuota(kc, namespaceName, {
-    apiVersion: 'policy.karmada.io/v1alpha1',
-    kind: 'FederatedResourceQuota',
-    metadata: {
-      name: 'ctnr-user-quota',
-      namespace: namespaceName,
-      labels: {
-        'ctnr.io/owner-id': userId,
+  // If credits-balance === 0, set limits to Free Tier
+  const balance = getNamespaceBalance(namespaceObj)
+  if (balance.credits === 0) {
+    await ensureFederatedResourceQuota(kc, namespace, {
+      apiVersion: 'policy.karmada.io/v1alpha1',
+      kind: 'FederatedResourceQuota',
+      metadata: {
+        name: 'ctnr-resource-quota',
+        namespace: namespace,
+        labels: {
+          'ctnr.io/owner-id': userId,
+        },
       },
-    },
-    spec: {
-      overall: {
-        'limits.cpu': new Quantity(2000, 'm').serialize(),
-        'limits.memory': new Quantity(4, 'Gi').serialize(),
-        'requests.cpu': new Quantity(1000, 'm').serialize(),
-        'requests.memory': new Quantity(2, 'Gi').serialize(),
-        // "pods": new Quantity("10"),
-        // "services": new Quantity("10"),
-        // "persistentvolumeclaims": new Quantity("10"),
+      spec: {
+        overall: {
+          'limits.cpu': FreeTier.cpu,
+          'limits.memory': FreeTier.memory,
+          'requests.storage': FreeTier.storage,
+        },
       },
-    },
-  })
+    }, abortSignal)
+  }
 
   // Ensure the namespace has correct network policies
   const networkPolicyName = 'ctnr-user-network-policy'
@@ -1076,19 +1119,19 @@ export const ensureUserNamespace = async (
     kind: CiliumNetworkPolicy
     metadata:
       name: ${networkPolicyName}
-      namespace: ${namespaceName}
+      namespace: ${namespace}
       labels:
         "ctnr.io/owner-id": ${userId}
         "cluster.ctnr.io/all": "true"
     spec:
       endpointSelector:
         matchLabels:
-          "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+          "k8s:io.kubernetes.pod.namespace": ${namespace}
       ingress:
         # Allow from same namespace
         - fromEndpoints:
             - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+                "k8s:io.kubernetes.pod.namespace": ${namespace}
         # Allow from ctnr-api
         - fromEndpoints:
             - matchLabels:
@@ -1104,7 +1147,7 @@ export const ensureUserNamespace = async (
         # Allow to same namespace
         - toEndpoints:
             - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespaceName}
+                "k8s:io.kubernetes.pod.namespace": ${namespace}
         # Allow DNS to kube-dns/CoreDNS in cluster
         - toEndpoints:
             - matchLabels:
@@ -1127,9 +1170,9 @@ export const ensureUserNamespace = async (
         - toEntities:
             - world
   `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
-  await ensureCiliumNetworkPolicy(kc, namespaceName, networkPolicy)
+  await ensureCiliumNetworkPolicy(kc, namespace, networkPolicy, abortSignal)
 
-  return namespaceName
+  return namespace
 }
 
 export async function ensureUserRoute(
@@ -1142,6 +1185,7 @@ export async function ensureUserRoute(
     ports: Array<{ name: string; port: number }>
     clusters: string[]
   },
+  abortSignal: AbortSignal,
 ): Promise<void> {
   const { userId, name, hostnames, ports, clusters } = options
 
@@ -1166,7 +1210,7 @@ export async function ensureUserRoute(
         'ctnr.io/name': name,
       },
     },
-  })
+  }, abortSignal)
 
   // Create HTTPRoute for *-<user-id>.ctnr.io
   await ensureHTTPRoute(kc, namespace, {
@@ -1203,7 +1247,7 @@ export async function ensureUserRoute(
         })),
       }],
     },
-  })
+  }, abortSignal)
 
   // Create IngressRoute and Certificate for each custom domain
   const tlds = hostnames
@@ -1232,7 +1276,7 @@ export async function ensureUserRoute(
         commonName: hostnamesForTLD[0],
         dnsNames: hostnamesForTLD,
       },
-    })
+    }, abortSignal)
     await ensureIngressRoute(kc, namespace, {
       apiVersion: 'traefik.io/v1alpha1',
       kind: 'IngressRoute',
@@ -1258,6 +1302,6 @@ export async function ensureUserRoute(
           secretName: tld,
         },
       },
-    })
+    }, abortSignal)
   }
 }

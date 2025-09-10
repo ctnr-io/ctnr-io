@@ -4,9 +4,11 @@ import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
 import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
-import { Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
 import { ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
+import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
+import { cn } from 'lib/shadcn/utils.ts'
 
 export interface TableColumn<T = any> {
   key: string
@@ -14,7 +16,7 @@ export interface TableColumn<T = any> {
   render?: (value: any, item: T) => ReactNode
   className?: string
   mobileLabel?: string // For mobile card view
-  hiddenOnMobile?: boolean // Hide this column on mobile
+  visibleOnMobile?: boolean // Hide this column on mobile
 }
 
 export interface TableAction<T = any> {
@@ -69,10 +71,17 @@ export interface DataTableScreenProps<T = any> {
   // Column filtering
   columnFilterable?: boolean
   defaultVisibleColumns?: string[] // Column keys that should be visible by default
+  mobileVisibleColumns?: string[] // Column keys that should be visible on mobile
 
   // Loading and empty states
   loading?: boolean
   emptyMessage?: string
+
+  pagination?: boolean
+  page?: number // Current page number (0-indexed)
+  onPageChange?: (newPage: number) => void
+  hasNextPage?: boolean
+  hasPrevPage?: boolean
 }
 
 export function DataTableScreen<T = any>({
@@ -97,8 +106,14 @@ export function DataTableScreen<T = any>({
   searchKeys,
   columnFilterable = false,
   defaultVisibleColumns,
+  mobileVisibleColumns,
   loading = false,
   emptyMessage = 'No data available',
+  pagination = false,
+  page = 0,
+  onPageChange,
+  hasNextPage,
+  hasPrevPage,
 }: DataTableScreenProps<T>) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showColumnFilter, setShowColumnFilter] = useState(false)
@@ -145,55 +160,31 @@ export function DataTableScreen<T = any>({
     return (
       <div
         key={index}
-        className={`border-b last:border-b-0 p-2 ${
+        className={`border-b last:border-b-0 p-2 flex flex-col gap-2 ${
           rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : ''
         }`}
         onClick={() => rowClickable && onRowClick && onRowClick(item)}
       >
-        <div className='flex items-start justify-between'>
-          <div className='flex items-center gap-3 flex-1 min-w-0'>
+        <div className='flex-1 flex flex-row justify-between mx-2 mt-2 gap-3'>
+          <div className='flex items-center gap-3 min-w-0'>
             <div className='flex-shrink-0 p-2 bg-primary/10 rounded-lg'>
               {mobileCardIcon ? mobileCardIcon(item) : <Icon className='h-4 w-4 text-primary' />}
             </div>
-            <div className='flex-1 min-w-0'>
+            <div className='min-w-0'>
               <h3 className='font-semibold text-base text-foreground truncate'>{mobileCardTitle(item)}</h3>
               {mobileCardSubtitle && (
                 <p className='text-sm text-muted-foreground mt-1 leading-relaxed'>{mobileCardSubtitle(item)}</p>
               )}
             </div>
+            {status && (
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0`}
+              >
+                {status.label}
+              </span>
+            )}
           </div>
-          {status && (
-            <span
-              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0 ml-3`}
-            >
-              {status.label}
-            </span>
-          )}
-        </div>
-        {
-          /*
-        <div className='space-y-3 mb-4'>
-          {columns
-            .filter((col) => !col.hiddenOnMobile && visibleColumns.has(col.key))
-            .map((column) => {
-              const value = item[column.key as keyof T]
-              const displayValue = column.render ? column.render(value, item) : String(value || '')
-
-              if (!displayValue || displayValue === '-') return null
-
-              return (
-                <div key={column.key} className='flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg border'>
-                  <span className='text-sm font-medium text-muted-foreground'>{column.mobileLabel || column.label}</span>
-                  <span className={`text-sm font-medium text-foreground ${column.className || ''}`}>{displayValue}</span>
-                </div>
-              )
-            })}
-        </div> */
-        }
-
-        {
-          /* {actions.length > 0 && (
-          <div className='flex items-center justify-center gap-2 pt-2 border-t border-muted/30'>
+          <div className='flex items-center gap-3 min-w-0'>
             {actions
               .filter((action) => !action.condition || action.condition(item))
               .map((action, actionIndex) => (
@@ -205,15 +196,39 @@ export function DataTableScreen<T = any>({
                     e.stopPropagation() // Prevent card click when clicking action buttons
                     action.onClick(item)
                   }}
-                  className={`${action.className} shadow-sm hover:shadow-md transition-shadow`}
+                  className={`${action.className} shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
                   title={action.label}
                 >
                   <action.icon className='h-4 w-4' />
                 </Button>
               ))}
           </div>
-        )} */
-        }
+        </div>
+
+        <div className='space-y-3 mx-2'>
+          {columns
+            .filter((col) => mobileVisibleColumns?.includes(col.key))
+            .map((column) => {
+              const value = item[column.key as keyof T]
+              const displayValue = column.render ? column.render(value, item) : String(value || '')
+
+              if (!displayValue || displayValue === '-') return null
+
+              return (
+                <div
+                  key={column.key}
+                  className='flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg border'
+                >
+                  <span className='text-sm font-medium text-muted-foreground'>
+                    {column.mobileLabel || column.label}
+                  </span>
+                  <span className={`text-sm font-medium text-foreground ${column.className || ''}`}>
+                    {displayValue}
+                  </span>
+                </div>
+              )
+            })}
+        </div>
       </div>
     )
   }
@@ -222,16 +237,16 @@ export function DataTableScreen<T = any>({
     const visibleColumnsArray = columns.filter((col) => visibleColumns.has(col.key))
 
     return (
-      <div className='hidden md:block overflow-x-auto'>
+      <CardContent className='hidden md:block overflow-x-auto px-0'>
         <Table>
           <TableHeader>
             <TableRow>
               {visibleColumnsArray.map((column) => (
-                <TableHead key={column.key} className={column.className}>
+                <TableHead key={column.key} className={cn(column.className, 'px-6')}>
                   {column.label}
                 </TableHead>
               ))}
-              {actions.length > 0 && <TableHead className='text-right'>Actions</TableHead>}
+              {actions.length > 0 && <TableHead className='text-right px-6'>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -241,12 +256,12 @@ export function DataTableScreen<T = any>({
                 [...Array(5)].map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
                     {visibleColumnsArray.map((column) => (
-                      <TableCell key={column.key} className={column.className}>
+                      <TableCell key={column.key} className={cn(column.className, 'px-6')}>
                         <Skeleton className='h-4' style={{ width: `${Math.random() * 40 + 60}%` }} />
                       </TableCell>
                     ))}
                     {actions.length > 0 && (
-                      <TableCell className='text-right'>
+                      <TableCell className='text-right px-6'>
                         <div className='flex items-center justify-end gap-1'>
                           <Skeleton className='h-8 w-8' />
                           <Skeleton className='h-8 w-8' />
@@ -269,13 +284,13 @@ export function DataTableScreen<T = any>({
                       const displayValue = column.render ? column.render(value, item) : String(value || '')
 
                       return (
-                        <TableCell key={column.key} className={column.className}>
+                        <TableCell key={column.key} className={cn(column.className, 'px-6')}>
                           {displayValue}
                         </TableCell>
                       )
                     })}
                     {actions.length > 0 && (
-                      <TableCell className='text-right'>
+                      <TableCell className='text-right px-6'>
                         <div className='flex items-center justify-end gap-1'>
                           {actions
                             .filter((action) => !action.condition || action.condition(item))
@@ -288,7 +303,7 @@ export function DataTableScreen<T = any>({
                                   e.stopPropagation() // Prevent row click when clicking action buttons
                                   action.onClick(item)
                                 }}
-                                className={action.className}
+                                className={cn(action.className, 'cursor-pointer')}
                                 title={action.label}
                               >
                                 <action.icon className='h-4 w-4' />
@@ -302,7 +317,7 @@ export function DataTableScreen<T = any>({
               )}
           </TableBody>
         </Table>
-      </div>
+      </CardContent>
     )
   }
 
@@ -333,27 +348,27 @@ export function DataTableScreen<T = any>({
 
         {/* Description */}
         {infoDescription && (
-          <div className='bg-card border rounded-lg p-3 md:p-4'>
+          <Card className='bg-card border rounded-lg p-3 md:p-4 '>
             <p className='text-sm sm:text-base text-card-foreground'>
               {infoDescription}
             </p>
-          </div>
+          </Card>
         )}
 
         {/* Data Table */}
-        <div className='bg-card border rounded-lg overflow-hidden'>
-          <div className='p-3 md:p-4 border-b'>
+        <Card className='overflow-hidden gap-0 pb-0'>
+          <CardHeader className='border-b'>
             <h2 className='text-lg sm:text-xl font-semibold'>{tableTitle}</h2>
             {tableDescription && (
               <p className='text-xs sm:text-sm text-muted-foreground'>
                 {tableDescription}
               </p>
             )}
-          </div>
+          </CardHeader>
 
           {/* Desktop Search and Filter Bar */}
           {(searchable || columnFilterable) && (
-            <div className='hidden md:block p-3 md:p-4 border-b'>
+            <CardHeader className='hidden md:block border-b pt-6'>
               <div className='flex items-center gap-4'>
                 {searchable && (
                   <div className='relative min-w-sm'>
@@ -380,7 +395,7 @@ export function DataTableScreen<T = any>({
                     </Button>
 
                     {showColumnFilter && (
-                      <div className='absolute top-full mt-2 -left-1/2 bg-white border rounded-lg shadow-lg p-3 min-w-64 z-10'>
+                      <div className='absolute top-full mt-2 -left-1/2 bg-card border rounded-lg shadow-lg p-3 min-w-64 z-10'>
                         <div className='space-y-3'>
                           <div className='grid grid-cols-2 gap-1'>
                             {columns.map((column) => (
@@ -402,8 +417,8 @@ export function DataTableScreen<T = any>({
                                 />
                                 <span className='flex items-center gap-2 text-sm'>
                                   {visibleColumns.has(column.key)
-                                    ? <Eye className='h-3 w-3 text-green-600' />
-                                    : <EyeOff className='h-3 w-3 text-gray-400' />}
+                                    ? <Eye className='h-3 w-3 text-chart-2' />
+                                    : <EyeOff className='h-3 w-3 text-muted-foreground' />}
                                   {column.mobileLabel || column.label}
                                 </span>
                               </label>
@@ -434,7 +449,7 @@ export function DataTableScreen<T = any>({
                   </div>
                 )}
               </div>
-            </div>
+            </CardHeader>
           )}
 
           {loading
@@ -481,11 +496,35 @@ export function DataTableScreen<T = any>({
                 {renderDesktopTable()}
               </>
             )}
-        </div>
+          {/* Pagination controls */}
+          {pagination && (
+            <CardFooter className='flex justify-center gap-3 border-t !py-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                className='cursor-pointer'
+                onClick={() => onPageChange?.(page - 1)}
+                disabled={!hasPrevPage}
+              >
+                <ArrowLeft /> Previous
+              </Button>
+              <span className='text-sm'>Page {page + 1}</span>
+              <Button
+                variant='outline'
+                size='sm'
+                className='cursor-pointer'
+                onClick={() => onPageChange?.(page + 1)}
+                disabled={!hasNextPage}
+              >
+                Next <ArrowRight />
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
       </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}
       {(searchable || columnFilterable) && (
-        <div className='sticky bottom-0 left-0 right-0 bg-white md:hidden border-t p-3'>
+        <div className='sticky bottom-0 left-0 right-0 bg-background md:hidden border-t p-3 drop-shadow-sm'>
           <div className='space-y-3'>
             {searchable && (
               <div className='relative'>

@@ -11,7 +11,9 @@ import { TRPCClient } from '@trpc/client'
 
 SplashScreen.preventAutoHideAsync()
 
-export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<TRPCServerRouter>()
+export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<
+  TRPCServerRouter
+>()
 
 function makeQueryClient() {
   return new QueryClient({
@@ -42,25 +44,30 @@ export function getQueryClient() {
 }
 
 // Create client context for
-const ExpoTrpcClientContext = React.createContext<TrpcClientContext | null>(null)
+const ExpoTrpcClientContext = React.createContext<TrpcClientContext | null>(
+  null,
+)
 
 export function useExpoTrpcClientContext(): TrpcClientContext {
-  console.log( 'yolo')
   const context = React.useContext(ExpoTrpcClientContext)
   if (!context) {
-    throw new Error('useExpoTrpcClientContext must be used within ExpoTrpcClientProvider')
+    throw new Error(
+      'useExpoTrpcClientContext must be used within ExpoTrpcClientProvider',
+    )
   }
   return context
 }
 
 export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
-  const [state, setState] = useState<{ ctx: TrpcClientContext; server: TRPCClient<TRPCServerRouter> | null } | null>(
+  const [state, setState] = useState<
+    | { ctx: TrpcClientContext; server: TRPCClient<TRPCServerRouter> | null }
+    | null
+  >(
     null,
   )
   const queryClient = getQueryClient()
 
   const updateState = async () => {
-    console.log('Updating TRPC client context')
     const ctx = await createTrpcClientContext({
       auth: {
         storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
@@ -79,10 +86,10 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
       //   },
       // },
     })
-    console.log('TRPC client context updated')
+    const server = await (ctx.connect(async (server) => server).catch(() => null))
     setState({
       ctx,
-      server: await (ctx.connect((server) => server).catch(() => null)),
+      server,
     })
   }
 
@@ -98,14 +105,15 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
       updateState()
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [!!state])
 
-  console.log('Rendering TRPC client provider', state)
   return (
     <QueryClientProvider client={queryClient}>
       {state && (
         <ExpoTrpcClientContext.Provider value={state.ctx}>
-          <TRPCProvider queryClient={queryClient} trpcClient={state.server}>{children}</TRPCProvider>
+          <TRPCProvider queryClient={queryClient} trpcClient={state.server}>
+            {children}
+          </TRPCProvider>
         </ExpoTrpcClientContext.Provider>
       )}
     </QueryClientProvider>

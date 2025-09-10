@@ -11,7 +11,7 @@
     "app/": "../app/",
     "cli/": "../cli/",
     "driver/": "../driver/",
-    "lib/": "../app/lib/",
+    "lib/": "../lib/",
     "ctx/": "../ctx/"
   },
   "compilerOptions": {
@@ -34,7 +34,8 @@
     "rules": {
       "tags": ["recommended"],
       "exclude": [
-        "no-explicit-any"
+        "no-explicit-any",
+        "no-control-regex"
       ]
     }
   }

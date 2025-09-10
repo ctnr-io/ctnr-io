@@ -123,11 +123,11 @@ export async function createTrpcClientContext(
 
         return await callback(client.trpc)
       } catch (error) {
+        console.error(error instanceof Error ? error.message : 'An error occurred while executing command.')
         if (globalThis.Deno) {
-          console.error(error instanceof Error ? error.message : 'An error occurred while executing command.')
           Deno.exit(1)
         } else {
-          throw error
+          throw new Error('An error occurred while executing command.')
         }
       }
     },

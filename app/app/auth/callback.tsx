@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Text, View } from 'react-native'
 import { Platform } from 'react-native'
 import * as Linking from 'expo-linking'
-import { handleAuthCallback } from '../../../api/client/auth/login-from-app.ts'
+import { handleAuthCallback } from '../../../api/client/auth/login_from_app.ts'
 
 export default function AuthCallback() {
   const router = useRouter()

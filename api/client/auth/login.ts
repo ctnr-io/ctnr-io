@@ -1,5 +1,5 @@
 import { AuthClientContext } from 'ctx/mod.ts'
-import { ClientResponse } from '../../_common.ts'
+import { ClientResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
 
 export const Input = z.object({

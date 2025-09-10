@@ -19,11 +19,11 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useSubscription } from '@trpc/tanstack-react-query'
-// @ts-ignore
+// @ts-ignore (no types)
 import Ansi from 'ansi-to-react'
 import { SearchableSelect, SearchableSelectOption } from './searchable-select.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
-import { cn } from '../../lib/shadcn/utils.ts'
+import { cn } from 'lib/shadcn/utils.ts'
 
 interface ContainerInstance {
   name: string
@@ -54,7 +54,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     logs: [],
     isStreaming: true,
     autoScroll: true,
-    wrapLines: true,
+    wrapLines: false,
     error: null,
     searchQuery: '',
     searchResults: [],
@@ -77,7 +77,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       name: containerName,
       follow: true,
       replica: state.selectedReplicaName ? [state.selectedReplicaName] : undefined,
-      timestamps: true,
+      timestamps: false,
       tail: 100, // Show last 100 lines initially
     }, {
       onData: (data) => {
@@ -157,7 +157,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
     URL.revokeObjectURL(url)
   }
 
-  const handleRefreshLogs = async () => {
+  const handleRefreshLogs = () => {
     setState((state) => ({ ...state, logs: [], error: null }))
     // Restart streaming to get fresh logs
     if (state.isStreaming) {
@@ -169,7 +169,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
   // Utility function to strip ANSI escape codes
   const stripAnsiCodes = (text: string): string => {
-    // @deno-lint-ignore
     return text.replace(/\x1b\[[0-9;]*m/g, '')
   }
 
@@ -360,7 +359,6 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       }
 
       // Could add a toast notification here if available
-      console.log('Logs copied to clipboard')
     } catch (err) {
       console.error('Failed to copy logs:', err)
       setState((prev) => ({ ...prev, error: 'Failed to copy logs to clipboard' }))
@@ -428,9 +426,8 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               placeholder='Select replica...'
               searchPlaceholder='Search replicas...'
               emptyMessage='No replica found.'
-              buttonClassName='min-w-[160px] sm:min-w-[200px]'
               popoverClassName='w-[200px]'
-              className='w-full md:w-auto'
+              className='text-foreground/0 hover:text-foreground/0 w-8 md:w-auto md:text-foreground/100 hover:md:text-foreground/100 overflow-hidden'
             />
           )}
 
@@ -457,7 +454,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               title='Refresh logs'
             >
               <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-[spin_reverse_1s_linear_infinite]' : ''}`} />
-              <span className='ml-1 hidden xl:inline'>
+              <span className='ml-1 hidden 2xl:inline'>
                 {isLoading ? 'Refreshing' : 'Refresh'}
               </span>
             </Button>
@@ -601,11 +598,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               <div className='flex items-center gap-2'>
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    isLoading
-                      ? 'bg-blue-500 animate-pulse'
-                      : state.isStreaming
-                      ? 'bg-green-500'
-                      : 'bg-yellow-500'
+                    isLoading ? 'bg-blue-500 animate-pulse' : state.isStreaming ? 'bg-green-500' : 'bg-yellow-500'
                   }`}
                 />
                 <span className='font-medium'>

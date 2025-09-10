@@ -1,11 +1,11 @@
 import { trpc } from '../trpc.ts'
 
-import * as Run from 'api/server/core/run.ts'
-import * as List from 'api/server/core/list.ts'
-import * as Attach from 'api/server/core/attach.ts'
-import * as Exec from 'api/server/core/exec.ts'
-import * as Route from 'api/server/core/route.ts'
-import * as Logs from 'api/server/core/logs.ts'
+import * as Run from 'api/server/compute/containers/run.ts'
+import * as List from 'api/server/compute/containers/list.ts'
+import * as Attach from 'api/server/compute/containers/attach.ts'
+import * as Exec from 'api/server/compute/containers/exec.ts'
+import * as Route from 'api/server/compute/containers/route.ts'
+import * as Logs from 'api/server/compute/containers/logs.ts'
 import { transformQueryProcedure, transformSubscribeProcedure, withServerContext } from './_utils.ts'
 
 export const run = trpc.procedure

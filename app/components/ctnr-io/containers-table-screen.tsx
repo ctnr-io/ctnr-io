@@ -2,8 +2,7 @@
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
-import { Coins, Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
-import { calculateCost } from '../../../lib/billing/utils.ts'
+import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 
 // Container type definition
 interface ContainerData {
@@ -22,14 +21,9 @@ interface ContainerData {
   }
   routes: string[]
   clusters: string[]
-  cost: {
-    hourly: number
-    daily: number
-    monthly: number
-  }
 }
 
-// Mock data for containers with calculated costs
+// Mock data for containers
 const containers: ContainerData[] = [
   {
     id: 'cont_1a2b3c4d',
@@ -47,7 +41,6 @@ const containers: ContainerData[] = [
     },
     routes: ['https://web-app-frontend-user123.ctnr.io', 'https://myapp.example.com'],
     clusters: ['eu-0', 'us-west-2'],
-    cost: calculateCost('250m', '512Mi', 3),
   },
   {
     id: 'cont_5e6f7g8h',
@@ -65,7 +58,6 @@ const containers: ContainerData[] = [
     },
     routes: ['https://api-backend-user123.ctnr.io'],
     clusters: ['eu-0'],
-    cost: calculateCost('500m', '512Mi', 2),
   },
   {
     id: 'cont_9i0j1k2l',
@@ -83,7 +75,6 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['eu-2', 'us-east-1'],
-    cost: calculateCost('250m', '512Mi', 0),
   },
   {
     id: 'cont_3m4n5o6p',
@@ -101,7 +92,6 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['eu-0', 'eu-2', 'us-east-1'],
-    cost: calculateCost('250m', '512Mi', 1),
   },
   {
     id: 'cont_7q8r9s0t',
@@ -119,20 +109,19 @@ const containers: ContainerData[] = [
     },
     routes: [],
     clusters: ['development'],
-    cost: calculateCost('300m', '512Mi', 3),
   },
 ]
 
 function getStatusColor(status: string) {
   switch (status) {
     case 'running':
-      return 'text-green-600 bg-green-50'
+      return 'text-chart-2 bg-chart-2/10'
     case 'stopped':
-      return 'text-red-600 bg-red-50'
+      return 'text-destructive bg-destructive/10'
     case 'restarting':
-      return 'text-yellow-600 bg-yellow-50'
+      return 'text-chart-4 bg-chart-4/10'
     default:
-      return 'text-gray-600 bg-gray-50'
+      return 'text-muted-foreground bg-muted'
   }
 }
 
@@ -145,7 +134,6 @@ function formatDate(dateString: string) {
     minute: '2-digit',
   })
 }
-
 
 export default function ContainersTableScreen({
   data,
@@ -197,10 +185,10 @@ export default function ContainersTableScreen({
             <div
               className={`w-2 h-2 rounded-full ${
                 item.replicas.current >= item.replicas.min
-                  ? 'bg-green-500'
+                  ? 'bg-chart-2'
                   : item.replicas.current > 0
-                  ? 'bg-yellow-500'
-                  : 'bg-red-500'
+                  ? 'bg-chart-4'
+                  : 'bg-destructive'
               }`}
             >
             </div>
@@ -228,16 +216,6 @@ export default function ContainersTableScreen({
       className: 'font-mono text-sm',
     },
     {
-      key: 'cost',
-      label: 'Daily cost',
-      render: (_value, item) => (
-        <div className='text-sm inline-flex gap-1'>
-          <Coins className="h-3 w-3 text-gray-600 self-center" /> {item.cost.daily}
-        </div>
-      ),
-      className: 'text-sm',
-    },
-    {
       key: 'clusters',
       label: 'Clusters',
       render: (value: string[]) => {
@@ -247,7 +225,7 @@ export default function ContainersTableScreen({
             {value.map((cluster, index) => (
               <span
                 key={index}
-                className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200'
+                className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20'
               >
                 {cluster}
               </span>
@@ -268,7 +246,7 @@ export default function ContainersTableScreen({
               href={value[0]}
               target='_blank'
               rel='noopener noreferrer'
-              className='text-blue-600 hover:text-blue-800 underline text-sm'
+              className='text-primary hover:text-primary/80 underline text-sm'
               onClick={(e) => e.stopPropagation()}
             >
               {value[0].replace(/^https?:\/\//, '')}

@@ -9,13 +9,16 @@ export async function createServerContext(opts: {
   auth: {
     accessToken: string | undefined
     refreshToken: string | undefined
-  };
+  }
   stdio: StdioContext['stdio']
-}): Promise<ServerContext> {
+}, signal: AbortSignal): Promise<ServerContext> {
   const authContext = await createAuthServerContext(opts)
-  const kubeContext = await createKubeServerContext(authContext.auth.user.id)
+  const kubeContext = await createKubeServerContext(authContext.auth.user.id, signal)
   const stdioContext = await createStdioServerContext(opts.stdio)
-  const billingContext = await createBillingContext()
+  const billingContext = await createBillingContext({
+    ...kubeContext,
+    ...authContext,
+  }, signal)
   const projectContext = await createProjectContext()
   return {
     __type: 'server',

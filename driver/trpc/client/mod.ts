@@ -17,8 +17,10 @@ export async function createTRPCWebSocketClient({
 }> {
   const { promise, resolve, reject } = Promise.withResolvers<void>()
 
+  // Convert HTTP/HTTPS URLs to WebSocket URLs
   const wsClient = createWSClient({
     url,
+    WebSocket: globalThis.WebSocket,
     // lazy: {
     //   closeMs: 0, // Close the connection after 1 minute of inactivity
     //   enabled: true,
@@ -29,7 +31,7 @@ export async function createTRPCWebSocketClient({
         refreshToken,
       }
     },
-    WebSocket: globalThis.WebSocket,
+    // WebSocket: globalThis.WebSocket,
     onError() {
       console.error('WebSocket error occurred.')
     },

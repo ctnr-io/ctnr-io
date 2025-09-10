@@ -72,7 +72,9 @@ function extractEndpoints(): Array<{
         try {
           const parsed = JSON.parse(item.response[0].body)
           responseType = generateType(parsed)
-        } catch {}
+        } catch {
+          responseType = 'any'
+        }
       }
 
       // Get request type from request body
@@ -81,7 +83,9 @@ function extractEndpoints(): Array<{
         try {
           const parsed = JSON.parse(item.request.body.raw)
           requestType = generateType(parsed)
-        } catch {}
+        } catch {
+          requestType = 'any'
+        }
       }
 
       // Convert name to camelCase and remove articles
@@ -181,7 +185,7 @@ ${
     const hasPathParams = ep.pathParams.length > 0
     const hasRequestBody = ep.requestType !== 'void'
 
-    let params = []
+    const params = []
     if (hasPathParams) params.push(`pathParams: ${Name}PathParams`)
     if (hasRequestBody) params.push(`data: ${Name}Request`)
     params.push(`queryParams?: Record<string, any>`)

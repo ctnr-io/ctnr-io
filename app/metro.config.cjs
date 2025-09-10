@@ -1,7 +1,6 @@
 const { getDefaultConfig } = require('expo/metro-config')
 const path = require('path')
 const fs = require('fs')
-const { url } = require('zod')
 const { createProxyMiddleware } = require('http-proxy-middleware')
 
 const process = require('../lib/node/process.ts').default

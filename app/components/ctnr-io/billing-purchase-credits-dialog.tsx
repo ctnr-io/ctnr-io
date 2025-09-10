@@ -506,7 +506,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
     const amount = parseInt(data.amount)
 
     try {
-      const clientPayload = {
+      const clientPayload: BillingClient = {
         type: data.type,
         ...(data.type === 'individual' && {
           firstName: data.firstName!,

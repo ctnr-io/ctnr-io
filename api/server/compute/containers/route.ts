@@ -5,7 +5,6 @@ import { hash } from 'node:crypto'
 import * as shortUUID from '@opensrc/short-uuid'
 import { resolveTxt } from 'node:dns/promises'
 import { ContainerName, PortName } from 'lib/api/schemas.ts'
-import checkUsage from 'api/server/billing/check_usage.ts'
 
 export const Meta = {
   aliases: {

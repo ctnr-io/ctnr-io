@@ -145,7 +145,8 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
           <Alert>
             <Lock className='h-4 w-4' />
             <AlertDescription>
-              Resource limit adjustments are only available for paid tier users. You're currently on the free tier with fixed limits: 1 CPU core, 2 GB memory, and 1 GB storage.
+              Resource limit adjustments are only available for paid tier users. You're currently on the free tier with
+              fixed limits: 1 CPU core, 2 GB memory, and 1 GB storage.
             </AlertDescription>
           </Alert>
         )}
@@ -181,10 +182,11 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                   disabled={tier === 'free'}
                 />
                 <p className='text-xs text-muted-foreground'>
-                  {tier === 'free' 
+                  {tier === 'free'
                     ? 'Fixed at 1 CPU core for free tier users'
-                    : `Range: ${ResourceLimits.cpu.display(ResourceLimits.cpu.min)} - ${ResourceLimits.cpu.display(ResourceLimits.cpu.max)}`
-                  }
+                    : `Range: ${ResourceLimits.cpu.display(ResourceLimits.cpu.min)} - ${
+                      ResourceLimits.cpu.display(ResourceLimits.cpu.max)
+                    }`}
                 </p>
               </div>
 
@@ -209,10 +211,11 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                   disabled={tier === 'free'}
                 />
                 <p className='text-xs text-muted-foreground'>
-                  {tier === 'free' 
+                  {tier === 'free'
                     ? 'Fixed at 2 GB memory for free tier users'
-                    : `Range: ${ResourceLimits.memory.display(ResourceLimits.memory.min)} - ${ResourceLimits.memory.display(ResourceLimits.memory.max)}`
-                  }
+                    : `Range: ${ResourceLimits.memory.display(ResourceLimits.memory.min)} - ${
+                      ResourceLimits.memory.display(ResourceLimits.memory.max)
+                    }`}
                 </p>
               </div>
 
@@ -237,10 +240,11 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                   disabled={tier === 'free'}
                 />
                 <p className='text-xs text-muted-foreground'>
-                  {tier === 'free' 
+                  {tier === 'free'
                     ? 'Fixed at 1 GB storage for free tier users'
-                    : `Range: ${ResourceLimits.storage.display(ResourceLimits.storage.min)} - ${ResourceLimits.storage.display(ResourceLimits.storage.max)}`
-                  }
+                    : `Range: ${ResourceLimits.storage.display(ResourceLimits.storage.min)} - ${
+                      ResourceLimits.storage.display(ResourceLimits.storage.max)
+                    }`}
                 </p>
               </div>
             </CardContent>
@@ -301,27 +305,31 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
           <Button variant='outline' type='button' onClick={handleCancel}>
             {tier === 'free' ? 'Close' : 'Cancel'}
           </Button>
-          {tier === 'free' ? (
-            <Button onClick={() => {
-              onOpenChange(false)
-              setCreditPurchaseOpen(true)
-            }}>
-              Upgrade to Paid Plan
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitPending}
-            >
-              {isSubmitPending ? 'Updating...' : 'Update Limits'}
-            </Button>
-          )}
+          {tier === 'free'
+            ? (
+              <Button
+                onClick={() => {
+                  onOpenChange(false)
+                  setCreditPurchaseOpen(true)
+                }}
+              >
+                Upgrade to Paid Plan
+              </Button>
+            )
+            : (
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitPending}
+              >
+                {isSubmitPending ? 'Updating...' : 'Update Limits'}
+              </Button>
+            )}
         </div>
       </DialogContent>
-      
-      <CreditPurchaseDialog 
-        open={creditPurchaseOpen} 
-        onOpenChange={setCreditPurchaseOpen} 
+
+      <CreditPurchaseDialog
+        open={creditPurchaseOpen}
+        onOpenChange={setCreditPurchaseOpen}
       />
     </Dialog>
   )

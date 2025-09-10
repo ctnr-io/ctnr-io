@@ -1,8 +1,5 @@
 import { FreeTier, parseResourceUsage, parseResourceValue } from 'lib/billing/utils.ts'
-import {
-  ensureFederatedResourceQuota,
-  KubeClient,
-} from '../kubernetes/kube-client.ts'
+import { ensureFederatedResourceQuota, KubeClient } from '../kubernetes/kube-client.ts'
 import { calculateTotalCostWithFreeTier } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
 
@@ -226,7 +223,6 @@ export async function getUsage(opts: {
   const resourceLimitReached = resources.cpu.percentage >= 100 ||
     resources.memory.percentage >= 100 ||
     resources.storage.percentage >= 100
-
 
   // Priority order for status determination:
   // 1. If current usage exceeds credits, it's a breach

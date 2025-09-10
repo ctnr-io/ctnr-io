@@ -135,10 +135,14 @@
  * Fade animations for all
  */
 @keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
-*:not([class*="animat"]) {
+*:not([class*='animat']) {
   animation: fadeIn 0.2s ease-in-out;
 }

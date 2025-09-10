@@ -11,7 +11,6 @@ import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
 import checkUsage from 'api/server/billing/check_usage.ts'
 import { parseResourceValue } from 'lib/billing/utils.ts'
-import { match } from 'ts-pattern'
 
 export const Meta = {
   aliases: {

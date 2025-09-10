@@ -107,9 +107,15 @@ export type BillingWebhookContext = {
 
 export type BillingWorkerContext = BillingWebhookContext
 
-export type ServerContext = StdioContext & KubeServerContext & AuthServerContext & ProjectContext & BillingServerContext & {
-  __type: 'server'
-}
+export type ServerContext =
+  & StdioContext
+  & KubeServerContext
+  & AuthServerContext
+  & ProjectContext
+  & BillingServerContext
+  & {
+    __type: 'server'
+  }
 export type WebhookContext = KubeWebhookContext & BillingWebhookContext & {
   __type: 'webhook'
 }

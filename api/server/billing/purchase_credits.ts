@@ -20,7 +20,11 @@ export const Input = z.object({
   client: BillingClient,
 })
 
-export type Input = z.infer<typeof Input>
+export type Input = {
+  amount: number
+  type: 'one-time' | 'first' | 'recurring'
+  client: BillingClient
+}
 
 export const Output = z.any()
 

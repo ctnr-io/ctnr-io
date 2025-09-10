@@ -17,7 +17,6 @@ import {
 import { Link, Route } from 'expo-router'
 import { AppSidebarLogo } from './app-sidebar-logo.tsx'
 import { usePathname } from 'expo-router'
-import { useNavigation } from 'expo-router'
 
 // ctnr.io navigation data
 const data = {

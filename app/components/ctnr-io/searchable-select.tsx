@@ -67,7 +67,7 @@ export function SearchableSelect({
     </div>
   )
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -89,17 +89,17 @@ export function SearchableSelect({
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    value={`${option.label} ${option.value}`}
-                    disabled={option.disabled}
-                    onSelect={() => {
-                      setOpen(false)
-                      onValueChange(option.value)
-                    }}
-                  >
-                    {renderOption ? renderOption(option) : defaultRenderOption(option)}
-                  </CommandItem>
+                <CommandItem
+                  key={option.value}
+                  value={`${option.label} ${option.value}`}
+                  disabled={option.disabled}
+                  onSelect={() => {
+                    setOpen(false)
+                    onValueChange(option.value)
+                  }}
+                >
+                  {renderOption ? renderOption(option) : defaultRenderOption(option)}
+                </CommandItem>
               ))}
             </CommandGroup>
           </CommandList>

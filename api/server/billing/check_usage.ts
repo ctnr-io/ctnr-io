@@ -79,7 +79,9 @@ export default async function* (
       const limitWarnings = []
       if (usage.resources.cpu.percentage >= 100) limitWarnings.push(`CPU (${usage.resources.cpu.percentage}%)`)
       if (usage.resources.memory.percentage >= 100) limitWarnings.push(`Memory (${usage.resources.memory.percentage}%)`)
-      if (usage.resources.storage.percentage >= 100) limitWarnings.push(`Storage (${usage.resources.storage.percentage}%)`)
+      if (usage.resources.storage.percentage >= 100) {
+        limitWarnings.push(`Storage (${usage.resources.storage.percentage}%)`)
+      }
 
       yield `⚠️  Resource limit reached for: ${limitWarnings.join(', ')}`
       yield `📊 Current usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.used}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.used}/${usage.resources.storage.limit}`

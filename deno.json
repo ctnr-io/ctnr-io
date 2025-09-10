@@ -73,7 +73,8 @@
       "exclude": [
         "no-explicit-any",
         "require-yield",
-        "no-control-regex"
+        "no-control-regex",
+        "require-await"
       ]
     }
   },

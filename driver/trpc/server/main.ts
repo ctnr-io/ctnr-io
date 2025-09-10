@@ -2,12 +2,11 @@ import 'lib/utils.ts'
 
 import { applyWSSHandler } from '@trpc/server/adapters/ws'
 import { WebSocketServer } from 'ws'
-import { createServer, IncomingMessage } from 'node:http'
+import { createServer } from 'node:http'
 import { router } from './router.ts'
 import { createTrpcServerContext } from './context.ts'
 import process from 'node:process'
 import { createOpenApiHttpHandler } from 'trpc-to-openapi'
-import { Readable } from 'node:stream'
 import querystring from 'node:querystring'
 import { createWorkerContext } from 'ctx/worker/mod.ts'
 
@@ -17,7 +16,7 @@ const httpHandler = createOpenApiHttpHandler({
   createContext: createTrpcServerContext,
 })
 
-const httpServer = createServer(async (req, res) => {
+const httpServer = createServer((req, res) => {
   console.info(`➕➕ HTTP Request: ${req.method} ${req.url}`)
 
   // Set CORS headers
@@ -54,7 +53,7 @@ const httpServer = createServer(async (req, res) => {
       try {
         const response = await fetch('http://localhost:3000' + req.url!, {
           method: req.method,
-          // @ts-expect-error
+          // @ts-ignore ignore
           headers: {
             ...req.headers,
             'content-type': 'application/json', // Override content-type header
@@ -118,30 +117,30 @@ async function runWorkerProcedures() {
   try {
     // Create a worker context
     const workerCtx = await createWorkerContext({})
-    
+
     // Create a minimal tRPC server context for worker procedures (without WebSocket dependencies)
     const mockStdio = {
       stdin: new ReadableStream({
         start(controller) {
           controller.close()
-        }
+        },
       }),
       stdout: new WritableStream({
         write() {
           // No-op for worker procedures
-        }
+        },
       }),
       stderr: new WritableStream({
         write() {
           // No-op for worker procedures
-        }
+        },
       }),
       exit: () => {},
       setRaw: () => {},
-      signalChan: () => (async function*() {})(),
-      terminalSizeChan: () => (async function*() {})(),
+      signalChan: () => (async function* () {})(),
+      terminalSizeChan: () => (async function* () {})(),
     }
-    
+
     const serverCtx = {
       auth: {
         accessToken: undefined,
@@ -149,15 +148,15 @@ async function runWorkerProcedures() {
       },
       stdio: mockStdio,
     }
-    
+
     // Merge worker context into server context
     const ctx = { ...serverCtx, ...workerCtx }
     const caller = router.createCaller(ctx)
-    
+
     // Get all procedures from the router definition
     const procedures = router._def.procedures
-    
-    for (const [name, procedure] of Object.entries(procedures)) {
+
+    for (const [name] of Object.entries(procedures)) {
       if (name.match(/[wW]orker$/)) {
         console.info(`🚀 Running worker procedure: ${name}`)
         try {

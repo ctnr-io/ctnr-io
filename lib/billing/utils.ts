@@ -3,8 +3,6 @@
  */
 
 import z from 'zod'
-import { KubeClient } from '../kubernetes/kube-client.ts'
-import { Namespace } from '@cloudydeno/kubernetes-apis/core/v1'
 import { DEFAULT_RATES } from './cost.ts'
 
 export interface ResourceParsed {
@@ -12,7 +10,6 @@ export interface ResourceParsed {
   memory: number // in MB
   storage: number // in GB
 }
-
 
 export const FreeTier = {
   cpu: '1G', // 1 CPU core
@@ -106,7 +103,6 @@ export function parseResourceUsage(usage: {
   }
 }
 
-
 export type TierLimits = {
   cpu: string // in millicores
   memory: string // in MB
@@ -142,6 +138,36 @@ export const PaymentMetadataV1 = z.object({
 })
 export type PaymentMetadataV1 = z.infer<typeof PaymentMetadataV1>
 
+const BillingAddressBase = z.object({
+  streetAddress: z.string().min(1, 'Street address is required').max(200, 'Street address too long'),
+  city: z.string().min(1, 'City is required').max(100, 'City name too long'),
+  postalCode: z.string().min(1, 'Postal code is required').max(20, 'Postal code too long'),
+  countryCode: z.string().min(2, 'Country code must be at least 2 characters').max(3, 'Country code too long'),
+  provinceCode: z.string().max(10, 'Province code too long').optional(),
+})
+const BillingAddress = z.union([
+  BillingAddressBase,
+  BillingAddressBase.and(z.object({
+    // Province code is required only for Italian addresses
+    countryCode: z.literal('IT'),
+    provinceCode: z.string().min(1, 'Province code is required for Italian addresses').max(
+      10,
+      'Province code too long',
+    ),
+  })),
+])
+
+const BillingClientBase = z.object({
+  type: z.enum(['individual', 'freelance', 'company']),
+  firstName: z.string().min(1, 'First name is required').max(100, 'First name too long').optional(),
+  lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long').optional(),
+  name: z.string().min(1, 'Company name is required').max(200, 'Company name too long').optional(),
+  vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long').optional(),
+  currency: z.enum(['EUR']),
+  locale: z.enum(['fr']),
+  billingAddress: BillingAddressBase,
+})
+
 export const BillingClient = z.union([
   z.object({
     type: z.literal('individual'),
@@ -163,25 +189,10 @@ export const BillingClient = z.union([
   .and(z.object({
     currency: z.enum(['EUR']),
     locale: z.enum(['fr']),
-    billingAddress: z.object({
-      streetAddress: z.string().min(1, 'Street address is required').max(200, 'Street address too long'),
-      city: z.string().min(1, 'City is required').max(100, 'City name too long'),
-      postalCode: z.string().min(1, 'Postal code is required').max(20, 'Postal code too long'),
-      provinceCode: z.string().max(10, 'Province code too long').optional(),
-      countryCode: z.string().min(2, 'Country code must be at least 2 characters').max(3, 'Country code too long'),
-    }).refine((data) => {
-      // Province code is required only for Italian addresses
-      if (data.countryCode === 'IT') {
-        return data.provinceCode && data.provinceCode.trim().length > 0
-      }
-      return true
-    }, {
-      message: 'Province code is required for Italian addresses',
-      path: ['provinceCode'],
-    }),
+    billingAddress: BillingAddress,
   }))
 
-export type BillingClient = z.infer<typeof BillingClient>
+export type BillingClient = z.infer<typeof BillingClientBase>
 
 // Logarithmic scaling functions
 const logScale = (value: number, min: number, max: number): number => {

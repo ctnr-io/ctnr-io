@@ -123,7 +123,9 @@ export function ContainersDetailScreen(props: {
               <ContainerImageIcon image={data.image} className='h-8 w-8' />
               <h1 className='text-3xl font-bold text-foreground'>{data.name}</h1>
               <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(data.status)}`}
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  getStatusColor(data.status)
+                }`}
               >
                 {data.status}
               </span>
@@ -201,19 +203,21 @@ export function ContainersDetailScreen(props: {
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Image</span>
-                    <Badge variant="outline" className='font-mono'>{data.image}</Badge>
+                    <Badge variant='outline' className='font-mono'>{data.image}</Badge>
                   </div>
                   <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Created</span>
-                    <Badge variant="outline">{data.createdAt ? formatDate(data.createdAt.toISOString()) : 'Unknown'}</Badge>
+                    <Badge variant='outline'>
+                      {data.createdAt ? formatDate(data.createdAt.toISOString()) : 'Unknown'}
+                    </Badge>
                   </div>
                   <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Restart Policy</span>
-                    <Badge variant="outline">{data.restartPolicy || 'unless-stopped'}</Badge>
+                    <Badge variant='outline'>{data.restartPolicy || 'unless-stopped'}</Badge>
                   </div>
                   <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Working Directory</span>
-                    <Badge variant="outline" className='font-mono'>{data.workingDir || 'N/A'}</Badge>
+                    <Badge variant='outline' className='font-mono'>{data.workingDir || 'N/A'}</Badge>
                   </div>
                 </div>
               </CardContent>
@@ -231,18 +235,20 @@ export function ContainersDetailScreen(props: {
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>CPU Usage</span>
-                    <Badge variant="outline" className='font-mono'>{data.cpu}</Badge>
+                    <Badge variant='outline' className='font-mono'>{data.cpu}</Badge>
                   </div>
                   <div className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                     <span className='text-foreground font-medium'>Memory Usage</span>
-                    <Badge variant="outline" className='font-mono'>{data.memory}</Badge>
+                    <Badge variant='outline' className='font-mono'>{data.memory}</Badge>
                   </div>
                 </div>
-                
+
                 {/* Ports */}
                 {data.ports && data.ports.length > 0 && (
                   <div className='mt-4'>
-                    <h4 className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>Port Mappings</h4>
+                    <h4 className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>
+                      Port Mappings
+                    </h4>
                     <div className='space-y-1'>
                       {data.ports.map((port, index) => (
                         <div key={index} className='font-mono text-sm bg-muted/60 px-2 py-1 rounded'>
@@ -312,9 +318,7 @@ export function ContainersDetailScreen(props: {
                             <span className='font-medium'>{instance.name}</span>
                           </div>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              getStatusColor(instance.status)
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(instance.status)}`}
                           >
                             {instance.status}
                           </span>
@@ -369,10 +373,11 @@ export function ContainersDetailScreen(props: {
                     <div key={key} className='flex justify-between items-center p-3 bg-muted/60 rounded-lg'>
                       <span className='text-foreground font-medium font-mono'>{key}</span>
                       <div className='flex items-center gap-2'>
-                        <Badge variant="outline" className='font-mono'>{value}</Badge>
+                        <Badge variant='outline' className='font-mono'>{value}</Badge>
                         <button
                           type='button'
-                          onClick={() => navigator.clipboard.writeText(value)}
+                          onClick={() =>
+                            navigator.clipboard.writeText(value)}
                           className='p-1 hover:bg-muted rounded'
                           title='Copy value'
                         >
@@ -397,7 +402,9 @@ export function ContainersDetailScreen(props: {
                 {/* Volumes */}
                 {data.volumes && data.volumes.length > 0 && (
                   <div className='mb-4'>
-                    <h4 className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>Volume Mounts</h4>
+                    <h4 className='text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2'>
+                      Volume Mounts
+                    </h4>
                     <div className='space-y-1'>
                       {data.volumes.map((volume, index) => (
                         <div key={index} className='font-mono text-sm bg-muted px-2 py-1 rounded'>

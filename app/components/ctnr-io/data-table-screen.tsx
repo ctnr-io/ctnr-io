@@ -9,13 +9,6 @@ import { ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from '../shadcn/ui/pagination.tsx'
 
 export interface TableColumn<T = any> {
   key: string

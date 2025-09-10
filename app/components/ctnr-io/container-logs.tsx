@@ -19,7 +19,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
 import { useSubscription } from '@trpc/tanstack-react-query'
-// @ts-ignore
+// @ts-ignore (no types)
 import Ansi from 'ansi-to-react'
 import { SearchableSelect, SearchableSelectOption } from './searchable-select.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'

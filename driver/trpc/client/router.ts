@@ -115,7 +115,9 @@ export const clientRouter = trpc.router({
   ),
 
   // Billing procedures
-  purchaseCredits: trpc.procedure.meta(PurchaseCredits.Meta).input(PurchaseCredits.Input).mutation(({ input, signal, ctx }) =>
+  purchaseCredits: trpc.procedure.meta(PurchaseCredits.Meta).input(PurchaseCredits.Input).mutation((
+    { input, signal, ctx },
+  ) =>
     ctx.connect(
       (server) => server.billing.purchaseCredits.mutate(input, { signal, context: ctx }),
     )

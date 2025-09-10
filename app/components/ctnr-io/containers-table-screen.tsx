@@ -2,7 +2,7 @@
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
-import { Coins, Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
+import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 
 // Container type definition
 interface ContainerData {

@@ -3,7 +3,7 @@ import z from 'zod'
 import { ensureUserNamespace } from 'lib/kubernetes/kube-client.ts'
 import { PaymentMetadataV1 } from 'lib/billing/utils.ts'
 import { formatDate } from 'date-fns'
-import { addCredits, getNamespaceBalance } from 'lib/billing/balance.ts'
+import { addCredits } from 'lib/billing/balance.ts'
 
 export const Meta = {
   openapi: { method: 'POST', path: '/billing/webhook' },
@@ -61,7 +61,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     }
 
     // Create an invoice
-    console.info("Creating invoice in Qonto for client", qontoClientId)
+    console.info('Creating invoice in Qonto for client', qontoClientId)
 
     const issueDate = formatDate(new Date(payment.paidAt!), 'yyyy-MM-dd')
     const amountWithVAT = Number(payment.amount.value)
@@ -72,7 +72,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
       due_date: issueDate,
       currency: payment.amount.currency,
       payment_methods: {
-        iban: Deno.env.get("QONTO_IBAN"),
+        iban: Deno.env.get('QONTO_IBAN'),
       },
       items: [{
         title: `${metadata.data.credits} credits`,

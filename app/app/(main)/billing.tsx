@@ -85,7 +85,7 @@ export default function BillingScreen() {
     {
       key: 'createdAt',
       label: 'Invoice',
-      render: (value, item) => (
+      render: (value) => (
         <div className='flex items-center gap-2'>
           <Receipt className='h-4 w-4 text-muted-foreground' />
           <span className='font-medium'>{formatDate(value)}</span>
@@ -482,10 +482,10 @@ export default function BillingScreen() {
                   label: item.status,
                   className: getStatusColor(item.status),
                 })}
-								rowClickable
-								onRowClick={invoice => {
-									globalThis.open(invoice.downloadUrl, '_blank')
-								}}
+                rowClickable
+                onRowClick={(invoice) => {
+                  globalThis.open(invoice.downloadUrl, '_blank')
+                }}
                 mobileCardIcon={() => <Receipt className='h-4 w-4' />}
                 searchPlaceholder='Search invoices...'
                 searchKeys={['description', 'status']}

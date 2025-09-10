@@ -67,7 +67,7 @@ export default async function* (
     }
 
     case 'insufficient_credits_for_additional_resource': {
-      yield `⚠️  Insufficient credits for additional provisioning! Next usage would exceed your balance.`
+      yield `⚠️  Insufficient credits for this additional provisioning! Next usage would exceed your balance.`
       yield `💰 Balance: ${usage.balance.credits} credits, Next cost: ${
         usage.costs.next.hourly.toFixed(4)
       } credits/hour`
@@ -87,6 +87,13 @@ export default async function* (
       yield `📊 Current usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.used}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.used}/${usage.resources.storage.limit}`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
       throw new Error('Resource limits reached')
+    }
+
+    case 'resource_limits_reached_for_additional_resource': {
+      yield `⚠️  Resource limit would be exceeded with this additional provisioning!`
+      yield `📊 With additional: CPU ${usage.resources.cpu.next}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.next}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.next}/${usage.resources.storage.limit}`
+      yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
+      throw new Error('Resource limits would be exceeded with provisioning')
     }
 
     // TODO: add low_balance case

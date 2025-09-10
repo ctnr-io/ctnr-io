@@ -56,9 +56,7 @@ export const Input = z.object({
     .optional()
     .default(1)
     .describe('Number of replicas: single number (e.g., 3) or range (e.g., "1-5" for min-max)'),
-  cpu: z.union([
-    z.string().regex(/^\d+m$/, 'CPU limit must be in the format <number>m (e.g., "250m") or <number> (e.g., "1")'),
-  ])
+  cpu: z.string().regex(/^\d+m?$/, 'CPU limit must be in the format <number>m (e.g., "250m") or <number> (e.g., "1")')
     .default('250m')
     .describe('CPU limit for the container: single number (e.g., 1) or number followed by "m" (e.g., "250m")'),
   memory: z.string()

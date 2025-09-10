@@ -14,6 +14,7 @@ import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './b
 export type BalanceStatus =
   | 'normal'
   | 'resource_limits_reached_for_current_usage'
+  | 'resource_limits_reached_for_additional_resource'
   | 'insufficient_credits_for_current_usage'
   | 'insufficient_credits_for_additional_resource'
   | 'free_tier'
@@ -235,6 +236,8 @@ export async function getUsage(opts: {
     status = 'resource_limits_reached_for_current_usage'
   } else if (additionalUsage && nextCost.hourly > balance.credits) {
     status = 'insufficient_credits_for_additional_resource'
+  } else if (additionalUsage && nextCost.daily > limitCost.daily) {
+    status = 'resource_limits_reached_for_additional_resource'
   } else if (balance.credits === 0) {
     status = 'free_tier'
   } else {

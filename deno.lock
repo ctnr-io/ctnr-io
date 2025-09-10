@@ -6,10 +6,13 @@
     "jsr:@cloudydeno/kubernetes-client@~0.7.5": "0.7.5",
     "jsr:@opensrc/short-uuid@1": "1.0.0",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
+    "jsr:@std/fs@^1.0.19": "1.0.19",
     "jsr:@std/internal@^1.0.10": "1.0.10",
+    "jsr:@std/internal@^1.0.9": "1.0.10",
     "jsr:@std/path@1": "1.1.2",
     "jsr:@std/path@1.0.6": "1.0.6",
     "jsr:@std/path@^1.0.9": "1.1.2",
+    "jsr:@std/path@^1.1.1": "1.1.2",
     "jsr:@std/streams@1": "1.0.11",
     "jsr:@std/streams@1.0.5": "1.0.5",
     "jsr:@std/yaml@1": "1.0.9",
@@ -68,6 +71,13 @@
     "@std/bytes@1.0.6": {
       "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
     },
+    "@std/fs@1.0.19": {
+      "integrity": "051968c2b1eae4d2ea9f79a08a3845740ef6af10356aff43d3e2ef11ed09fb06",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.9",
+        "jsr:@std/path@^1.1.1"
+      ]
+    },
     "@std/internal@1.0.10": {
       "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
     },
@@ -77,7 +87,7 @@
     "@std/path@1.1.2": {
       "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
       "dependencies": [
-        "jsr:@std/internal"
+        "jsr:@std/internal@^1.0.10"
       ]
     },
     "@std/streams@1.0.5": {

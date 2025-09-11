@@ -24,6 +24,51 @@ export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
     context,
   )
   return {
+    AutoScalingV2Api: {
+      namespace: (namespace: string) => ({
+        getHorizontalPodAutoscaler: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers/${name}`,
+            expectJson: true,
+            ...opts,
+          }) as Promise<HorizontalPodAutoscaler>,
+        createHorizontalPodAutoscaler: (body: HorizontalPodAutoscaler, opts?: Pick<PutOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'POST',
+            path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers`,
+            bodyJson: body,
+            expectJson: true,
+            ...opts,
+          }),
+        patchHorizontalPodAutoscaler: (
+          name: string,
+          body: HorizontalPodAutoscaler,
+          opts?: Pick<PatchOpts, 'abortSignal'>,
+        ) =>
+          client.performRequest({
+            method: 'PATCH',
+            path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers/${name}`,
+            bodyJson: body,
+            expectJson: true,
+            ...opts,
+          }),
+        deleteHorizontalPodAutoscaler: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'DELETE',
+            path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers/${name}`,
+            expectJson: true,
+            ...opts,
+          }),
+        listHorizontalPodAutoscalers: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers`,
+            expectJson: true,
+            ...opts,
+          }),
+      }),
+    },
     performRequest: client.performRequest.bind(client),
     get CoreV1() {
       return new CoreV1Api(client)
@@ -617,6 +662,105 @@ export type KarmadaV1Alpha1FederatedResourceQuota = {
   }
 }
 
+type HorizontalPodAutoscaler = {
+  apiVersion: 'autoscaling/v2'
+  kind: 'HorizontalPodAutoscaler'
+  metadata: {
+    name: string
+    namespace: string
+    labels?: Record<string, string>
+  }
+  spec: {
+    scaleTargetRef: {
+      apiVersion: string
+      kind: string
+      name: string
+    }
+    minReplicas: number
+    maxReplicas: number
+    metrics?: Array<{
+      type: string
+      resource?: {
+        name: string
+        target: {
+          type: string
+          averageUtilization?: number
+          averageValue?: string
+          value?: string
+        }
+      }
+      pods?: {
+        metricName: string
+        target: {
+          type: string
+          averageUtilization?: number
+          averageValue?: string
+          value?: string
+        }
+      }
+      object?: {
+        describedObject: {
+          apiVersion: string
+          kind: string
+          name: string
+        }
+        metricName: string
+        target: {
+          type: string
+          averageUtilization?: number
+          averageValue?: string
+          value?: string
+        }
+      }
+      external?: {
+        metricName: string
+        metricSelector?: {
+          matchLabels: Record<string, string>
+          matchExpressions?: Array<{
+            key: string
+            operator: string
+            values: string[]
+          }>
+        }
+        target: {
+          type: string
+          averageValue?: string
+          value?: string
+        }
+      }
+    }>
+  }
+}
+
+export async function ensureHorizontalPodAutoscaler(
+  kc: KubeClient,
+  namespace: string,
+  hpa: HorizontalPodAutoscaler,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  const hpaName = hpa.metadata.name
+  await match(
+    // Get the horizontal pod autoscaler and return null if it does not exist
+    await kc.AutoScalingV2Api.namespace(namespace).getHorizontalPodAutoscaler(hpaName, { abortSignal }).catch(
+      () => null,
+    ),
+  )
+    // if horizontal pod autoscaler does not exist, create it
+    .with(
+      null,
+      () => kc.AutoScalingV2Api.namespace(namespace).createHorizontalPodAutoscaler(hpa, { abortSignal }),
+    )
+    // if horizontal pod autoscaler exists, and match values, do nothing, else, patch it to ensure it match
+    .with(hpa as any, () => true)
+    .otherwise(async () => {
+      console.debug('Replacing existing HorizontalPodAutoscaler', hpaName)
+      // Delete the existing horizontal pod autoscaler first
+      await kc.AutoScalingV2Api.namespace(namespace).deleteHorizontalPodAutoscaler(hpaName, { abortSignal })
+      // Then create the new one
+      return kc.AutoScalingV2Api.namespace(namespace).createHorizontalPodAutoscaler(hpa, { abortSignal })
+    })
+}
+
 export async function ensureFederatedResourceQuota(
   kc: KubeClient,
   namespace: string,
@@ -662,7 +806,6 @@ async function ensurePropagationPolicy(
     // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
     .with(propagationPolicy as any, () => true)
     .otherwise(async () => {
-      console.debug('Replacing existing PropagationPolicy', propagationPolicyName)
       // Delete the existing federated resource quota first
       await kc.KarmadaV1Alpha1(namespace).deletePropagationPolicy(propagationPolicyName, { abortSignal })
       // Then create the new one
@@ -1059,6 +1202,9 @@ export const ensureUserNamespace = async (
     }, {
       apiVersion: 'traefik.io/v1alpha1',
       kind: 'IngressRoute',
+    }, {
+      apiVersion: 'autoscaling/v2',
+      kind: 'HorizontalPodAutoscaler',
     }]
     const labelSelector = {
       matchLabels: {

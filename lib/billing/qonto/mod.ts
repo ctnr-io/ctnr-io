@@ -1,4 +1,5 @@
 import QontoApi, { CreateClientRequest, CreateClientResponse } from './client.ts'
+import client from './client.ts.ts'
 
 export class QontoClient extends QontoApi {
   updateClient(
@@ -8,6 +9,13 @@ export class QontoClient extends QontoApi {
   ): Promise<CreateClientResponse> {
     const path = '/v2/clients/:id'.replace(':id', pathParams.id)
     return this.request<CreateClientResponse>('patch', path, data, queryParams)
+  }
+  deleteClient(
+    pathParams: { id: string },
+    queryParams?: Record<string, any>,
+  ): Promise<void> {
+    const path = '/v2/clients/:id'.replace(':id', pathParams.id)
+    return this.request<void>('delete', path, {}, queryParams)
   }
 }
 

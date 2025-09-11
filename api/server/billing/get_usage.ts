@@ -7,12 +7,6 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  // Optional additional resource usage for provisioning requests
-  additionalUsage: z.object({
-    cpu: z.string(),
-    memory: z.string(),
-    storage: z.string(),
-  }).optional(),
 })
 
 export type Input = z.infer<typeof Input>
@@ -22,7 +16,7 @@ export const Output = z.any()
 export type Output = Awaited<ReturnType<typeof getUsage>>
 
 export default async function* (
-  { ctx, signal, input }: ServerRequest<Input>,
+  { ctx, signal }: ServerRequest<Input>,
 ): ServerResponse<Output> {
   const kubeClient = ctx.kube.client['eu']
   const namespace = ctx.kube.namespace
@@ -30,7 +24,6 @@ export default async function* (
   return await getUsage({
     kubeClient,
     namespace,
-    additionalUsage: input.additionalUsage,
     signal,
   })
 }

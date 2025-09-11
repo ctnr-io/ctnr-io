@@ -5,7 +5,7 @@ import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
 import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
-import { ReactNode, useMemo, useState } from 'react'
+import { Fragment, ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
@@ -22,10 +22,12 @@ export interface TableColumn<T = any> {
 export interface TableAction<T = any> {
   icon: LucideIcon
   label: string
-  onClick: (item: T) => void
+  disabled?: boolean
+  onClick?: (item: T) => void
   variant?: 'default' | 'ghost' | 'destructive'
   className?: string
   condition?: (item: T) => boolean // Show action only if condition is true
+  Wrapper?: (props: { item: T; children: ReactNode }) => ReactNode // Wrapper component for modals/dialogs
 }
 
 export interface DataTableScreenProps<T = any> {
@@ -82,6 +84,10 @@ export interface DataTableScreenProps<T = any> {
   onPageChange?: (newPage: number) => void
   hasNextPage?: boolean
   hasPrevPage?: boolean
+}
+
+function ActionWrapperDefault({ children }: { children: ReactNode }) {
+  return children
 }
 
 export function DataTableScreen<T = any>({
@@ -187,20 +193,22 @@ export function DataTableScreen<T = any>({
           <div className='flex items-center gap-3 min-w-0'>
             {actions
               .filter((action) => !action.condition || action.condition(item))
-              .map((action, actionIndex) => (
-                <Button
-                  key={actionIndex}
-                  variant={action.variant || 'ghost'}
-                  size='sm'
-                  onClick={(e) => {
-                    e.stopPropagation() // Prevent card click when clicking action buttons
-                    action.onClick(item)
-                  }}
-                  className={`${action.className} shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
-                  title={action.label}
-                >
-                  <action.icon className='h-4 w-4' />
-                </Button>
+              .map(({ Wrapper = ActionWrapperDefault, ...action }) => (
+                <Wrapper item={item} key={action.label}>
+                  <Button
+                    variant={action.variant || 'ghost'}
+                    size='sm'
+                    onClick={!action.onClick ? undefined : (e) => {
+                      e.stopPropagation() // Prevent card click when clicking action buttons
+                      action.onClick?.(item)
+                    }}
+                    className={`${action.className} shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
+                    title={action.label}
+                    disabled={action.disabled}
+                  >
+                    <action.icon className='h-4 w-4' />
+                  </Button>
+                </Wrapper>
               ))}
           </div>
         </div>
@@ -294,20 +302,22 @@ export function DataTableScreen<T = any>({
                         <div className='flex items-center justify-end gap-1'>
                           {actions
                             .filter((action) => !action.condition || action.condition(item))
-                            .map((action, actionIndex) => (
-                              <Button
-                                key={actionIndex}
-                                variant={action.variant || 'ghost'}
-                                size='sm'
-                                onClick={(e) => {
-                                  e.stopPropagation() // Prevent row click when clicking action buttons
-                                  action.onClick(item)
-                                }}
-                                className={cn(action.className, 'cursor-pointer')}
-                                title={action.label}
-                              >
-                                <action.icon className='h-4 w-4' />
-                              </Button>
+                            .map(({ Wrapper = ActionWrapperDefault, ...action }) => (
+                              <Wrapper item={item} key={action.label}>
+                                <Button
+                                  variant={action.variant || 'ghost'}
+                                  size='sm'
+                                  onClick={!action.onClick ? undefined : (e) => {
+                                    e.stopPropagation() // Prevent card click when clicking action buttons
+                                    action.onClick?.(item)
+                                  }}
+                                  className={`${action.className} cursor-pointer`}
+                                  title={action.label}
+                                  disabled={action.disabled}
+                                >
+                                  <action.icon className='h-4 w-4' />
+                                </Button>
+                              </Wrapper>
                             ))}
                         </div>
                       </TableCell>

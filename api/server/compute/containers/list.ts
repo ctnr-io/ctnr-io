@@ -274,6 +274,7 @@ function mapDeploymentStatusToContainerStatus(status: any): string {
   if (replicas === 0) return 'stopped'
   if (readyReplicas === replicas && availableReplicas === replicas) return 'running'
   if (readyReplicas > 0) return 'running'
+  // Check for image missing or pull errors in conditions
   return 'restarting'
 }
 

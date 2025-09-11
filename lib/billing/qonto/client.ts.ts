@@ -176,7 +176,7 @@ export class QontoApi {
       throw new Error('Qonto API Error: ' + response.status + ' - ' + JSON.stringify(error));
     }
 
-    return response.json();
+    return response.json().catch(() => null) as Promise<T>;
   }
 
 ${

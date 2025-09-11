@@ -2,13 +2,12 @@ import * as Run from 'api/server//compute/containers/run.ts'
 import * as List from 'api/server//compute/containers/list.ts'
 import * as Attach from 'api/server//compute/containers/attach.ts'
 import * as Exec from 'api/server//compute/containers/exec.ts'
+import * as Remove from 'api/server//compute/containers/remove.ts'
+import * as Restart from 'api/server//compute/containers/restart.ts'
 import * as Route from 'api/server//compute/containers/route.ts'
 import * as Logs from 'api/server//compute/containers/logs.ts'
-import * as PurchaseCredits from '../../../api/server/billing/purchase_credits.ts'
-import * as GetClient from 'api/server/billing/get_client.ts'
-import * as GetUsage from 'api/server/billing/get_usage.ts'
-import * as GetInvoices from 'api/server/billing/get_invoices.ts'
-import * as SetLimits from 'api/server/billing/set_limits.ts'
+import * as Start from 'api/server/compute/containers/start.ts'
+import * as Stop from 'api/server/compute/containers/stop.ts'
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from './context.ts'
 import login from 'api/client/auth/login_from_terminal.ts'
@@ -103,46 +102,36 @@ export const clientRouter = trpc.router({
       (server) => transformSubscribeResolver(server.core.exec.subscribe, { input, signal, ctx }),
     )
   ),
-  route: trpc.procedure.meta(Route.Meta).input(Route.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.route.subscribe, { input, signal, ctx }),
-    )
-  ),
   logs: trpc.procedure.meta(Logs.Meta).input(Logs.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
       (server) => transformSubscribeResolver(server.core.logs.subscribe, { ctx, input, signal }),
     )
   ),
-
-  // Billing procedures
-  // purchaseCredits: trpc.procedure.meta(PurchaseCredits.Meta).input(PurchaseCredits.Input).mutation((
-  //   { input, signal, ctx },
-  // ) =>
-  //   ctx.connect(
-  //     (server) => server.billing.purchaseCredits.mutate(input, { signal, context: ctx }),
-  //   )
-  // ),
-  // getClient: trpc.procedure.meta(GetClient.Meta).input(GetClient.Input).query(({ input, signal, ctx }) =>
-  //   ctx.connect(
-  //     (server) => server.billing.getClient.query(input, { signal, context: ctx }),
-  //   )
-  // ),
-
-  // getInvoices: trpc.procedure.meta(GetInvoices.Meta).input(GetInvoices.Input).query(({ input, signal, ctx }) =>
-  //   ctx.connect(
-  //     (server) => server.billing.getInvoices.query(input, { signal, context: ctx }),
-  //   )
-  // ),
-  // getUsage: trpc.procedure.meta(GetUsage.Meta).input(GetUsage.Input).query(({ input, signal, ctx }) =>
-  //   ctx.connect(
-  //     (server) => server.billing.getUsage.query(input, { signal, context: ctx }),
-  //   )
-  // ),
-  // setLimits: trpc.procedure.meta(SetLimits.Meta).input(SetLimits.Input).mutation(({ input, signal, ctx }) =>
-  //   ctx.connect(
-  //     (server) => server.billing.setLimits.mutate(input, { signal, context: ctx }),
-  //   )
-  // ),
+  remove: trpc.procedure.meta(Remove.Meta).input(Remove.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.remove.subscribe, { ctx, input, signal }),
+    )
+  ),
+  restart: trpc.procedure.meta(Restart.Meta).input(Restart.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.restart.subscribe, { ctx, input, signal }),
+    )
+  ),
+  route: trpc.procedure.meta(Route.Meta).input(Route.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.route.subscribe, { input, signal, ctx }),
+    )
+  ),
+  start: trpc.procedure.meta(Start.Meta).input(Start.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.start.subscribe, { ctx, input, signal }),
+    )
+  ),
+  stop: trpc.procedure.meta(Stop.Meta).input(Stop.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.stop.subscribe, { ctx, input, signal }),
+    )
+  ),
 })
 
 export type clientRouter = typeof clientRouter

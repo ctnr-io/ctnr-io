@@ -6,7 +6,7 @@ export type Input = z.infer<typeof Input>
 export type Output = void
 
 import { WorkerRequest, WorkerResponse } from 'lib/api/types.ts'
-import { getUsage } from 'lib/billing/usage.ts'
+import { checkUsage, getUsage } from 'lib/billing/usage.ts'
 
 export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<Output> {
   const controller = new AbortController()
@@ -35,6 +35,17 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
               namespace,
               signal,
             })
+            try {
+              for await (const msg of checkUsage({
+                kubeClient: ctx.kube.client['eu'],
+                namespace,
+                signal,
+              })) {
+                console.debug(`Usage check for namespace ${namespace}:`, msg)
+              }
+            } catch (error) {
+              console.warn(`Usage check issue for namespace ${namespace}:`, error)
+            }
             console.debug(`Balance updated for namespace ${namespace}:`, usage.balance)
           } catch (error) {
             console.error(`Failed to update balance for namespace ${namespace}:`, error)

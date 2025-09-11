@@ -1,4 +1,5 @@
-import { FreeTier, parseResourceValue } from './utils.ts'
+import { parseResourceToPrimitiveValue } from './resource.ts'
+import { FreeTier } from './utils.ts'
 
 export interface CostRates {
   cpuPerHour: number // cost per CPU core per hour in credits
@@ -44,14 +45,14 @@ export function calculateTotalCostWithFreeTier(
   monthly: number
 } {
   // Parse resources to standardized units
-  const cpuCores = parseResourceValue(cpu, 'cpu') / 1000
-  const memoryGB = parseResourceValue(memory, 'memory') / 1024
-  const storageGB = parseResourceValue(storage, 'storage')
+  const cpuCores = parseResourceToPrimitiveValue(cpu, 'cpu') / 1000
+  const memoryGB = parseResourceToPrimitiveValue(memory, 'memory') / 1024
+  const storageGB = parseResourceToPrimitiveValue(storage, 'storage')
 
   // Free tier allowances (per replica)
-  const freeTierCpuCores = parseResourceValue(FreeTier.cpu, 'cpu') / 1000
-  const freeTierMemoryGB = parseResourceValue(FreeTier.memory, 'memory') / 1024
-  const freeTierStorageGB = parseResourceValue(FreeTier.storage, 'storage')
+  const freeTierCpuCores = parseResourceToPrimitiveValue(FreeTier.cpu, 'cpu') / 1000
+  const freeTierMemoryGB = parseResourceToPrimitiveValue(FreeTier.memory, 'memory') / 1024
+  const freeTierStorageGB = parseResourceToPrimitiveValue(FreeTier.storage, 'storage')
 
   // Calculate billable resources (subtract free tier allowances)
   const billableCpuCores = Math.max(0, cpuCores - freeTierCpuCores)
@@ -82,9 +83,9 @@ function calculateCost(
   monthly: number
 } {
   // Parse resources to standardized units
-  const cpuCores = parseResourceValue(cpu, 'cpu') / 1000
-  const memoryGB = parseResourceValue(memory, 'memory') / 1024
-  const storageGB = parseResourceValue(storage, 'storage')
+  const cpuCores = parseResourceToPrimitiveValue(cpu, 'cpu') / 1000
+  const memoryGB = parseResourceToPrimitiveValue(memory, 'memory') / 1024
+  const storageGB = parseResourceToPrimitiveValue(storage, 'storage')
 
   // Calculate base hourly cost for one replica (only for usage above free tier)
   const baseCostPerHour = (cpuCores * rates.cpuPerHour) +

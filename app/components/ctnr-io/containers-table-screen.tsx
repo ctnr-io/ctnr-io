@@ -2,7 +2,24 @@
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
-import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
+import { Container, Copy, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useRouter } from 'expo-router'
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  DialogTrigger,
+} from '../shadcn/ui/dialog.tsx'
+import { Button } from '../shadcn/ui/button.tsx'
+import Ansi from 'ansi-to-react'
+import { cn } from 'lib/shadcn/utils.ts'
+import { Label } from '../shadcn/ui/label.tsx'
 
 // Container type definition
 interface ContainerData {
@@ -22,95 +39,6 @@ interface ContainerData {
   routes: string[]
   clusters: string[]
 }
-
-// Mock data for containers
-const containers: ContainerData[] = [
-  {
-    id: 'cont_1a2b3c4d',
-    name: 'web-app-frontend',
-    image: 'nginx:alpine',
-    status: 'running',
-    created: '2024-01-15T10:30:00Z',
-    ports: ['web:80/tcp', 'https:443/tcp'],
-    cpu: '250m',
-    memory: '512Mi',
-    replicas: {
-      max: 5,
-      min: 2,
-      current: 3,
-    },
-    routes: ['https://web-app-frontend-user123.ctnr.io', 'https://myapp.example.com'],
-    clusters: ['eu-0', 'us-west-2'],
-  },
-  {
-    id: 'cont_5e6f7g8h',
-    name: 'api-backend',
-    image: 'node:18-alpine',
-    status: 'running',
-    created: '2024-01-15T09:15:00Z',
-    ports: ['api:8080/tcp'],
-    cpu: '500m',
-    memory: '512Mi',
-    replicas: {
-      max: 3,
-      min: 1,
-      current: 2,
-    },
-    routes: ['https://api-backend-user123.ctnr.io'],
-    clusters: ['eu-0'],
-  },
-  {
-    id: 'cont_9i0j1k2l',
-    name: 'database',
-    image: 'postgres:15',
-    status: 'stopped',
-    created: '2024-01-14T16:45:00Z',
-    ports: ['5432/tcp'],
-    cpu: '250m',
-    memory: '512Mi',
-    replicas: {
-      max: 1,
-      min: 1,
-      current: 0,
-    },
-    routes: [],
-    clusters: ['eu-2', 'us-east-1'],
-  },
-  {
-    id: 'cont_3m4n5o6p',
-    name: 'redis-cache',
-    image: 'redis:7-alpine',
-    status: 'running',
-    created: '2024-01-15T08:20:00Z',
-    ports: ['6379/tcp'],
-    cpu: '250m',
-    memory: '512Mi',
-    replicas: {
-      max: 2,
-      min: 1,
-      current: 1,
-    },
-    routes: [],
-    clusters: ['eu-0', 'eu-2', 'us-east-1'],
-  },
-  {
-    id: 'cont_7q8r9s0t',
-    name: 'worker-queue',
-    image: 'python:3.11-slim',
-    status: 'restarting',
-    created: '2024-01-15T11:00:00Z',
-    ports: [],
-    cpu: '300m',
-    memory: '512Mi',
-    replicas: {
-      max: 6,
-      min: 2,
-      current: 3,
-    },
-    routes: [],
-    clusters: ['development'],
-  },
-]
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -144,6 +72,56 @@ export default function ContainersTableScreen({
   isLoading?: boolean
   onRowClick: (container: ContainerData) => void
 }) {
+  const queryClient = useQueryClient()
+  const trpc = useTRPC()
+  const router = useRouter()
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({
+      queryKey: trpc.core.listQuery.queryKey(),
+    })
+    queryClient.invalidateQueries({
+      queryKey: trpc.billing.getUsage.queryKey(),
+    })
+  }
+
+  const startMutation = useMutation(
+    trpc.core.startMutation.mutationOptions({
+      onSuccess: invalidate,
+    }),
+  )
+  const stopMutation = useMutation(
+    trpc.core.stopMutation.mutationOptions({
+      onSuccess: invalidate,
+    }),
+  )
+  const restartMutation = useMutation(
+    trpc.core.restartMutation.mutationOptions({
+      onSuccess: invalidate,
+    }),
+  )
+  const removeMutation = useMutation(
+    trpc.core.removeMutation.mutationOptions({
+      onSuccess: () => {
+        router.replace('/(main)/containers')
+        return invalidate()
+      },
+    }),
+  )
+
+  const isPending = startMutation.isPending ||
+    stopMutation.isPending ||
+    restartMutation.isPending ||
+    removeMutation.isPending
+
+  useEffect(() => {
+    if (!isPending) return
+    const interval = setInterval(() => {
+      invalidate()
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [isPending])
+
   // Define table columns
   const columns: TableColumn<ContainerData>[] = [
     {
@@ -290,72 +268,185 @@ export default function ContainersTableScreen({
     {
       icon: Square,
       label: 'Stop Container',
-      onClick: (container) => console.log('Stop', container.name),
+      onClick: (container) => stopMutation.mutate({ name: container.name }),
       condition: (container) => container.status === 'running',
+      disabled: isPending,
     },
     {
       icon: Play,
       label: 'Start Container',
-      onClick: (container) => console.log('Start', container.name),
+      onClick: (container) => startMutation.mutate({ name: container.name }),
       condition: (container) => container.status === 'stopped',
+      disabled: isPending,
     },
     {
       icon: RotateCcw,
       label: 'Restart Container',
-      onClick: (container) => console.log('Restart', container.name),
+      onClick: (container) => restartMutation.mutate({ name: container.name }),
+      disabled: isPending,
     },
     {
       icon: Eye,
       label: 'View Logs',
-      onClick: (container) => console.log('View logs', container.name),
+      onClick: (container) => router.push(`/containers/${container.name}/logs`),
+      disabled: isPending,
     },
     {
       icon: Settings,
       label: 'Container Settings',
-      onClick: (container) => console.log('Settings', container.name),
+      onClick: (container) => router.push(`/containers/${container.name}/settings`),
+      disabled: isPending,
     },
     {
       icon: Trash2,
       label: 'Delete Container',
-      onClick: (container) => console.log('Delete', container.name),
+      disabled: isPending,
       variant: 'ghost',
       className: 'text-destructive hover:text-destructive',
+      Wrapper: useCallback(({ item, children }: { item: ContainerData; children: ReactNode }) => {
+        const [open, setOpen] = useState(false)
+        return (
+          <>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger
+                onClick={(e) => {
+                  // Prevent triggering the row onClick when opening the dialog
+                  e.stopPropagation()
+                  setOpen(true)
+                }}
+                asChild
+              >
+                {children}
+              </DialogTrigger>
+              <DialogContent>
+                <DialogTitle>Remove Containers</DialogTitle>
+                <DialogDescription>
+                  <p className='text-sm text-muted-foreground'>
+                    Are you sure you want to remove the containers{' '}
+                    <span className='font-mono'>{item.name}</span>? This action cannot be undone.
+                  </p>
+                </DialogDescription>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant='outline'>Cancel</Button>
+                  </DialogClose>
+                  <Button
+                    variant='destructive'
+                    className='cursor-pointer'
+                    onClick={() => removeMutation.mutate({ name: item.name, force: true })}
+                  >
+                    <Trash2 className='h-4 w-4' />
+                    Remove
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )
+      }, []),
     },
   ]
 
+  const [runDialogOpen, setRunDialogOpen] = useState(false)
+
+function TerminalLine({
+  className,
+  prefix = '$',
+  text,
+}: {
+  className?: string
+  prefix?: string
+  text: string
+}) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1200)
+  }
   return (
-    <DataTableScreen<ContainerData>
-      title='Containers'
-      description='Manage and monitor your application containers'
-      icon={Container}
-      primaryAction={{
-        label: 'Run Containers',
-        icon: Container,
-        onClick: () => console.log('Run containers'),
-      }}
-      infoDescription='View and manage all your containers in one place. Start, stop, restart, and monitor your containers with real-time status updates. You can also view logs, attach to containers, and manage port forwarding.'
-      data={data}
-      columns={columns}
-      actions={actions}
-      tableTitle='All Containers'
-      tableDescription={`${containers.length} containers total • ${
-        containers.filter((c) => c.status === 'running').length
-      } running`}
-      mobileCardTitle={(item) => item.name}
-      mobileCardStatus={(item) => ({
-        label: item.status,
-        className: getStatusColor(item.status),
-      })}
-      mobileCardIcon={(item) => <ContainerImageIcon image={item.image} className='h-4 w-4' />}
-      onRowClick={onRowClick}
-      rowClickable
-      searchable
-      searchPlaceholder='Search containers by name, image, status, or clusters...'
-      searchKeys={['name', 'image', 'status', 'clusters']}
-      columnFilterable
-      defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}
-      emptyMessage='No containers found. Create your first container to get started.'
-      loading={isLoading}
-    />
+    <Button
+      type='button'
+      variant='ghost'
+      onClick={handleCopy}
+      className={cn(
+        'group flex items-center flex-1 bg-gray-900 border border-slate-700 rounded  transition hover:bg-gray-800 focus:outline-none justify-between',
+        'cursor-pointer',
+        className,
+        copied ? 'ring-2 ring-yellow-500' : ''
+      )}
+      title={copied ? 'Copied!' : 'Copy'}
+      tabIndex={0}
+    >
+      <span className='font-mono text-sm text-gray-100 select-text flex-1 text-left'>
+        <span className='text-gray-500 mr-2'>{prefix}</span>
+        {text}
+      </span>
+      <span className='ml-2 flex items-center'>
+        <Copy className={cn('h-4 w-4 transition', copied ? 'text-yellow-400' : 'text-gray-400 group-hover:text-white')} />
+        {copied && (
+          <span className='ml-2 text-xs text-yellow-400 font-semibold transition'>Copied</span>
+        )}
+      </span>
+    </Button>
+  )
+}
+
+  return (
+    <>
+      <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
+        <DialogContent className="!max-w-fit">
+          <DialogTitle>Install &amp; Run CLI</DialogTitle>
+          <DialogDescription>
+            <div className='space-y-4 flex flex-col'>
+              <Label>Install CLI</Label>
+              <TerminalLine text='curl -fsSL https://get.ctnr.io | bash' />
+              <Label>Login</Label>
+              <TerminalLine text='ctnr login' />
+              <Label>Run an ubuntu Container</Label>
+              <TerminalLine text='ctnr run --name ubuntu --image ubuntu:latest -i -t' />
+            </div>
+          </DialogDescription>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant='outline'>Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <DataTableScreen<ContainerData>
+        title='Containers'
+        description='Manage and monitor your application containers'
+        icon={Container}
+        primaryAction={{
+          label: 'Run Container',
+          icon: Container,
+          onClick: () => setRunDialogOpen(true),
+        }}
+        infoDescription='View and manage all your containers in one place. Start, stop, restart, and monitor your containers with real-time status updates. You can also view logs, attach to containers, and manage port forwarding.'
+        data={data}
+        columns={columns}
+        actions={actions}
+        tableTitle='All Containers'
+        tableDescription={`${data.length} containers deployments total • ${
+          data.filter((c) => c.status === 'running').length
+        } running`}
+        mobileCardTitle={(item) => item.name}
+        mobileCardStatus={(item) => ({
+          label: item.status,
+          className: getStatusColor(item.status),
+        })}
+        mobileCardIcon={(item) => <ContainerImageIcon image={item.image} className='h-4 w-4' />}
+        onRowClick={onRowClick}
+        rowClickable
+        searchable
+        searchPlaceholder='Search containers by name, image, status, or clusters...'
+        searchKeys={['name', 'image', 'status', 'clusters']}
+        columnFilterable
+        defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}
+        emptyMessage='No containers found. Create your first container to get started.'
+        loading={isLoading}
+      />
+    </>
   )
 }

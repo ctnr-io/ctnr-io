@@ -4,6 +4,7 @@ import { match } from 'ts-pattern'
 import { SequenceType } from '@mollie/api-client'
 import { BillingClient, PaymentMetadataV1 } from 'lib/billing/utils.ts'
 import { CreateClientRequest } from 'lib/billing/qonto/client.ts'
+import { ensureQontoInvoiceClient } from 'lib/billing/invoice.ts'
 
 export const Meta = {}
 
@@ -33,7 +34,7 @@ export type Output = {
   paymentId: string
 }
 
-export default async function* PurchaseCredits({ ctx, input }: ServerRequest<Input>): ServerResponse<Output> {
+export default async function* PurchaseCredits({ ctx, input, signal }: ServerRequest<Input>): ServerResponse<Output> {
   yield `Initiating payment for ${input.amount} credits`
 
   /**
@@ -64,14 +65,11 @@ export default async function* PurchaseCredits({ ctx, input }: ServerRequest<Inp
       .with({ type: 'individual' }, (client) => ({
         first_name: client.firstName,
         last_name: client.lastName,
-      }))
-      .with({ type: 'freelance' }, (client) => ({
-        first_name: client.firstName,
-        last_name: client.lastName,
-        vat_number: client.vatNumber,
+        vat_number: '', // empty for individuals
       }))
       .with({ type: 'company' }, (client) => ({
         name: client.name,
+        tax_identification_number: client.taxIdentificationNumber,
         vat_number: client.vatNumber,
       }))
       .exhaustive(),
@@ -87,33 +85,20 @@ export default async function* PurchaseCredits({ ctx, input }: ServerRequest<Inp
       },
     }),
   }
-  if (!ctx.billing.qontoClientId) {
-    const response = await ctx.billing.client['qonto'].createClient(clientInfo)
-    if (!response.client?.id) {
-      throw new Error('Failed to create Qonto client')
-    }
-    await ctx.kube.client['eu'].CoreV1.patchNamespace(ctx.kube.namespace, 'json-merge', {
-      metadata: {
-        labels: {
-          'ctnr.io/qonto-client-id': response.client.id,
-        },
-      },
-    })
-  } else {
-    // Save client informations to Qonto
-    await ctx.billing.client['qonto'].updateClient(
-      {
-        id: ctx.billing.qontoClientId,
-      },
-      clientInfo,
-    )
-  }
+
+  await ensureQontoInvoiceClient({
+    kubeClient: ctx.kube.client['eu'],
+    namespace: ctx.kube.namespace,
+    qontoClient: ctx.billing.client['qonto'],
+    abortSignal: signal,
+    invoiceClient: clientInfo,
+  })
 
   const payment = await ctx.billing.client['mollie'].customerPayments.create({
     customerId: ctx.billing.mollieCustomerId,
     description: `Purchase ${input.amount} credits`,
     amount: {
-      currency,
+      currency: currency,
       value: (input.amount * 0.01).toFixed(2),
     },
     metadata: {

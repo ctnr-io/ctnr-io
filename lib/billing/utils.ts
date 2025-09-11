@@ -4,103 +4,13 @@
 
 import z from 'zod'
 import { DEFAULT_RATES } from './cost.ts'
+import { parseResourceToPrimitiveValue } from './resource.ts'
 
-export interface ResourceParsed {
-  cpu: number // in millicores
-  memory: number // in MB
-  storage: number // in GB
-}
 
 export const FreeTier = {
   cpu: '1G', // 1 CPU core
   memory: '2G', // 2 GB memory
   storage: '1G', // 1 GB storage
-}
-
-/**
- * Parse Kubernetes resource values to standardized units
- * - CPU: millicores (m)
- * - Memory: megabytes (MB)
- * - Storage: gigabytes (GB)
- */
-export function parseResourceValue(value: string | any, type: 'cpu' | 'memory' | 'storage'): number {
-  if (!value) return 0
-
-  // Convert Kubernetes Quantity objects to string
-  const stringValue = typeof value === 'string' ? value : String(value)
-
-  // Helper function to safely parse numbers
-  const safeParseInt = (str: string): number => {
-    const parsed = parseInt(str, 10)
-    return isNaN(parsed) ? 0 : parsed
-  }
-
-  const safeParseFloat = (str: string): number => {
-    const parsed = parseFloat(str)
-    return isNaN(parsed) ? 0 : parsed
-  }
-
-  switch (type) {
-    case 'cpu':
-      if (stringValue.endsWith('m')) {
-        return safeParseInt(stringValue.slice(0, -1))
-      } else if (stringValue.endsWith('n')) {
-        // Handle nanocores (1 core = 1,000,000,000 nanocores)
-        return Math.round(safeParseInt(stringValue.slice(0, -1)) / 1000000)
-      } else {
-        return Math.round(safeParseFloat(stringValue) * 1000)
-      }
-
-    case 'memory':
-      if (stringValue.endsWith('Mi')) {
-        return safeParseInt(stringValue.slice(0, -2))
-      } else if (stringValue.endsWith('Gi')) {
-        return safeParseInt(stringValue.slice(0, -2)) * 1024
-      } else if (stringValue.endsWith('Ki')) {
-        return Math.round(safeParseInt(stringValue.slice(0, -2)) / 1024)
-      } else if (stringValue.endsWith('M')) {
-        return safeParseInt(stringValue.slice(0, -1))
-      } else if (stringValue.endsWith('G')) {
-        return safeParseInt(stringValue.slice(0, -1)) * 1024
-      } else if (stringValue.endsWith('K')) {
-        return Math.round(safeParseInt(stringValue.slice(0, -1)) / 1024)
-      }
-      return 0
-
-    case 'storage':
-      if (stringValue.endsWith('Gi')) {
-        return safeParseInt(stringValue.slice(0, -2))
-      } else if (stringValue.endsWith('Mi')) {
-        return Math.round(safeParseInt(stringValue.slice(0, -2)) / 1024 * 100) / 100
-      } else if (stringValue.endsWith('G')) {
-        return safeParseInt(stringValue.slice(0, -1))
-      } else if (stringValue.endsWith('M')) {
-        return Math.round(safeParseInt(stringValue.slice(0, -1)) / 1024 * 100) / 100
-      }
-      return 0
-
-    default:
-      return 0
-  }
-}
-
-/**
- * Parse resource usage
- * - CPU: millicores (m)
- * - Memory: megabytes (MB)
- * - Storage: gigabytes (GB)
- */
-export function parseResourceUsage(usage: {
-  cpu: string
-  memory: string
-  storage: string
-  replicas: number
-}): ResourceParsed {
-  return {
-    cpu: parseResourceValue(usage.cpu, 'cpu'),
-    memory: parseResourceValue(usage.memory, 'memory'),
-    storage: parseResourceValue(usage.storage, 'storage'),
-  }
 }
 
 export type TierLimits = {
@@ -149,6 +59,7 @@ const BillingAddress = z.union([
   BillingAddressBase,
   BillingAddressBase.and(z.object({
     // Province code is required only for Italian addresses
+    postalCode: z.string().min(1, 'Postal code is required').max(5, 'Postal code too long'),
     countryCode: z.literal('IT'),
     provinceCode: z.string().min(1, 'Province code is required for Italian addresses').max(
       10,
@@ -158,11 +69,12 @@ const BillingAddress = z.union([
 ])
 
 const BillingClientBase = z.object({
-  type: z.enum(['individual', 'freelance', 'company']),
+  type: z.enum(['individual', 'company']),
   firstName: z.string().min(1, 'First name is required').max(100, 'First name too long').optional(),
   lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long').optional(),
   name: z.string().min(1, 'Company name is required').max(200, 'Company name too long').optional(),
-  vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long').optional(),
+  taxIdentificationNumber: z.string().min(1, 'Tax ID is required').max(50, 'Tax ID too long').optional(),
+  vatNumber: z.string().min(0, 'VAT number is required').max(50, 'VAT number too long').optional(),
   currency: z.enum(['EUR']),
   locale: z.enum(['fr']),
   billingAddress: BillingAddressBase,
@@ -175,15 +87,10 @@ export const BillingClient = z.union([
     lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
   }),
   z.object({
-    type: z.literal('freelance'),
-    firstName: z.string().min(1, 'First name is required').max(100, 'First name too long'),
-    lastName: z.string().min(1, 'Last name is required').max(100, 'Last name too long'),
-    vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
-  }),
-  z.object({
     type: z.literal('company'),
     name: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
-    vatNumber: z.string().min(1, 'VAT number is required').max(50, 'VAT number too long'),
+    taxIdentificationNumber: z.string().min(1, 'Tax ID is required').max(50, 'Tax ID too long'),
+    vatNumber: z.string().min(0, 'VAT number is required').max(50, 'VAT number too long').optional(),
   }),
 ])
   .and(z.object({
@@ -211,7 +118,7 @@ const expScale = (sliderValue: number, min: number, max: number): number => {
 // Resource limits configuration with logarithmic scaling
 export const ResourceLimits = {
   cpu: {
-    min: parseResourceValue(FreeTier.cpu, 'cpu') / 1000, // in cores
+    min: parseResourceToPrimitiveValue(FreeTier.cpu, 'cpu') / 1000, // in cores
     max: 72, // 72 CPUs
     step: 0.1,
     price: DEFAULT_RATES.cpuPerHour,
@@ -223,10 +130,10 @@ export const ResourceLimits = {
       // Round to nearest 1000 for cleaner values
       return rawValue
     },
-    fromString: (value: string) => parseResourceValue(value, 'cpu') / 1000,
+    fromString: (value: string) => parseResourceToPrimitiveValue(value, 'cpu') / 1000,
   },
   memory: {
-    min: parseResourceValue(FreeTier.memory, 'memory') / 1000,
+    min: parseResourceToPrimitiveValue(FreeTier.memory, 'memory') / 1000,
     max: 128, // 128 GB
     step: 0.01,
     price: DEFAULT_RATES.memoryPerHour,
@@ -238,7 +145,7 @@ export const ResourceLimits = {
       // Round to nearest 1 for cleaner values
       return Math.round(rawValue)
     },
-    fromString: (value: string) => parseResourceValue(value, 'memory') / 1000,
+    fromString: (value: string) => parseResourceToPrimitiveValue(value, 'memory') / 1000,
   },
   storage: {
     min: 1, // 1 GB
@@ -253,6 +160,6 @@ export const ResourceLimits = {
       // Round to nearest 1 for cleaner values
       return Math.round(rawValue)
     },
-    fromString: (value: string) => parseResourceValue(value, 'storage'),
+    fromString: (value: string) => parseResourceToPrimitiveValue(value, 'storage'),
   },
 }

@@ -23,6 +23,7 @@ import { z } from 'zod'
 import { BillingClient } from 'lib/billing/utils.ts'
 import { CountryCodes } from 'lib/billing/country_codes.ts'
 import { SearchableSelect } from './searchable-select.tsx'
+import { Label } from '../shadcn/ui/label.tsx'
 
 // Create form schema combining amount with BillingClient
 const CreditPurchaseFormSchema = z.object({
@@ -37,7 +38,7 @@ type CreditPurchaseFormData = z.infer<typeof CreditPurchaseFormSchema>
 // Client Information Form Component
 function ClientInfoForm({ form, watchedType }: {
   form: any
-  watchedType: 'individual' | 'freelance' | 'company'
+  watchedType: 'individual' | 'company'
 }) {
   return (
     <Card>
@@ -53,7 +54,7 @@ function ClientInfoForm({ form, watchedType }: {
           name='type'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Client Type</FormLabel>
+              <Label>Client Type</Label>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -62,11 +63,9 @@ function ClientInfoForm({ form, watchedType }: {
                 </FormControl>
                 <SelectContent>
                   <SelectItem value='individual'>Individual</SelectItem>
-                  <SelectItem value='freelance'>Freelance</SelectItem>
                   <SelectItem value='company'>Company</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
             </FormItem>
           )}
         />
@@ -118,20 +117,35 @@ function ClientInfoForm({ form, watchedType }: {
             </div>
           )}
 
-        {(watchedType === 'freelance' || watchedType === 'company') && (
-          <FormField
-            control={form.control}
-            name='vatNumber'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>VAT Number</FormLabel>
-                <FormControl>
-                  <Input placeholder='Enter VAT number' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {(watchedType === 'company') && (
+          <>
+            <FormField
+              control={form.control}
+              name='taxIdentificationNumber'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tax Identification Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter tax identification number' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='vatNumber'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>VAT Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Enter VAT number' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
       </CardContent>
     </Card>
@@ -297,7 +311,7 @@ function CreditPurchaseForm({
         billingAddress: clientData.billingAddress || null,
       }
 
-      if (clientData.type === 'individual' || clientData.type === 'freelance') {
+      if (clientData.type === 'individual') {
         updates.firstName = clientData.firstName || ''
         updates.lastName = clientData.lastName || ''
       }
@@ -306,7 +320,8 @@ function CreditPurchaseForm({
         updates.name = clientData.name || ''
       }
 
-      if (clientData.type === 'freelance' || clientData.type === 'company') {
+      if (clientData.type === 'company') {
+        updates.taxIdentificationNumber = clientData.taxIdentificationNumber || ''
         updates.vatNumber = clientData.vatNumber || ''
       }
 
@@ -506,20 +521,16 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
     const amount = parseInt(data.amount)
 
     try {
-      const clientPayload: BillingClient = {
+      const clientPayload = {
         type: data.type,
         ...(data.type === 'individual' && {
           firstName: data.firstName!,
           lastName: data.lastName!,
         }),
-        ...(data.type === 'freelance' && {
-          firstName: data.firstName!,
-          lastName: data.lastName!,
-          vatNumber: data.vatNumber!,
-        }),
         ...(data.type === 'company' && {
           name: data.name!,
-          vatNumber: data.vatNumber!,
+          taxIdentificationNumber: data.taxIdentificationNumber!,
+          vatNumber: data.vatNumber,
         }),
         currency: data.currency,
         locale: data.locale,
@@ -529,6 +540,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
       const result = await purchaseCredits.mutateAsync({
         amount,
         type: 'one-time',
+        // @ts-ignore
         client: clientPayload,
       })
 

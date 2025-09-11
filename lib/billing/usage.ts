@@ -1,7 +1,13 @@
-import { FreeTier, parseResourceUsage, parseResourceValue } from 'lib/billing/utils.ts'
+import { FreeTier } from 'lib/billing/utils.ts'
 import { ensureFederatedResourceQuota, KubeClient } from '../kubernetes/kube-client.ts'
 import { calculateTotalCostWithFreeTier } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
+import {
+  extractDeploymentCurrentResourceUsage,
+  parseResourceUsageToPrimitiveValues,
+  parseResourceToPrimitiveValue,
+  ResourceUsage,
+} from './resource.ts'
 
 /**
  * Represents the current status of the user's balance.
@@ -56,22 +62,18 @@ export interface Usage {
 }
 
 const freeTierLimits = {
-  cpu: parseResourceValue(FreeTier.cpu, 'cpu'), // 1 CPU in millicores
-  memory: parseResourceValue(FreeTier.memory, 'memory'), // 2GB in MB
-  storage: parseResourceValue(FreeTier.storage, 'storage'), // 10GB
+  cpu: parseResourceToPrimitiveValue(FreeTier.cpu, 'cpu'), // 1 CPU in millicores
+  memory: parseResourceToPrimitiveValue(FreeTier.memory, 'memory'), // 2GB in MB
+  storage: parseResourceToPrimitiveValue(FreeTier.storage, 'storage'), // 10GB
 }
 
 export async function getUsage(opts: {
   kubeClient: KubeClient
   namespace: string
-  additionalUsage?: {
-    cpu: string
-    memory: string
-    storage: string
-  }
+  additionalResource?: ResourceUsage
   signal: AbortSignal
 }): Promise<Usage> {
-  const { kubeClient, namespace, additionalUsage, signal } = opts
+  const { kubeClient, namespace, additionalResource, signal } = opts
 
   // Default free tier limits (in proper units)
   let parsedLimits = { ...freeTierLimits }
@@ -113,11 +115,11 @@ export async function getUsage(opts: {
       },
     )
     if (resourceQuota.spec?.overall) {
-      parsedLimits = {
-        cpu: parseResourceValue(resourceQuota.spec.overall['limits.cpu'], 'cpu'),
-        memory: parseResourceValue(resourceQuota.spec.overall['limits.memory'], 'memory'),
-        storage: parseResourceValue(resourceQuota.spec.overall['requests.storage'], 'storage'),
-      }
+      parsedLimits = parseResourceUsageToPrimitiveValues({
+        cpu: resourceQuota.spec.overall['limits.cpu'] || '0',
+        memory: resourceQuota.spec.overall['limits.memory'] || '0',
+        storage: resourceQuota.spec.overall['requests.storage'] || '0',
+      })
     }
   }
   // For free tier users (credits = 0), we keep the freeTierLimits as set above
@@ -133,20 +135,10 @@ export async function getUsage(opts: {
 
   // Process each deployment
   for (const deployment of deployments.items) {
-    const container = deployment.spec?.template?.spec?.containers?.[0]
-    const replicas = deployment.status?.readyReplicas || 0
-    if (container && replicas > 0) {
-      const { cpu, memory, storage } = parseResourceUsage({
-        cpu: deployment.spec?.template?.spec?.containers?.[0]?.resources?.limits?.cpu.serialize()!,
-        memory: deployment.spec?.template?.spec?.containers?.[0]?.resources?.limits?.memory.serialize()!,
-        storage: deployment.spec?.template?.spec?.containers?.[0]?.resources?.limits?.['ephemeral-storage']
-          .serialize()!,
-        replicas: deployment.status?.readyReplicas || 0,
-      })
-      totalMilliCpuUsed += cpu * replicas
-      totalMemoryUsed += memory * replicas
-      totalStorageUsed += (storage * replicas) / 3 // Divide by 3 for ephemeral storage
-    }
+    const { cpu, memory, storage } = parseResourceUsageToPrimitiveValues(extractDeploymentCurrentResourceUsage(deployment))
+    totalMilliCpuUsed += cpu
+    totalMemoryUsed += memory
+    totalStorageUsed += storage
   }
 
   // Get storage usage
@@ -156,8 +148,8 @@ export async function getUsage(opts: {
     })
 
     for (const pvc of pvcs.items) {
-      const storageRequest = pvc.spec?.resources?.requests?.storage || '0Gi'
-      totalStorageUsed += parseResourceValue(storageRequest, 'storage')
+      const storageRequest = pvc.spec?.resources?.requests?.storage.serialize() || '0Gi'
+      totalStorageUsed += parseResourceToPrimitiveValue(storageRequest, 'storage')
     }
   } catch (error) {
     console.warn('Failed to fetch storage usage:', error)
@@ -168,19 +160,19 @@ export async function getUsage(opts: {
     cpu: {
       used: totalMilliCpuUsed + 'm',
       limit: parsedLimits.cpu + 'm',
-      next: totalMilliCpuUsed + parseResourceValue(additionalUsage?.cpu || '0', 'cpu') + 'm',
+      next: totalMilliCpuUsed + parseResourceToPrimitiveValue(additionalResource?.cpu || '0', 'cpu') + 'm',
       percentage: parsedLimits.cpu === Infinity ? 0 : Math.round((totalMilliCpuUsed / parsedLimits.cpu) * 100),
     },
     memory: {
       used: totalMemoryUsed + 'M',
       limit: parsedLimits.memory + 'M',
-      next: totalMemoryUsed + parseResourceValue(additionalUsage?.memory || '0', 'memory') + 'M',
+      next: totalMemoryUsed + parseResourceToPrimitiveValue(additionalResource?.memory || '0', 'memory') + 'M',
       percentage: parsedLimits.memory === Infinity ? 0 : Math.round((totalMemoryUsed / parsedLimits.memory) * 100),
     },
     storage: {
       used: totalStorageUsed + 'G',
       limit: parsedLimits.storage + 'G',
-      next: totalStorageUsed + parseResourceValue(additionalUsage?.storage || '0', 'storage') + 'G',
+      next: totalStorageUsed + parseResourceToPrimitiveValue(additionalResource?.storage || '0', 'storage') + 'G',
       percentage: parsedLimits.storage === Infinity ? 0 : Math.round((totalStorageUsed / parsedLimits.storage) * 100),
     },
   }
@@ -202,7 +194,7 @@ export async function getUsage(opts: {
     resources.storage.used,
   )
 
-  const nextCost = additionalUsage
+  const nextCost = additionalResource
     ? calculateTotalCostWithFreeTier(
       resources.cpu.next,
       resources.memory.next,
@@ -234,9 +226,9 @@ export async function getUsage(opts: {
     status = 'insufficient_credits_for_current_usage'
   } else if (resourceLimitReached) {
     status = 'resource_limits_reached_for_current_usage'
-  } else if (additionalUsage && nextCost.hourly > balance.credits) {
+  } else if (additionalResource && nextCost.hourly > balance.credits) {
     status = 'insufficient_credits_for_additional_resource'
-  } else if (additionalUsage && nextCost.daily > limitCost.daily) {
+  } else if (additionalResource && nextCost.daily > limitCost.daily) {
     status = 'resource_limits_reached_for_additional_resource'
   } else if (balance.credits === 0) {
     status = 'free_tier'
@@ -261,4 +253,135 @@ export async function getUsage(opts: {
   }
 
   return result
+}
+
+export async function* checkUsage(opts: {
+  kubeClient: KubeClient
+  namespace: string
+  additionalResource?: ResourceUsage
+  signal: AbortSignal
+}): AsyncGenerator<string, Usage> {
+  const { kubeClient, namespace, signal } = opts
+
+  const usage = await getUsage({ kubeClient, namespace, signal, additionalResource: opts.additionalResource })
+
+  // Default free tier limits (in proper units)
+  yield '🔎 Checking resource usage and credit balance...'
+
+  // Display current usage information
+  yield `${usage.tier === 'free' ? '🆓' : '⚡️'} Account Status: ${
+    usage.tier === 'free' ? 'Free Tier' : 'Paid'
+  } | Credits: ${usage.balance.credits}`
+
+  // Check status and provide appropriate messages
+  switch (usage.status) {
+    case 'insufficient_credits_for_current_usage': {
+      yield `🚨 Credit breach! Current usage (${
+        usage.costs.current.hourly.toFixed(4)
+      } credits/hour) exceeds your balance (${usage.balance.credits} credits)`
+      yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits immediately.`
+
+      // Retrieve last threshold breach time
+      let namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, { abortSignal: signal })
+      const thresholdDate = namespaceObj.metadata?.annotations?.['ctnr.io/credits-threshold-breach-datetime'] || null
+      // If no breach time is set, it means this is the first time we hit the limit, so add one
+      if (!thresholdDate) {
+        namespaceObj = await kubeClient.CoreV1.patchNamespace(
+          namespace,
+          'json-merge',
+          {
+            metadata: {
+              annotations: {
+                'ctnr.io/credits-threshold-breach-datetime': new Date().toISOString(),
+              },
+            },
+          },
+          { abortSignal: signal },
+        )
+      }
+      const hours = thresholdDate
+        ? Math.max(0, 24 - Math.floor((Date.now() - new Date(thresholdDate).getTime()) / 3600000))
+        : 24
+      // if (hours > 0) {
+      // yield `⏳ You have ${hours} hours to add credits before your resources are paused.`
+      // } else {
+      yield `⏳ Grace period expired. Resources will be paused.`
+      // Get all deployments and scale to 0
+      const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
+        abortSignal: signal,
+      })
+
+      await Promise.allSettled(
+        deployments.items.map((deployment) => {
+          const name = deployment.metadata?.name
+          if (!name) return Promise.resolve()
+          console.debug(`Scaling down deployment ${name} in namespace ${namespace} due to credit breach`)
+          return kubeClient.AppsV1.namespace(namespace).patchDeployment(
+            name,
+            'json-merge',
+            {
+              spec: {
+                replicas: 0,
+                selector: {},
+                template: {},
+              },
+            },
+            { abortSignal: signal },
+          ).catch((error) => {
+            console.error(`Failed to scale down deployment ${name} in namespace ${namespace}:`, error)
+          })
+        }),
+      )
+      // }
+      throw new Error('Credit breach detected')
+    }
+
+    case 'insufficient_credits_for_additional_resource': {
+      yield `⚠️  Insufficient credits for this additional provisioning! Next usage would exceed your balance.`
+      yield `💰 Balance: ${usage.balance.credits} credits, Next cost: ${
+        usage.costs.next.hourly.toFixed(4)
+      } credits/hour`
+      yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits.`
+      throw new Error('Insufficient credits for provisioning')
+    }
+
+    case 'resource_limits_reached_for_current_usage': {
+      const limitWarnings = []
+      if (usage.resources.cpu.percentage >= 100) limitWarnings.push(`CPU (${usage.resources.cpu.percentage}%)`)
+      if (usage.resources.memory.percentage >= 100) limitWarnings.push(`Memory (${usage.resources.memory.percentage}%)`)
+      if (usage.resources.storage.percentage >= 100) {
+        limitWarnings.push(`Storage (${usage.resources.storage.percentage}%)`)
+      }
+
+      yield `⚠️  Resource limit reached for: ${limitWarnings.join(', ')}`
+      yield `📊 Current usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.used}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.used}/${usage.resources.storage.limit}`
+      yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
+      throw new Error('Resource limits reached')
+    }
+
+    case 'resource_limits_reached_for_additional_resource': {
+      yield `⚠️  Resource limit would be exceeded with this additional provisioning!`
+      yield `📊 With additional: CPU ${usage.resources.cpu.next}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.next}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.next}/${usage.resources.storage.limit}`
+      yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
+      throw new Error('Resource limits would be exceeded with provisioning')
+    }
+
+    // TODO: add low_balance case w/ notification only if credits < 5 * max daily cost
+
+    case 'free_tier':
+      yield `✅ Free tier usage check passed`
+      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
+      break
+
+    case 'normal':
+      yield `✅ Usage and credit check passed`
+      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
+      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.balance.credits} credits)`
+      break
+
+    default:
+      yield `⚠️  Unknown status: ${usage.status}`
+      break
+  }
+  return usage
 }

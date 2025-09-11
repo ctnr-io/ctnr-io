@@ -8,11 +8,25 @@ import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useRouter } from 'expo-router'
+import { ActivityIndicator } from 'react-native'
+import { useEffect } from 'react'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  DialogTrigger,
+} from '../shadcn/ui/dialog.tsx'
 
 interface ContainerData {
   name: string
   image: any
-  status: string
+  status: 'running' | 'stopped' | 'restarting'
   createdAt: Date
   ports: string[]
   cpu: string
@@ -95,6 +109,59 @@ export function ContainersDetailScreen(props: {
     }
     : props.data
 
+  const queryClient = useQueryClient()
+
+  const trpc = useTRPC()
+
+  const router = useRouter()
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({
+      queryKey: trpc.core.listQuery.queryKey(),
+    })
+    queryClient.invalidateQueries({
+      queryKey: trpc.billing.getUsage.queryKey(),
+    })
+  }
+
+  const startMutation = useMutation(
+    trpc.core.startMutation.mutationOptions({
+      onSuccess: invalidate,
+    }),
+  )
+  const stopMutation = useMutation(
+    trpc.core.stopMutation.mutationOptions({
+      onSuccess: invalidate,
+    }),
+  )
+  const restartMutation = useMutation(
+    trpc.core.restartMutation.mutationOptions({
+      onSuccess: invalidate,
+    }),
+  )
+  const removeMutation = useMutation(
+    trpc.core.removeMutation.mutationOptions({
+      onSuccess: () => {
+        router.replace('/(main)/containers')
+        return invalidate()
+      },
+    }),
+  )
+
+  const isPending = data.status === 'restarting' ||
+    startMutation.isPending ||
+    stopMutation.isPending ||
+    restartMutation.isPending ||
+    removeMutation.isPending
+
+  useEffect(() => {
+    if (!isPending) return
+    const interval = setInterval(() => {
+      invalidate()
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [isPending])
+
   if (isLoading) {
     return (
       <div className='min-h-screen bg-background'>
@@ -130,42 +197,71 @@ export function ContainersDetailScreen(props: {
                 {data.status}
               </span>
             </div>
-            <p className='text-muted-foreground'>Container running {data.image}</p>
+            <p className='text-muted-foreground'>Containers running {data.image}</p>
           </div>
           <div className='flex items-center gap-2'>
+            {isPending && <ActivityIndicator color='gray' />}
             <Button
               variant={data.status !== 'running' ? 'outline' : 'secondary'}
               size='sm'
-              onClick={() => console.log('Start')}
+              onClick={() => startMutation.mutate({ name: data.name })}
+              disabled={isPending}
             >
-              <Play className='h-4 w-4 mr-2' />
+              <Play className='h-4 w-4' />
               Start
             </Button>
             <Button
               variant={data.status !== 'stopped' ? 'outline' : 'secondary'}
               size='sm'
-              onClick={() => console.log('Stop')}
+              onClick={() => stopMutation.mutate({ name: data.name })}
+              disabled={isPending}
             >
-              <Square className='h-4 w-4 mr-2' />
+              <Square className='h-4 w-4' />
               Stop
             </Button>
             <Button
               variant='outline'
               size='sm'
-              onClick={() => console.log('Restart container')}
+              onClick={() => restartMutation.mutate({ name: data.name })}
+              disabled={isPending}
             >
-              <RotateCcw className='h-4 w-4 mr-2' />
+              <RotateCcw className='h-4 w-4' />
               Restart
             </Button>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => console.log('Delete container')}
-              className='text-destructive hover:text-destructive'
-            >
-              <Trash2 className='h-4 w-4 mr-2' />
-              Delete
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='text-destructive hover:text-destructive'
+                >
+                  <Trash2 className='h-4 w-4' />
+                  Remove
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogTitle>Remove Containers</DialogTitle>
+                <DialogDescription>
+                  <p className='text-sm text-muted-foreground'>
+                    Are you sure you want to remove the containers{' '}
+                    <span className='font-mono'>{data.name}</span>? This action cannot be undone.
+                  </p>
+                </DialogDescription>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant='outline'>Cancel</Button>
+                  </DialogClose>
+                  <Button
+                    variant='destructive'
+                    className='cursor-pointer'
+                    onClick={() => removeMutation.mutate({ name: data.name, force: true })}
+                  >
+                    <Trash2 className='h-4 w-4' />
+                    Remove
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -364,7 +460,7 @@ export function ContainersDetailScreen(props: {
               <CardHeader>
                 <CardTitle className='text-foreground'>Environment Variables</CardTitle>
                 <CardDescription>
-                  Environment variables configured for this container
+                  Environment variables configured for these containers
                 </CardDescription>
               </CardHeader>
               <CardContent>

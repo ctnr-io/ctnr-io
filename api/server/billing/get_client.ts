@@ -38,15 +38,10 @@ export default async function* ({ ctx }: ServerRequest<Input>): ServerResponse<O
         firstName: client.first_name ?? '',
         lastName: client.last_name ?? '',
       }))
-      .with('freelance', (type) => ({
-        type,
-        firstName: client.first_name ?? '',
-        lastName: client.last_name ?? '',
-        vatNumber: client.vat_number ?? '',
-      }))
       .with('company', (type) => ({
         type,
         name: client.name ?? '',
+        taxIdentificationNumber: client.tax_identification_number ?? '',
         vatNumber: client.vat_number ?? '',
       }))
       .otherwise(() => {

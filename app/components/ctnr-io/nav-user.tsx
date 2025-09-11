@@ -80,7 +80,7 @@ export function NavUser({
                 Account
               </DropdownMenuItem>
               <Link href='/billing'>
-                <DropdownMenuItem>
+                <DropdownMenuItem  className='text-foreground'>
                   <CreditCard />
                   Billing
                 </DropdownMenuItem>

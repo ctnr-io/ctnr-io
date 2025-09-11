@@ -9,8 +9,9 @@ import logs from './logs.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
-import checkUsage from 'api/server/billing/check_usage.ts'
-import { parseResourceValue } from 'lib/billing/utils.ts'
+import { checkUsage, getUsage } from 'lib/billing/usage.ts'
+import { extractDeploymentMinimumResourceUsage } from 'lib/billing/resource.ts'
+import start from './start.ts'
 
 export const Meta = {
   aliases: {
@@ -50,7 +51,7 @@ export const Input = z.object({
     .optional()
     .describe('Command to run in the container'),
   replicas: z.union([
-    z.number().min(0).max(20),
+    z.number().min(1).max(20),
     z.string().regex(/^\d+-\d+$/, 'Replicas range must be in format "min-max" (e.g., "1-5")'),
   ])
     .optional()
@@ -120,8 +121,6 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   const annotations: Record<string, string> = {}
   annotations['ctnr.io/min-replicas'] = minReplicas.toString()
   annotations['ctnr.io/max-replicas'] = maxReplicas.toString()
-  annotations['ctnr.io/cpu'] = `${cpu}`
-  annotations['ctnr.io/memory'] = memory
 
   const deploymentResource: Deployment = {
     apiVersion: 'apps/v1',
@@ -133,7 +132,8 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       annotations,
     },
     spec: {
-      replicas: replicaCount,
+      // Start with 0 replicas, will be updated when starting
+      replicas: 0,
       selector: {
         matchLabels: {
           'ctnr.io/name': name,
@@ -264,27 +264,13 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     },
   }
 
-  // Check resource usage and billing before proceeding
-  yield* checkUsage({
-    ...request,
-    input: {
-      additionalUsage: {
-        cpu,
-        memory,
-        // Ephemeral storage
-        storage: (parseResourceValue(ephemeralStorage, 'storage') / 3) + 'G',
-      },
-    },
-  })
-
   // Check if the deployment already exists
   let deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>
     null
   )
   if (deployment) {
     if (force) {
-      yield `Containers ${name} already exist. Forcing recreation...`
-      yield `Waiting for containers ${name} to be deleted...`
+      yield `🗑️  Deleting existing containers ${name}...`
       await Promise.all([
         // Wait for deployment to be fully deleted
         waitForDeploymentDeletion({ ctx, name, signal }),
@@ -300,34 +286,36 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
         }),
       ])
     } else {
-      yield `Containers ${name} already exists. Use --force to recreate it.`
+      yield `⚠️ Containers ${name} already exists. Use --force to recreate.`
       return
     }
   }
 
-  // Create the deployment
-  yield `Containers ${name} created. Waiting for it to be ready...`
+  // Initialize the deployment
+  yield `✍️  Initializing containers ${name}...`
   await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).createDeployment(deploymentResource, {
     abortSignal: signal,
   })
-
   // Wait for deployment to be ready
   deployment = await waitForDeployment({
     ctx,
     name,
     predicate: (deployment) => {
       const status = deployment.status
-      return status?.readyReplicas === replicaCount && status?.availableReplicas === replicaCount
+      return !!status
     },
     signal,
   })
 
-  if (!deployment) {
-    yield `Containers ${name} failed to start.`
-    return
-  }
+  // Start the deployment
+  yield* start({
+    ctx,
+    input,
+    signal,
+    defer,
+  })
 
-  yield `Containers ${name} is running with ${replicaCount} replica(s).`
+  yield `\r\nContainers ${name} is running with ${replicaCount} replica(s).`
 
   // Get the first pod for interactive/terminal operations
   let pod: Pod | null = null

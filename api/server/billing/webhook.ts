@@ -103,6 +103,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     const newBalance = await addCredits(ctx.kube.client['eu'], namespace, metadata.data.credits, controller.signal)
 
     console.info(`New balance for user ${userId}:`, newBalance)
+    
 
     return new Response('Payment processed successfully')
   }

@@ -4,8 +4,6 @@ set -e
 # CTNR CLI Installer
 # Usage: curl -fsSL https://get.ctnr.io | bash
 
-CLI_NAME="ctnr"
-REPO="ctnr-io/ctnr-io"
 INSTALL_DIR="$HOME/.local/bin"
 
 # Colors for output
@@ -49,7 +47,7 @@ detect_platform() {
 
 # Get latest release version
 get_latest_version() {
-    curl -s "https://api.github.com/repos/${REPO}/releases/latest" | \
+    curl -s "https://api.github.com/repos/ctnr-io/ctnr-io/releases/latest" | \
         grep '"tag_name":' | \
         sed -E 's/.*"([^"]+)".*/\1/'
 }
@@ -65,15 +63,15 @@ install_cli() {
         error "Failed to get latest version"
     fi
 
-    log "Installing ${CLI_NAME} ${version} for ${platform}..."
+    log "Installing ctnr ${version} for ${platform}..."
 
     if [[ "$platform" == *"windows"* ]]; then
-        filename="${CLI_NAME}-cli-${version}-${platform}.zip"
+        filename="ctnr-cli-${version}-${platform}.zip"
     else
-        filename="${CLI_NAME}-cli-${version}-${platform}.tar.gz"
+        filename="ctnr-cli-${version}-${platform}.tar.gz"
     fi
 
-    download_url="https://github.com/${REPO}/releases/download/${version}/${filename}"
+    download_url="https://github.com/ctnr-io/ctnr-io/releases/download/${version}/${filename}"
 
     # Create temporary directory
     tmp_dir=$(mktemp -d)
@@ -90,7 +88,7 @@ install_cli() {
     fi
 
     # Find the binary
-    binary_name="${CLI_NAME}-cli-${platform//windows/windows-x64}"
+    binary_name="ctnr-cli-${platform//windows/windows-x64}"
     if [[ "$platform" == *"windows"* ]]; then
         binary_name="${binary_name}.exe"
     fi
@@ -101,22 +99,22 @@ install_cli() {
 
     # Install
     mkdir -p "$INSTALL_DIR"
-    mv "$binary_name" "${INSTALL_DIR}/${CLI_NAME}"
+    mv "$binary_name" "${INSTALL_DIR}/ctnr"
 
-    chmod +x "${INSTALL_DIR}/${CLI_NAME}"
+    chmod +x "${INSTALL_DIR}/ctnr"
 
     # Cleanup
     cd /
     rm -rf "$tmp_dir"
 
-    log "✅ ${CLI_NAME} installed successfully!"
+    log "✅ ctnr installed successfully!"
 
     log "Make sure ${INSTALL_DIR} is in your PATH."
     
     log "You can add it to your shell profile with:"
     log 'export PATH="$HOME/.local/bin:$PATH"'
 
-    log "Run '${CLI_NAME} --help' to get started."
+    log "Run 'ctnr --help' to get started."
     
     rm -f "$HOME/.ctnr/config"  # Remove old config if exists
 }

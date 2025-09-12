@@ -54,7 +54,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repo: ${{ github.event.repository.name }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          workflow_file_name: push-tag_release-cli.yaml
+          workflow_file_name: push-tag_release.yaml
           ref: ${{ github.ref }}
           wait_interval: 10
           propagate_failure: true

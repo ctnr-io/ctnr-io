@@ -11,9 +11,9 @@ let supabaseClient: SupabaseClient | null = null
 let supabaseServiceClient: SupabaseClient | null = null
 
 export function getSupabaseConfig(): SupabaseConfig {
-  const url = process.env.SUPABASE_URL
-  const anonKey = process.env.SUPABASE_ANON_KEY
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const url = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
 
   if (!url || !anonKey) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required')

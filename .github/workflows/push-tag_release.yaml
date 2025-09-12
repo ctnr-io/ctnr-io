@@ -1,4 +1,4 @@
-name: Push Tag - Release CLI
+name: Push Tag - Release
 
 on:
   push:
@@ -15,11 +15,14 @@ permissions:
   packages: write
 
 env:
-  CLI_NAME: ctnr
   CTNR_API_URL: https://api.ctnr.io
   SUPABASE_URL: ${{ vars.SUPABASE_URL }}
   SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
   CTNR_VERSION: ${{ github.event.inputs.version }}
+
+  EXPO_PUBLIC_CTNR_API_URL: https://api.ctnr.io
+  EXPO_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
 
 jobs:
   build-cli:
@@ -93,30 +96,84 @@ jobs:
           # Compile the CLI with embedded environment variables
           deno task compile \
             --target ${{ matrix.target }} \
-            --output dist/${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
+            --output dist/ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
             cli/static_main.ts
 
       - name: Create tarball (Unix)
         if: matrix.os != 'windows'
         run: |
           cd dist
-          tar -czf ${{ env.CLI_NAME }}-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}
+          tar -czf ctnr-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}
 
       - name: Create zip (Windows)
         if: matrix.os == 'windows'
         run: |
           cd dist
-          zip ${{ env.CLI_NAME }}-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.zip ${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+          zip ctnr-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.zip ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.CLI_NAME }}-cli-${{ matrix.os }}-${{ matrix.arch }}
+          name: ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}
+          if-no-files-found: error
           path: |
-            dist/${{ env.CLI_NAME }}-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            dist/ctnr-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
 
-  release-cli:
-    needs: build-cli
+  build-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Get Version
+        id: version
+        run: |
+          # If workflow is triggered by a tag, use the tag name
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "Tag version detected: ${{ github.ref_name }}"
+          else
+            # Ensure the tag with the version exists
+            echo "Checking for tag with version ${{ github.event.inputs.version }}"
+            if [[ -z "${{ github.event.inputs.version }}" ]]; then
+              echo "No version input provided."
+              exit 1
+            else
+              echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+              echo "Using version from input: ${{ github.event.inputs.version }}"
+            fi
+          fi
+
+      - name: Build app
+        run: |
+         cd app
+
+          # Install dependencies
+          bun install
+
+          # Build the app
+          bunx expo export --platform web
+
+      - name: Create tarball (Unix)
+        run: |
+          cd app
+          tar -czf ctnr-app-${{ steps.version.outputs.version }}.tar.gz dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctnr-app
+          if-no-files-found: error
+          path: |
+            app/ctnr-app-${{ steps.version.outputs.version }}.*
+          
+  release-all:
+    needs: [build-cli, build-app]
     runs-on: ubuntu-latest
     permissions:
       contents: write

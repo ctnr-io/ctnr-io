@@ -1,4 +1,4 @@
-name: Push Tag - Release CLI
+name: Push Tag - Release
 
 on:
   push:
@@ -115,8 +115,61 @@ jobs:
           path: |
             dist/${{ env.CLI_NAME }}-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
 
-  release-cli:
-    needs: build-cli
+  build-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Get Version
+        id: version
+        run: |
+          # If workflow is triggered by a tag, use the tag name
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "Tag version detected: ${{ github.ref_name }}"
+          else
+            # Ensure the tag with the version exists
+            echo "Checking for tag with version ${{ github.event.inputs.version }}"
+            if [[ -z "${{ github.event.inputs.version }}" ]]; then
+              echo "No version input provided."
+              exit 1
+            else
+              echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+              echo "Using version from input: ${{ github.event.inputs.version }}"
+            fi
+          fi
+
+      - name: Build app
+        run: |
+         cd app
+
+          # Install dependencies
+          bun install
+
+          # Build the app
+          bunx expo export --platform web
+
+      - name: Create tarball (Unix)
+        run: |
+          cd app
+          
+          tar -czf ctnr-app-${{ steps.version.outputs.version }}.tar.gz dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctnr-app
+          path: |
+            dist/ctnr-app-${{ steps.version.outputs.version }}.*
+          
+  release-all:
+    needs: [build-cli, build-app]
     runs-on: ubuntu-latest
     permissions:
       contents: write

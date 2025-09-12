@@ -6,7 +6,7 @@ set -e
 
 CLI_NAME="ctnr"
 REPO="ctnr-io/ctnr-io"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 
 # Colors for output
 RED='\033[0;31m'
@@ -100,12 +100,8 @@ install_cli() {
     fi
 
     # Install
-    if [ -w "$INSTALL_DIR" ]; then
-        mv "$binary_name" "${INSTALL_DIR}/${CLI_NAME}"
-    else
-        log "Installing to ${INSTALL_DIR} (requires sudo)..."
-        sudo mv "$binary_name" "${INSTALL_DIR}/${CLI_NAME}"
-    fi
+    mkdir -p "$INSTALL_DIR"
+    mv "$binary_name" "${INSTALL_DIR}/${CLI_NAME}"
 
     chmod +x "${INSTALL_DIR}/${CLI_NAME}"
 
@@ -114,6 +110,12 @@ install_cli() {
     rm -rf "$tmp_dir"
 
     log "✅ ${CLI_NAME} installed successfully!"
+
+    log "Make sure ${INSTALL_DIR} is in your PATH."
+    
+    log "You can add it to your shell profile with:"
+    echo 'export PATH="$HOME/.local/bin:$PATH"'
+
     log "Run '${CLI_NAME} --help' to get started."
     
     rm -f "$HOME/.ctnr/config"  # Remove old config if exists

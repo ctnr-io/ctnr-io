@@ -114,7 +114,7 @@ install_cli() {
     log "Make sure ${INSTALL_DIR} is in your PATH."
     
     log "You can add it to your shell profile with:"
-    echo 'export PATH="$HOME/.local/bin:$PATH"'
+    log 'export PATH="$HOME/.local/bin:$PATH"'
 
     log "Run '${CLI_NAME} --help' to get started."
     

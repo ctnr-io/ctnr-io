@@ -76,7 +76,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
       },
       items: [{
         title: `${metadata.data.credits} credits`,
-        quantity: String(metadata.data.credits),
+        quantity: '1',
         unit_price: {
           currency: payment.amount.currency,
           value: amountWithoutVAT.toFixed(2),

@@ -79,7 +79,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
         quantity: String(metadata.data.credits),
         unit_price: {
           currency: payment.amount.currency,
-          value: amountWithoutVAT.toFixed(2),
+          value: (amountWithoutVAT / metadata.data.credits).toFixed(),
         },
         vat_rate: '0.2',
       }],

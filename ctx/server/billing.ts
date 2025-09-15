@@ -15,7 +15,8 @@ export async function createBillingContext(
   })
   const labels = namespace.metadata?.labels
 
-  let mollieCustomerId = labels?.['ctnr.io/mollie-customer-id']
+  const mollieCustomerIdLabel = `ctnr.io/mollie-${Deno.env.get("MOLLIE_MODE")}-customer-id`
+  let mollieCustomerId = labels?.[mollieCustomerIdLabel]
   if (!mollieCustomerId) {
     // Create a new customer in Mollie
     const { id } = await mollieClient.customers.create({
@@ -28,7 +29,7 @@ export async function createBillingContext(
     await ctx.kube.client['eu'].CoreV1.patchNamespace(namespace.metadata!.name!, 'json-merge', {
       metadata: {
         labels: {
-          'ctnr.io/mollie-customer-id': mollieCustomerId,
+          [mollieCustomerIdLabel]: mollieCustomerId,
         },
       },
     })

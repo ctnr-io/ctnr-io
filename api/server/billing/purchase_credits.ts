@@ -4,7 +4,7 @@ import { match } from 'ts-pattern'
 import { SequenceType } from '@mollie/api-client'
 import { BillingClient, PaymentMetadataV1 } from 'lib/billing/utils.ts'
 import { CreateClientRequest } from 'lib/billing/qonto/client.ts'
-import { ensureQontoInvoiceClient } from 'lib/billing/invoice.ts'
+import { ensureQontoInvoiceClientId } from 'lib/billing/invoice.ts'
 
 export const Meta = {}
 
@@ -86,7 +86,7 @@ export default async function* PurchaseCredits({ ctx, input, signal }: ServerReq
     }),
   }
 
-  await ensureQontoInvoiceClient({
+  await ensureQontoInvoiceClientId({
     kubeClient: ctx.kube.client['eu'],
     namespace: ctx.kube.namespace,
     qontoClient: ctx.billing.client['qonto'],

@@ -3,13 +3,13 @@ import { QontoClient } from './qonto/mod.ts'
 import { match } from 'ts-pattern'
 import { CreateClientRequest } from './qonto/client.ts'
 
-export async function ensureQontoInvoiceClient(opts: {
+export async function ensureQontoInvoiceClientId(opts: {
   kubeClient: KubeClient
   namespace: string
   qontoClient: QontoClient
   abortSignal: AbortSignal
   invoiceClient: CreateClientRequest
-}): Promise<void> {
+}): Promise<string> {
   const { kubeClient: kc, namespace, qontoClient, abortSignal, invoiceClient } = opts
 
   // Get the current namespace to check for existing client IDs
@@ -26,7 +26,7 @@ export async function ensureQontoInvoiceClient(opts: {
     ? await qontoClient.getClientSDetails({ id: existingClientId }).catch(() => null)
     : null
 
-  await match(existingClient)
+  return await match(existingClient)
     // If client doesn't exist, create it
     .with(null, async () => {
       const response = await qontoClient.createClient(invoiceClient)

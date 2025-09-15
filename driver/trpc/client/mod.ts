@@ -25,6 +25,9 @@ export async function createTRPCWebSocketClient({
     //   closeMs: 0, // Close the connection after 1 minute of inactivity
     //   enabled: true,
     // },
+    retryDelayMs: (attemptIndex) => {
+      return 10 ** attemptIndex
+    },
     connectionParams: () => {
       return {
         accessToken,

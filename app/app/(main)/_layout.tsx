@@ -1,5 +1,5 @@
 import { Slot } from 'expo-router'
-import { ExpoTrpcClientProvider, useExpoTrpcClientContext } from 'driver/trpc/client/expo/mod.tsx'
+import { useExpoTrpcClientContext } from 'driver/trpc/client/expo/mod.tsx'
 import logout from 'api/client/auth/logout.ts'
 import { Redirect } from 'expo-router'
 import { AppSidebarLayout } from 'app/components/ctnr-io/app-sidebar-layout.tsx'
@@ -15,9 +15,7 @@ export default function MainLayout() {
 
   return (
     <AppSidebarLayout user={ctx.auth.user!} onLogout={handleLogout}>
-      <ExpoTrpcClientProvider>
-        <Slot />
-      </ExpoTrpcClientProvider>
+      <Slot />
     </AppSidebarLayout>
   )
 }

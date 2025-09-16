@@ -7,6 +7,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/ui/tooltip.tsx'
 import { useState } from 'react'
 import { ResourceLimitsDialog } from './resource-limits-dialog.tsx'
+import { useSidebar } from '../shadcn/ui/sidebar.tsx'
+import { cn } from 'lib/shadcn/utils.ts'
 
 interface ResourceIndicatorProps {
   icon: React.ComponentType<{ className?: string }>
@@ -17,12 +19,13 @@ interface ResourceIndicatorProps {
 }
 
 function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: ResourceIndicatorProps) {
+  const sidebar = useSidebar()
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className='flex gap-2 *:text-xs justify-center'>
           <Icon className={percentage >= 100 && used !== '0.0' ? 'text-destructive animate-pulse' : ''} />
-          <span className='flex items-baseline gap-1'>
+          <span className={cn('items-baseline', 'gap-1', 'hidden', sidebar.open ? 'lg:flex' : 'sm:flex')}>
             <span className={percentage >= 100 && used !== '0.0' ? 'text-destructive' : ''}>{used}</span>
             <span>/</span>
             <span>{limit}</span>

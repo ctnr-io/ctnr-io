@@ -236,26 +236,34 @@ export default function BillingScreen() {
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
               <Card className='bg-primary/5 border-primary/20'>
                 <CardHeader className='pb-3'>
-                  <CardTitle className='flex items-center gap-2 text-primary'>
-                    <Wallet className='h-5 w-5' />
-                    Current Balance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='text-4xl font-bold text-foreground mb-1'>
-                        {currentBalance?.toLocaleString() || '0'}
-                      </p>
-                      <p className='text-muted-foreground font-medium'>credits</p>
-                    </div>
+                  <CardTitle className='flex items-center gap-2'>
+                    <p className='flex-1 flex items-center gap-2 text-primary'>
+                      <Wallet className='h-5 w-5' />
+                      Current Balance
+                    </p>
                     <Button
                       onClick={() => setPurchaseDialogOpen(true)}
+                      className='flex sm:hidden'
                     >
-                      <Plus className='h-4 w-4 mr-2' />
+                      <Plus className='h-4 w-4' />
                       Add Credits
                     </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className='flex items-center justify-between'>
+                  <div>
+                    <p className='text-4xl font-bold text-foreground mb-1'>
+                      {currentBalance?.toLocaleString() || '0'}
+                    </p>
+                    <p className='text-muted-foreground font-medium'>credits</p>
                   </div>
+                  <Button
+                    onClick={() => setPurchaseDialogOpen(true)}
+                    className='hidden sm:flex'
+                  >
+                    <Plus className='h-4 w-4' />
+                    Add Credits
+                  </Button>
                 </CardContent>
               </Card>
 

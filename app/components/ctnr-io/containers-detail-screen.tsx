@@ -22,6 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../shadcn/ui/dialog.tsx'
+import { useSidebar } from '../shadcn/ui/sidebar.tsx'
+import { cn } from 'lib/shadcn/utils.ts'
 
 interface ContainerData {
   name: string
@@ -115,6 +117,8 @@ export function ContainersDetailScreen(props: {
 
   const router = useRouter()
 
+  const sidebar = useSidebar()
+
   const invalidate = () => {
     queryClient.invalidateQueries({
       queryKey: trpc.core.listQuery.queryKey(),
@@ -164,7 +168,7 @@ export function ContainersDetailScreen(props: {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen bg-background'>
+      <div className='bg-background'>
         <div className='container mx-auto px-6 py-8'>
           <div className='mb-8'>
             <h1 className='text-3xl font-bold text-foreground mb-2'>Container Details</h1>
@@ -182,24 +186,24 @@ export function ContainersDetailScreen(props: {
   }
 
   return (
-    <div className='min-h-screen bg-background'>
-      <div className='container mx-auto px-6 py-8'>
-        <div className='mb-8 flex items-center justify-between'>
+    <div className='bg-background'>
+      <div className='sm:container mx-auto md:px-6 pt-8 sm:py-8'>
+        <div className='px-4 sm:mb-8 flex items-start justify-between space-y-4'>
           <div>
             <div className='flex items-center gap-3 mb-2'>
               <ContainerImageIcon image={data.image} className='h-8 w-8' />
               <h1 className='text-3xl font-bold text-foreground'>{data.name}</h1>
               <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                className={`hidden sm:inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                   getStatusColor(data.status)
                 }`}
               >
                 {data.status}
               </span>
             </div>
-            <p className='text-muted-foreground'>Containers running {data.image}</p>
+            <p className='hidden sm:inline text-muted-foreground'>Containers running {data.image}</p>
           </div>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center justify-end gap-2 min-w-50 mt-1'>
             {isPending && <ActivityIndicator color='gray' />}
             <Button
               variant={data.status !== 'running' ? 'outline' : 'secondary'}
@@ -208,7 +212,9 @@ export function ContainersDetailScreen(props: {
               disabled={isPending}
             >
               <Play className='h-4 w-4' />
-              Start
+              <span className={cn('hidden', sidebar.open ? 'lg:inline' : 'sm:inline')}>
+                Start
+              </span>
             </Button>
             <Button
               variant={data.status !== 'stopped' ? 'outline' : 'secondary'}
@@ -217,7 +223,9 @@ export function ContainersDetailScreen(props: {
               disabled={isPending}
             >
               <Square className='h-4 w-4' />
-              Stop
+              <span className={cn('hidden', sidebar.open ? 'lg:inline' : 'sm:inline')}>
+                Stop
+              </span>
             </Button>
             <Button
               variant='outline'
@@ -226,7 +234,9 @@ export function ContainersDetailScreen(props: {
               disabled={isPending}
             >
               <RotateCcw className='h-4 w-4' />
-              Restart
+              <span className={cn('hidden', sidebar.open ? 'lg:inline' : 'sm:inline')}>
+                Restart
+              </span>
             </Button>
             <Dialog>
               <DialogTrigger asChild>
@@ -236,7 +246,9 @@ export function ContainersDetailScreen(props: {
                   className='text-destructive hover:text-destructive'
                 >
                   <Trash2 className='h-4 w-4' />
-                  Remove
+                  <span className={cn('hidden', sidebar.open ? 'lg:inline' : 'sm:inline')}>
+                    Remove
+                  </span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -266,29 +278,37 @@ export function ContainersDetailScreen(props: {
         </div>
 
         <Tabs defaultValue='overview' className='space-y-6'>
-          <TabsList className='grid w-full grid-cols-4'>
-            <TabsTrigger value='overview' className='text-sm font-medium'>
-              <Info className='h-4 w-4 mr-2' />
-              Overview
+          <TabsList className='w-full flex justify-evenly rounded-none sm:rounded overflow-scroll no-scrollbar'>
+            <TabsTrigger value='overview' className='text-sm font-medium flex-1'>
+              <Info className='h-4 w-4 sm:mr-2' />
+              <span className='hidden sm:inline'>
+                Overview
+              </span>
             </TabsTrigger>
-            <TabsTrigger value='config' className='text-sm font-medium'>
-              <Settings className='h-4 w-4 mr-2' />
-              Configuration
+            <TabsTrigger value='config' className='text-sm font-medium flex-1'>
+              <Settings className='h-4 w-4 sm:mr-2' />
+              <span className='hidden sm:inline'>
+                Configuration
+              </span>
             </TabsTrigger>
-            <TabsTrigger value='logs' className='text-sm font-medium'>
-              <FileText className='h-4 w-4 mr-2' />
-              Logs
+            <TabsTrigger value='logs' className='text-sm font-medium flex-1'>
+              <FileText className='h-4 w-4 sm:mr-2' />
+              <span className='hidden sm:inline'>
+                Logs
+              </span>
             </TabsTrigger>
-            <TabsTrigger value='exec' className='text-sm font-medium'>
-              <Terminal className='h-4 w-4 mr-2' />
-              Exec
+            <TabsTrigger value='exec' className='text-sm font-medium flex-1'>
+              <Terminal className='h-4 w-4 sm:mr-2' />
+              <span className='hidden sm:inline'>
+                Exec
+              </span>
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value='overview' className='space-y-6'>
+          <TabsContent value='overview' className='sm:space-y-6'>
             {/* Basic Information */}
-            <Card>
+            <Card className='rounded-none border-x-0 sm:rounded-lg sm:border-x-1'>
               <CardHeader>
                 <CardTitle className='text-foreground'>Basic Information</CardTitle>
                 <CardDescription>
@@ -320,7 +340,7 @@ export function ContainersDetailScreen(props: {
             </Card>
 
             {/* Runtime Information */}
-            <Card>
+            <Card className='rounded-none border-x-0 sm:rounded-lg sm:border-x-1'>
               <CardHeader>
                 <CardTitle className='text-foreground'>Runtime Information</CardTitle>
                 <CardDescription>
@@ -387,7 +407,7 @@ export function ContainersDetailScreen(props: {
             </Card>
 
             {/* Replica Instances */}
-            <Card>
+            <Card className='rounded-none border-x-0 sm:rounded-lg sm:border-x-1'>
               <CardHeader>
                 <CardTitle className='text-foreground'>Replica Instances</CardTitle>
                 <CardDescription>
@@ -454,9 +474,9 @@ export function ContainersDetailScreen(props: {
           </TabsContent>
 
           {/* Configuration Tab */}
-          <TabsContent value='config' className='space-y-6'>
+          <TabsContent value='config' className='sm:space-y-6'>
             {/* Environment Variables */}
-            <Card>
+            <Card className='rounded-none border-x-0 sm:rounded-lg sm:border-x-1'>
               <CardHeader>
                 <CardTitle className='text-foreground'>Environment Variables</CardTitle>
                 <CardDescription>
@@ -487,7 +507,7 @@ export function ContainersDetailScreen(props: {
             </Card>
 
             {/* Storage & Networking */}
-            <Card>
+            <Card className='rounded-none border-x-0 sm:rounded-lg sm:border-x-1'>
               <CardHeader>
                 <CardTitle className='text-foreground'>Storage & Networking</CardTitle>
                 <CardDescription>

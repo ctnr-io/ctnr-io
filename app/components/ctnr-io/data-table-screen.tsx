@@ -166,13 +166,14 @@ export function DataTableScreen<T = any>({
     return (
       <div
         key={index}
-        className={`border-b last:border-b-0 p-2 flex flex-col gap-2 ${
-          rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : ''
-        }`}
+        className={cn(
+          'border-b last:border-b-0 p-2 flex flex-col gap-2',
+          rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : '',
+        )}
         onClick={() => rowClickable && onRowClick && onRowClick(item)}
       >
         <div className='flex-1 flex flex-row justify-between mx-2 mt-2 gap-3'>
-          <div className='flex items-center gap-3 min-w-0'>
+          <div className='w-56 flex items-center gap-3'>
             <div className='flex-shrink-0 p-2 bg-primary/10 rounded-lg'>
               {mobileCardIcon ? mobileCardIcon(item) : <Icon className='h-4 w-4 text-primary' />}
             </div>
@@ -182,15 +183,17 @@ export function DataTableScreen<T = any>({
                 <p className='text-sm text-muted-foreground mt-1 leading-relaxed'>{mobileCardSubtitle(item)}</p>
               )}
             </div>
-            {status && (
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0`}
-              >
-                {status.label}
-              </span>
-            )}
           </div>
-          <div className='flex items-center gap-3 min-w-0'>
+          {status && (
+            <div>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0`}
+            >
+              {status.label}
+            </span>
+            </div>
+          )}
+          <div className='w-56 hidden sm:flex items-center justify-end gap-3 min-w-0'>
             {actions
               .filter((action) => !action.condition || action.condition(item))
               .map(({ Wrapper = ActionWrapperDefault, ...action }) => (
@@ -534,11 +537,11 @@ export function DataTableScreen<T = any>({
       </div>
       {/* Mobile Search and Filter Bar - Bottom positioned for better UX */}
       {(searchable || columnFilterable) && (
-        <div className='sticky bottom-0 left-0 right-0 bg-background md:hidden border-t p-3 drop-shadow-sm'>
+        <div className='sticky bottom-0 left-0 right-0 bg-card md:hidden border-t p-3 drop-shadow-sm'>
           <div className='space-y-3'>
             {searchable && (
               <div className='relative'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground bg-background' />
                 <Input
                   placeholder={searchPlaceholder}
                   value={searchQuery}

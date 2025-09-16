@@ -405,34 +405,36 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
   }
 
   return (
-    <div className='space-y-4 relative'>
+    <div className='sm:space-y-4 relative'>
       {/* Enhanced Controls Bar */}
       <div
         className={cn(
-          'bg-card md:rounded-lg border sticky',
-          sidebar.open ? 'top-14' : 'top-10',
+          'bg-card sm:rounded-lg border sticky',
+          'top-14',
+          sidebar.open ? 'md:top-14' : 'md:top-10',
           // add transition like sidebar,
           'transition-all duration-300',
         )}
       >
         {/* Main Controls Row */}
-        <div className='flex flex-row lg:items-center gap-4 p-4'>
-          {/* Left Section - Replica Selection */}
-          {replicas && replicas.length > 0 && (
-            <SearchableSelect
-              options={replicaOptions}
-              value={state.selectedReplicaName || 'all'}
-              onValueChange={handleReplicaChange}
-              placeholder='Select replica...'
-              searchPlaceholder='Search replicas...'
-              emptyMessage='No replica found.'
-              popoverClassName='w-[200px]'
-              className='text-foreground/0 hover:text-foreground/0 w-8 md:w-auto md:text-foreground/100 hover:md:text-foreground/100 overflow-hidden'
-            />
-          )}
+        <div className='flex flex-row gap-4 p-4 flex-wrap justify-between'>
+          <div className='flex-1 flex items-center gap-4'>
+            {/* Left Section - Replica Selection */}
+            {replicas && replicas.length > 0 && (
+              <SearchableSelect
+                options={replicaOptions}
+                value={state.selectedReplicaName || 'all'}
+                onValueChange={handleReplicaChange}
+                placeholder='Select replica...'
+                searchPlaceholder='Search replicas...'
+                emptyMessage='No replica found.'
+                popoverClassName='w-[200px]'
+                className='flex-1 min-w-fit md:text-foreground/100 hover:md:text-foreground/100 overflow-hidden'
+              />
+            )}
 
-          {/* Center Section - Stream Controls */}
           <div className='flex items-center gap-2'>
+            {/* Center Section - Stream Controls */}
             <Button
               variant={state.isStreaming ? 'default' : 'ghost'}
               size='sm'
@@ -450,7 +452,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               variant='ghost'
               size='sm'
               onClick={handleRefreshLogs}
-              className='h-8 px-3'
+              className='h-8 px-3 bg-card'
               title='Refresh logs'
             >
               <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-[spin_reverse_1s_linear_infinite]' : ''}`} />
@@ -458,75 +460,80 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                 {isLoading ? 'Refreshing' : 'Refresh'}
               </span>
             </Button>
-            <Button
-              variant={state.autoScroll ? 'default' : 'ghost'}
-              size='sm'
-              onClick={() => setState((prev) => ({ ...prev, autoScroll: !prev.autoScroll }))}
-              className='h-8 px-3'
-              title='Toggle auto-scroll'
-            >
-              <ArrowDown className='h-4 w-4' />
-              <span className='ml-1 hidden lg:inline'>Auto-scroll</span>
-            </Button>
-
-            <Button
-              variant={state.wrapLines ? 'default' : 'ghost'}
-              size='sm'
-              onClick={() => setState((prev) => ({ ...prev, wrapLines: !prev.wrapLines }))}
-              className='h-8 px-3'
-              title='Toggle line wrapping'
-            >
-              <WrapText className='h-4 w-4' />
-              <span className='ml-1 hidden lg:inline'>Wrap</span>
-            </Button>
+            </div>
           </div>
-
-          {/* Right Section - Actions */}
-          <div className='flex items-center gap-2 ml-auto'>
-            <Button
-              variant={state.showSearch ? 'default' : 'outline'}
-              size='sm'
-              onClick={handleToggleSearch}
-              className='h-8 px-3'
-              title='Search in logs (Ctrl+F)'
-            >
-              <Search className='h-4 w-4' />
-              <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Search</span>
-            </Button>
-
-            <div className='flex items-center gap-1'>
+          <div className='flex-1 flex flex-row gap-4 justify-between'>
+            <div className='flex items-center gap-2'>
               <Button
-                variant='outline'
+                variant={state.autoScroll ? 'default' : 'ghost'}
                 size='sm'
-                onClick={handleCopyAllLogs}
+                onClick={() => setState((prev) => ({ ...prev, autoScroll: !prev.autoScroll }))}
                 className='h-8 px-3'
-                title='Copy all logs'
+                title='Toggle auto-scroll'
               >
-                <Copy className='h-4 w-4' />
-                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Copy</span>
+                <ArrowDown className='h-4 w-4' />
+                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Auto-scroll</span>
               </Button>
 
               <Button
-                variant='outline'
+                variant={state.wrapLines ? 'default' : 'ghost'}
                 size='sm'
-                onClick={handleDownloadLogs}
+                onClick={() => setState((prev) => ({ ...prev, wrapLines: !prev.wrapLines }))}
                 className='h-8 px-3'
-                title='Download logs'
+                title='Toggle line wrapping'
               >
-                <Download className='h-4 w-4' />
-                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Download</span>
+                <WrapText className='h-4 w-4' />
+               <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Wrap</span>
+              </Button>
+            </div>
+
+            {/* Right Section - Actions */}
+            <div className='flex items-center gap-2'>
+              <Button
+                variant={state.showSearch ? 'default' : 'outline'}
+                size='sm'
+                onClick={handleToggleSearch}
+                className='h-8 px-3'
+                title='Search in logs (Ctrl+F)'
+              >
+                <Search className='h-4 w-4' />
+                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Search</span>
               </Button>
 
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={handleClearLogs}
-                className='h-8 px-3'
-                title='Clear all logs'
-              >
-                <Eraser className='h-4 w-4' />
-                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Clear</span>
-              </Button>
+              <div className='flex items-center gap-1'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={handleCopyAllLogs}
+                  className='h-8 px-3'
+                  title='Copy all logs'
+                >
+                  <Copy className='h-4 w-4' />
+                  <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Copy</span>
+                </Button>
+
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={handleDownloadLogs}
+                  className='h-8 px-3'
+                  title='Download logs'
+                >
+                  <Download className='h-4 w-4' />
+                  <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Download</span>
+                </Button>
+
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={handleClearLogs}
+                  className='h-8 px-3'
+                  title='Clear all logs'
+                >
+                  <Eraser className='h-4 w-4' />
+                  <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Clear</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -592,7 +599,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
         )}
 
         {/* Status Bar */}
-        <div className='border-t bg-muted/20 px-4 py-2'>
+        <div className='hidden sm:block border-t bg-muted/20 px-4 py-2'>
           <div className='flex items-center justify-between text-xs text-muted-foreground'>
             <div className='flex items-center gap-4'>
               <div className='flex items-center gap-2'>
@@ -621,7 +628,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
       {/* Error Display */}
       {state.error && (
-        <div className='p-3 bg-red-50 border border-red-200 md:rounded-lg'>
+        <div className='p-3 bg-red-50 border border-red-200 sm:rounded-lg'>
           <div className='flex items-center gap-2 text-red-800'>
             <span className='text-sm font-medium'>Error:</span>
             <span className='text-sm'>{state.error}</span>
@@ -630,7 +637,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       )}
 
       {/* Logs Container */}
-      <div className='bg-card border md:rounded-lg overflow-hidden'>
+      <div className='bg-card border sm:rounded-lg overflow-hidden'>
         <div
           ref={logsContainerRef}
           onScroll={handleScroll}
@@ -668,13 +675,13 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
       </div>
 
       {/* Footer Info */}
-      <div className='text-xs text-muted-foreground px-2'>
+      <div className='hidden sm:block text-xs text-muted-foreground px-2'>
         Container: {containerName} | Viewing: {getSelectedReplicaName()}
       </div>
 
       {/* Mobile-Only Search Bar - Fixed at bottom */}
       {state.showSearch && (
-        <div className='fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-50 sm:hidden'>
+        <div className='fixed bottom-0 left-0 right-0 bg-card border-t p-4 z-50 sm:hidden'>
           <div className='flex items-center gap-2'>
             <div className='relative flex-1'>
               <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
@@ -684,7 +691,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                 placeholder='Search in logs...'
                 value={state.searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className='pl-10 pr-4'
+                className='pl-10 pr-4 bg-card'
               />
             </div>
             <div className='flex items-center gap-1'>

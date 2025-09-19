@@ -16,6 +16,7 @@ export const Meta = {
 
 export const Input = z.object({
   name: ContainerName,
+  force: z.boolean().optional().default(false).describe('Force start even if already running or insufficient resources'),
 })
 
 export type Input = z.infer<typeof Input>
@@ -39,6 +40,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     namespace: ctx.kube.namespace,
     signal,
     additionalResource: resources.min,
+    force: input.force,
   })
 
   const minReplicas = resources.min.replicas

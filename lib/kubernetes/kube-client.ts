@@ -1205,6 +1205,9 @@ export const ensureUserNamespace = async (
     }, {
       apiVersion: 'autoscaling/v2',
       kind: 'HorizontalPodAutoscaler',
+    }, {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
     }]
     const labelSelector = {
       matchLabels: {

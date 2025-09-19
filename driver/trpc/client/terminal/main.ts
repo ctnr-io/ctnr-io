@@ -1,14 +1,16 @@
 import 'lib/utils.ts'
 import { createCli } from 'trpc-cli'
 import { createTrpcClientContext } from '../context.ts'
-import { clientRouter } from '../router.ts'
+import { TRPCCLientTerminalRouter } from './router.ts'
 import { createAsyncGeneratorListener } from 'lib/async-generator.ts'
 import { authStorage } from './storage.ts'
 import process from 'node:process'
+import { ClientVersionError } from 'ctx/client/version.ts'
+import installCli from 'api/client/version/install_cli.ts'
 
 try {
   const clientCli = createCli({
-    router: clientRouter,
+    router: TRPCCLientTerminalRouter,
     name: 'ctnr',
     version: process.env.CTNR_VERSION,
     description: 'ctnr.io Remote CLI',
@@ -59,7 +61,31 @@ try {
     },
   })
 } catch (error) {
-  console.debug(error)
-  console.error('An error occurred while executing command.')
-  Deno.exit(1)
+  if (error instanceof ClientVersionError) {
+    // Upgrade client and relaunch command
+    console.info('🔄 Upgrading version...')
+    for await (
+      const msg of installCli({
+        ctx: { version: process.env.CTNR_VERSION || 'unknown' },
+        input: {},
+      })
+    ) {
+      console.info(msg)
+    }
+    console.info('⚡️ Upgrade completed. Relaunching command...')
+    // Relaunch command
+    const p = new Deno.Command(process.argv[0], {
+      args: process.argv.slice(1),
+      stdin: 'inherit',
+      stdout: 'inherit',
+      stderr: 'inherit',
+      env: Deno.env.toObject(),
+    }).spawn()
+    const status = await p.status
+    Deno.exit(status.code)
+  } else {
+    console.debug(error)
+    console.error('An error occurred while executing command.')
+    Deno.exit(1)
+  }
 }

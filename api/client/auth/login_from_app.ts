@@ -1,8 +1,8 @@
-import { AuthClientContext } from 'ctx/mod.ts'
-import { ClientResponse } from 'lib/api/types.ts'
+import { ClientAuthContext } from 'ctx/mod.ts'
+import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import login from './login.ts'
 
-export default async function* ({ ctx }: { ctx: AuthClientContext }): ClientResponse {
+export default async function* ({ ctx }: ClientRequest<unknown, ClientAuthContext>): ClientResponse {
   try {
     // Use deep-linking for app-based OAuth flow
     const deepLinkRedirectUri = 'ctnr-io://auth/callback'

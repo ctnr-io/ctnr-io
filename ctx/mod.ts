@@ -7,6 +7,10 @@ export type Signals =
   | 'SIGINT'
   | 'SIGQUIT'
 
+export type VersionContext = {
+  version: string
+}
+
 export type StdioContext = {
   stdio?: {
     stdin: ReadableStream
@@ -21,25 +25,25 @@ export type StdioContext = {
 
 type KubeCluster = 'eu' | 'eu-0' | 'eu-1' | 'eu-2'
 
-export type KubeServerContext = {
+export type ServerKubeContext = {
   kube: {
     client: Record<KubeCluster, KubeClient>
     namespace: string
   }
 }
 
-export type KubeWebhookContext = {
+export type WebhookKubeContext = {
   kube: {
     client: Record<KubeCluster, KubeClient>
   }
 }
 
-export type KubeWorkerContext = KubeWebhookContext
+export type WorkerKubeContext = WebhookKubeContext
 
 /**
  * User should always be authenticated in server context.
  */
-export type AuthServerContext = {
+export type ServerAuthContext = {
   auth: {
     client: SupabaseClient['auth']
     session: Session
@@ -57,8 +61,8 @@ export type AuthServerContext = {
  * User may or may not be authenticated in client context.
  * If unauthenticated, session and user will be null.
  */
-export type AuthClientContext =
-  & (AuthServerContext | {
+export type ClientAuthContext =
+  & (ServerAuthContext | {
     auth: {
       client: SupabaseClient['auth']
       session: null
@@ -85,7 +89,7 @@ export type ProjectContext = {
 /**
  * Billing context for managing user billing information.
  */
-export type BillingServerContext = {
+export type ServerBillingContext = {
   billing: {
     client: {
       mollie: MollieClient
@@ -96,7 +100,7 @@ export type BillingServerContext = {
   }
 }
 
-export type BillingWebhookContext = {
+export type WebhookBillingContext = {
   billing: {
     client: {
       mollie: MollieClient
@@ -105,21 +109,22 @@ export type BillingWebhookContext = {
   }
 }
 
-export type BillingWorkerContext = BillingWebhookContext
+export type WorkerBillingContext = WebhookBillingContext
 
 export type ServerContext =
+  & VersionContext
   & StdioContext
-  & KubeServerContext
-  & AuthServerContext
+  & ServerKubeContext
+  & ServerAuthContext
   & ProjectContext
-  & BillingServerContext
+  & ServerBillingContext
   & {
     __type: 'server'
   }
-export type WebhookContext = KubeWebhookContext & BillingWebhookContext & {
+export type WebhookContext = VersionContext & WebhookKubeContext & WebhookBillingContext & {
   __type: 'webhook'
 }
-export type WorkerContext = KubeWorkerContext & BillingWorkerContext & {
+export type WorkerContext = VersionContext & WorkerKubeContext & WorkerBillingContext & {
   __type: 'worker'
 }
-export type ClientContext = StdioContext & AuthClientContext & { __type: 'client' }
+export type ClientContext = VersionContext & StdioContext & ClientAuthContext & { __type: 'client' }

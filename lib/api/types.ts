@@ -17,7 +17,7 @@ export type WorkerRequest<Input = unknown> = { ctx: WorkerContext; input: Input;
 
 export type WorkerResponse<Output> = AsyncGenerator<string, Output, unknown>
 
-export type ClientRequest<Input> = { ctx: ClientContext; input: Input }
+export type ClientRequest<Input, Context = ClientContext> = { ctx: Context; input: Input }
 
 export type ClientResponse<Output = void> = AsyncGenerator<
   string,

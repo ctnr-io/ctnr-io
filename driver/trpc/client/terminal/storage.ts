@@ -3,7 +3,7 @@ import * as fs from '@std/fs'
 import process from 'node:process'
 
 const homeDir = process.env.HOME || process.env.USERPROFILE || ''
-const configDir = join(homeDir, '.ctnr')
+const configDir = join(homeDir, '.config', 'ctnr')
 const storageFile = join(configDir, 'auth.json')
 
 Deno.mkdirSync(configDir, { recursive: true })

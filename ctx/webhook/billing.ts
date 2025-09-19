@@ -1,8 +1,8 @@
 import { getMollieClient } from 'lib/billing/mollie.ts'
-import { BillingWebhookContext } from '../mod.ts'
+import { WebhookBillingContext } from '../mod.ts'
 import { getQontoClient } from 'lib/billing/qonto/mod.ts'
 
-export function createBillingContext(): BillingWebhookContext {
+export function createBillingContext(): WebhookBillingContext {
   return {
     billing: {
       client: {

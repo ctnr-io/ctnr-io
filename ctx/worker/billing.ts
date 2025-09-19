@@ -1,8 +1,8 @@
 import { getMollieClient } from 'lib/billing/mollie.ts'
-import { BillingWorkerContext } from '../mod.ts'
+import { WorkerBillingContext } from '../mod.ts'
 import { getQontoClient } from 'lib/billing/qonto/mod.ts'
 
-export function createBillingContext(): BillingWorkerContext {
+export function createBillingContext(): WorkerBillingContext {
   return {
     billing: {
       client: {

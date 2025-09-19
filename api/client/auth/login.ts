@@ -1,14 +1,15 @@
-import { AuthClientContext } from 'ctx/mod.ts'
-import { ClientResponse } from 'lib/api/types.ts'
+import { ClientAuthContext } from 'ctx/mod.ts'
+import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
 
 export const Input = z.object({
   redirectTo: z.string().url().describe('The URL to redirect to after authentication'),
   provider: z.enum(['github']).describe('The OAuth provider to use for authentication'),
 })
+export type Input = z.infer<typeof Input>
 
 export default async function* (
-  { ctx, input }: { ctx: AuthClientContext; input: z.infer<typeof Input> },
+  { ctx, input }: ClientRequest<Input, ClientAuthContext>,
 ): ClientResponse {
   try {
     const { redirectTo, provider } = input

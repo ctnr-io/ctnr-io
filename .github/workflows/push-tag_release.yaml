@@ -15,11 +15,12 @@ permissions:
   packages: write
 
 env:
+  CTNR_VERSION: ${{ github.event.inputs.version }}
   CTNR_API_URL: https://api.ctnr.io
   SUPABASE_URL: ${{ vars.SUPABASE_URL }}
   SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-  CTNR_VERSION: ${{ github.event.inputs.version }}
 
+  EXPO_PUBLIC_CTNR_VERSION: ${{ github.event.inputs.version }}
   EXPO_PUBLIC_CTNR_API_URL: https://api.ctnr.io
   EXPO_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
   EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}

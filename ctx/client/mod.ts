@@ -1,6 +1,7 @@
-import { createAuthClientContext } from './auth.ts'
+import { createClientAuthContext } from './auth.ts'
 import { ClientContext, StdioContext } from '../mod.ts'
-import { createStdioClientContext } from './stdio.ts'
+import { createClientStdioContext } from './stdio.ts'
+import { createClientVersionContext } from './version.ts'
 
 export async function createClientContext(opts: {
   auth: {
@@ -8,10 +9,12 @@ export async function createClientContext(opts: {
   }
   stdio?: StdioContext['stdio']
 }): Promise<ClientContext> {
-  const authContext = await createAuthClientContext(opts.auth)
-  const stdioContext = await createStdioClientContext(opts.stdio)
+  const versionContext = await createClientVersionContext()
+  const authContext = await createClientAuthContext(opts.auth)
+  const stdioContext = await createClientStdioContext(opts.stdio)
   return {
     __type: 'client',
+    ...versionContext,
     ...authContext,
     ...stdioContext,
   }

@@ -9,16 +9,18 @@ import * as Logs from 'api/server//compute/containers/logs.ts'
 import * as Start from 'api/server/compute/containers/start.ts'
 import * as Stop from 'api/server/compute/containers/stop.ts'
 import { initTRPC } from '@trpc/server'
-import { TrpcClientContext } from './context.ts'
+import { TrpcClientContext } from '../context.ts'
 import login from 'api/client/auth/login_from_terminal.ts'
 import logout from 'api/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'ctx/mod.ts'
-import { SubscribeProcedureOutput } from '../server/procedures/_utils.ts'
+import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
+import { createDeferer } from 'lib/api/defer.ts'
+import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 
 export const trpc = initTRPC.context<TrpcClientContext>().create()
 
-function transformSubscribeResolver<
+export function transformSubscribeResolver<
   Input,
   Output,
 >(
@@ -54,19 +56,39 @@ function transformSubscribeResolver<
   )
 }
 
-function transformGeneratorToMutation<Input, Opts extends { ctx: ClientContext; input: Input }>(
-  procedure: (opts: Opts) => any,
+type TRPClientRequest<Input> = { ctx: ClientContext; input: Input; signal: AbortSignal | undefined }
+
+export function transformQueryProcedure<Input, Output>(
+  procedure: (opts: ClientRequest<Input>) => ClientResponse<Output>,
 ) {
-  return async function (opts: Opts) {
-    for await (const value of procedure(opts)) {
-      console.warn(value)
+  return async function (opts: TRPClientRequest<Input>): Promise<Output> {
+    const defer = createDeferer()
+    try {
+      const gen = procedure({
+        ctx: opts.ctx,
+        input: opts.input,
+      })
+      while (true) {
+        const { value, done } = await gen.next()
+        if (done) {
+          return value
+        }
+        console.info(value)
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('❌', error.message)
+      }
+      Deno.exit(1)
+    } finally {
+      await defer.execute()
     }
   }
 }
 
-export const clientRouter = trpc.router({
+export const TRPCCLientTerminalRouter = trpc.router({
   // Client authentication procedures
-  login: trpc.procedure.mutation(transformGeneratorToMutation(login)),
+  login: trpc.procedure.mutation(transformQueryProcedure(login)),
   logout: trpc.procedure.mutation(logout),
 
   // Core procedures
@@ -134,4 +156,4 @@ export const clientRouter = trpc.router({
   ),
 })
 
-export type clientRouter = typeof clientRouter
+export type TRPCCLientTerminalRouter = typeof TRPCCLientTerminalRouter

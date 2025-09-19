@@ -250,12 +250,13 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
             </CardContent>
           </Card>
 
-          {/* Cost Estimation Card */}
+          {/* Cost Limit Estimation Card */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-lg'>Cost Estimation</CardTitle>
+              <CardTitle className='text-lg'>Cost Limit Estimation</CardTitle>
               <CardDescription>
-                Estimated costs based on your current resource configuration
+                Maximum estimated costs based on your current resource limit configuration.
+                FYI - you only pay for what you use.
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>

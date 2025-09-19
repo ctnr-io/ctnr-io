@@ -1,11 +1,11 @@
 import { ensureMollieCustormerId, getMollieClient } from 'lib/billing/mollie.ts'
-import { AuthServerContext, BillingServerContext, KubeServerContext } from '../mod.ts'
+import { ServerAuthContext, ServerBillingContext, ServerKubeContext } from '../mod.ts'
 import { getQontoClient } from 'lib/billing/qonto/mod.ts'
 
 export async function createBillingContext(
-  ctx: KubeServerContext & AuthServerContext,
+  ctx: ServerKubeContext & ServerAuthContext,
   signal: AbortSignal,
-): Promise<BillingServerContext> {
+): Promise<ServerBillingContext> {
   // Retrieve billing mollieCustomerId from namespace label or create customer
   const mollieClient = getMollieClient()
   const qontoClient = getQontoClient()

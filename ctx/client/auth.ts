@@ -1,9 +1,9 @@
 import { getSupabaseClient } from 'lib/auth/supabase.ts'
-import type { AuthClientContext } from '../mod.ts'
+import type { ClientAuthContext } from '../mod.ts'
 
-export async function createAuthClientContext(
+export async function createClientAuthContext(
   { storage }: { storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> },
-): Promise<AuthClientContext> {
+): Promise<ClientAuthContext> {
   const supabase = getSupabaseClient({
     storage,
   })

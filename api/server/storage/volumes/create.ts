@@ -17,8 +17,10 @@ export const Input = z.object({
   size: z.string()
     .regex(/^\d+[KMGT]?i?$/, 'Size must be in format like 10Gi, 500Mi, 1Ti')
     .describe('Volume size (e.g., 10Gi, 500Mi, 1Ti)'),
-  cluster: ClusterName.optional().describe('Cluster to create the volume in'),
-  mountPath: z.string().describe('Path to mount the volume'),
+  mountPath: z.string()
+    .min(1, 'Mount path is required')
+    .regex(/^\/.*/, 'Mount path must start with /')
+    .describe('Path where the volume will be mounted'),
 })
 
 export type Input = z.infer<typeof Input>
@@ -29,7 +31,6 @@ export default async function* (
   const {
     name,
     size,
-    cluster = ClusterNames[Math.floor(Math.random() * 10 % ClusterNames.length)],
     mountPath,
   } = input
 
@@ -44,7 +45,6 @@ export default async function* (
       userId: ctx.auth.user.id,
       namespace: ctx.kube.namespace,
       kubeClient: kubeClient,
-      cluster,
       mountPath,
     })
 

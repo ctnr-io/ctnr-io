@@ -12,7 +12,6 @@ export const Meta = {
 export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
   name: z.string().optional(), // Filter by specific route name
-  cluster: z.enum(['karmada', 'eu-0', 'eu-1', 'eu-2']).optional(),
 })
 
 export type Input = z.infer<typeof Input>
@@ -44,7 +43,6 @@ export default async function* (
   try {
     // Get routes from HTTPRoutes and IngressRoutes (same as containers)
     const client = ctx.kube.client[cluster as keyof typeof ctx.kube.client]
-
     // Fetch both route types in parallel
     const [httpRoutesResult, ingressRoutesResult] = await Promise.allSettled([
       client.GatewayNetworkingV1(ctx.kube.namespace).listHTTPRoutes(),

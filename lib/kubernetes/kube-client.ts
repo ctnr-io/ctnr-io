@@ -1166,6 +1166,43 @@ export const ensureUserNamespace = async (
     },
   }, abortSignal)
   for (const clusterName of clusterNames) {
+    const resources = [{
+      apiVersion: 'v1',
+      kind: 'Pod',
+    }, {
+      apiVersion: 'v1',
+      kind: 'Service',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'StatefulSet',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'DaemonSet',
+    }, {
+      apiVersion: 'apps/v1',
+      kind: 'ReplicaSet',
+    }, {
+      apiVersion: 'gateway.networking.k8s.io/v1',
+      kind: 'HTTPRoute',
+    }, {
+      apiVersion: 'gateway.networking.k8s.io/v1beta1',
+      kind: 'HTTPRoute',
+    }, {
+      apiVersion: 'cert-manager.io/v1',
+      kind: 'Certificate',
+    }, {
+      apiVersion: 'traefik.io/v1alpha1',
+      kind: 'IngressRoute',
+    }, {
+      apiVersion: 'autoscaling/v2',
+      kind: 'HorizontalPodAutoscaler',
+    }, {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+    }]
     const labelSelector = {
       matchLabels: {
         ['cluster.ctnr.io/' + clusterName]: 'true',

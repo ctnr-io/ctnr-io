@@ -55,7 +55,7 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
       throw new Error(`No ports found for container ${input.container} matching specified ports`)
     }
 
-    const clusters = container.clusters
+    const clusters = 
 
     const userIdShort = shortUUIDtranslator.fromUUID(ctx.auth.user.id)
     const hostnames = [

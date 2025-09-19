@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { getVerificationRecord } from 'lib/domains/verification.ts'
-import { ClusterName } from 'lib/api/schemas.ts'
+import { verifyDomainOwnership } from 'lib/domains/verification.ts'
+import { createDomainCertificate } from 'lib/domains/certificate.ts'
 
 export const Meta = {
   aliases: {
@@ -10,11 +10,10 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: z.string().regex(
-    /^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/,
-    'Invalid domain name format (e.g., example.com)',
-  ).min(1, 'Domain name is required'),
-  cluster: ClusterName.optional(),
+  name: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/, 'Invalid domain name format'),
+  ssl: z.boolean().optional().default(true),
+  provider: z.string().optional().describe('DNS provider for domain verification'),
+  cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2']).optional(),
 })
 
 export type Input = z.infer<typeof Input>
@@ -22,43 +21,54 @@ export type Input = z.infer<typeof Input>
 export default async function* (
   { ctx, input, signal }: ServerRequest<Input>,
 ): ServerResponse<void> {
-  const {
-    name,
+  const { 
+    name, 
+    ssl = true, 
+    provider,
+    cluster = 'eu'
   } = input
 
-  const kubeClient = ctx.kube.client['karmada']
-
-  const rootDomain = name.split('.').slice(-2).join('.').match(
-    /^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/,
-  )?.[0]
-  if (!rootDomain) {
-    throw new Error('Invalid domain name format')
-  }
-
   try {
-    // Step 1: Add it to the user's domains in namespace
-    const annotations = {
-      ['domain.ctnr.io/' + rootDomain]: 'pending',
-    }
-    await kubeClient.CoreV1.patchNamespace(ctx.kube.namespace, 'json-merge', { metadata: { annotations } }, {
-      abortSignal: signal,
-    })
-
-    const verificationRecord = getVerificationRecord(name, ctx.auth.user.id, ctx.auth.user.createdAt)
-    // Create certificate for the domain using cert-manager
-    yield ``
-    yield `👉 Please add the following DNS TXT record to your domain ${rootDomain} to verify ownership: `
-    yield ``
-
-    yield `Type: ${verificationRecord.type}`
-    yield `Name: ${verificationRecord.name}`
-    yield `Value: ${verificationRecord.value}`
-    yield ``
+    // Only custom domains are supported (no subdomains)
+    yield `Creating custom domain: ${name}`
 
     // Step 1: Verify domain ownership
+    yield `Step 1: Verifying domain ownership...`
+    yield* verifyDomainOwnership({
+      domain: name,
+      userId: ctx.auth.user.id,
+      userCreatedAt: ctx.auth.user.createdAt,
+      signal,
+    })
+
+    // Step 2: Create SSL certificate
+    yield `Step 2: Creating SSL certificate...`
+    const kubeClient = ctx.kube.client[cluster as keyof typeof ctx.kube.client]
+    yield* createDomainCertificate({
+      domain: name,
+      userId: ctx.auth.user.id,
+      namespace: ctx.kube.namespace,
+      kubeClient,
+      cluster,
+      provider,
+      ssl,
+    })
 
     yield ``
+    yield `✅ Domain ${name} created successfully!`
+    yield ``
+    yield `Next steps for custom domain setup:`
+    yield `1. Add DNS records pointing to your ctnr.io cluster:`
+    yield `   A/AAAA record: ${name} → [cluster-ip]`
+    yield `2. Create routes to direct traffic to your containers:`
+    yield `   ctnr route <container> --domain ${name}`
+    if (ssl) {
+      yield `3. SSL certificate will be automatically provisioned`
+    }
+    
+    yield ``
     yield `Monitor the certificate status to track SSL provisioning progress.`
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     yield `❌ Error creating domain: ${errorMessage}`

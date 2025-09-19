@@ -9,8 +9,7 @@ import logs from './logs.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 import { ServerContext } from 'ctx/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
-import { checkUsage, getUsage } from 'lib/billing/usage.ts'
-import { extractDeploymentMinimumResourceUsage } from 'lib/billing/resource.ts'
+import { createVolume } from 'lib/storage/volume.ts'
 import start from './start.ts'
 
 export const Meta = {
@@ -24,6 +23,12 @@ export const Meta = {
 }
 
 const clusterNames = ['eu-0', 'eu-1', 'eu-2'] as const
+
+// Volume mount specification
+const VolumeMount = z.string()
+  .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(?::\d+[G]?)?$/, 
+    'Volume format must be name:path or name:path:size (e.g., "data:/app/data" or "data:/app/data:5G")')
+  .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
 
 export const Input = z.object({
   name: ContainerName,
@@ -40,6 +45,7 @@ export const Input = z.object({
     .optional()
     .describe('Set environment variables'),
   publish: z.array(Publish).optional().describe('Publish containers ports to the internal service'),
+  volume: z.array(VolumeMount).optional().describe('Mount volumes in format name:path:size (e.g., "data:/app/data:5G")'),
   route: z.union([z.boolean(), z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/)])
     .optional().describe("Route the container's published ports to a domain"),
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
@@ -64,7 +70,7 @@ export const Input = z.object({
     .regex(/^\d+[GM]$/, 'Memory limit must be a positive integer followed by "M" or "G" (e.g., "128M", "1G")')
     .default('256M')
     .describe('Memory limit for the container'),
-  clusters: z.array(z.enum(clusterNames)).optional().describe('Clusters to run the container on'),
+  cluster: z.array(z.enum(clusterNames)).optional().describe('Clusters to run the container on'),
   restart: z.enum(['always', 'on-failure', 'never']).optional().default('never').describe(
     'Restart policy for the container',
   ),
@@ -80,6 +86,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     image,
     env = [],
     publish,
+    volume = [],
     interactive,
     terminal,
     detach,
@@ -88,10 +95,40 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     replicas,
     cpu,
     memory,
-    clusters = [clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)]],
+    cluster: clusters = [clusterNames[Math.floor(Math.random() * 10 % clusterNames.length)]],
   } = input
 
   const ephemeralStorage = '1G'
+
+  // Parse volume mounts
+  const volumeMounts: Array<{ name: string; mountPath: string; size: string }> = []
+  for (const vol of volume) {
+    const parts = vol.split(':')
+    if (parts.length < 2) {
+      throw new Error(`Invalid volume format: ${vol}. Use name:path or name:path:size`)
+    }
+    
+    const [volumeName, mountPath, size = '1G'] = parts
+    volumeMounts.push({
+      name: volumeName,
+      mountPath,
+      size,
+    })
+  }
+
+  // Create PersistentVolumeClaims for volumes that don't exist
+  for (const volMount of volumeMounts) {
+    yield* createVolume({
+      name: volMount.name,
+      size: volMount.size,
+      mountPath: volMount.mountPath,
+      userId: ctx.auth.user.id,
+      namespace: ctx.kube.namespace,
+      kubeClient: ctx.kube.client['eu'],
+      cluster: clusters[0],
+      createdBy: 'container-run',
+    })
+  }
 
   // Parse replicas parameter
   let replicaCount: number
@@ -173,6 +210,10 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
                 containerPort: Number(p.port),
                 protocol: p.protocol?.toUpperCase() as 'TCP' | 'UDP',
               })),
+              volumeMounts: volumeMounts.map((vol) => ({
+                name: vol.name,
+                mountPath: vol.mountPath,
+              })),
               readinessProbe: {
                 exec: {
                   command: ['true'],
@@ -233,6 +274,12 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
               },
             },
           ],
+          volumes: volumeMounts.map((vol) => ({
+            name: vol.name,
+            persistentVolumeClaim: {
+              claimName: vol.name,
+            },
+          })),
           // TODO: Add topology spread constraints for better distribution
           // topologySpreadConstraints: [
           //   {

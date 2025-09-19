@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ensureUserRoute } from 'lib/kubernetes/kube-client.ts'
-import { hash } from 'node:crypto'
 import * as shortUUID from '@opensrc/short-uuid'
-import { resolveTxt } from 'node:dns/promises'
 import { ContainerName, PortName } from 'lib/api/schemas.ts'
+import { verifyDomainOwnership, isDomainVerified } from 'lib/domains/verification.ts'
+import { createDomainCertificate } from 'lib/domains/certificate.ts'
 
 export const Meta = {
   aliases: {
@@ -85,41 +85,47 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       ]),
     ].flat().filter(Boolean)
 
-    // TODO: ctnr domain add
-    // Check for domain ownership, do this before adding HTTPRoute preventing user domain squatting
+    // Check for domain ownership and create certificate if needed
     if (input.domain) {
-      const domain = input.domain.split('.').slice(-2).join('.')
-      // Check that the user owns the domain
-      const txtRecordName = `ctnr-io-ownership-${userIdShort}.${domain}`
-      const txtRecordValue = hash('sha256', ctx.auth.user.createdAt.toString() + domain)
-      const values = await resolveTxt(txtRecordName).catch(() => [])
-      if (values.flat().includes(txtRecordValue)) {
-        yield `Domain ownership for ${domain} already verified.`
-      } else {
-        // Check if the TXT record already exists
-        yield [
-          '',
-          `Verifying domain ownership for ${domain}...`,
-          '',
-          'Please create a TXT record with the following details:',
-          `Name: ${txtRecordName}`,
-          `Value: ${txtRecordValue}`,
-          '',
-          '',
-        ].join('\r\n')
-        // Wait for the user to create the TXT record
-        while (true) {
-          yield `Checking for TXT record...`
-          if (signal.aborted) {
-            throw new Error('Domain ownership verification aborted')
-          }
-          // Check the TXT record every 5 seconds
-          const values = await resolveTxt(txtRecordName).catch(() => [])
-          if (values.flat().includes(txtRecordValue)) {
-            yield 'TXT record verified successfully.'
-            break
-          }
-          await new Promise((resolve) => setTimeout(resolve, 5000))
+      const rootDomain = input.domain.split('.').slice(-2).join('.')
+      
+      // Check if domain is already verified
+      const alreadyVerified = await isDomainVerified(
+        input.domain,
+        ctx.auth.user.id,
+        ctx.auth.user.createdAt
+      )
+      
+      if (!alreadyVerified) {
+        yield `Domain ownership verification required for ${rootDomain}`
+        yield* verifyDomainOwnership({
+          domain: input.domain,
+          userId: ctx.auth.user.id,
+          userCreatedAt: ctx.auth.user.createdAt,
+          signal,
+        })
+      }
+      
+      // Create certificate if it doesn't exist
+      const certificateName = input.domain.replace(/\./g, '-')
+      const kubeClient = ctx.kube.client['karmada']
+      
+      try {
+        await kubeClient.CertManagerV1(ctx.kube.namespace).getCertificate(certificateName)
+        yield `SSL certificate for ${input.domain} already exists.`
+      } catch (error: any) {
+        if (error.status === 404) {
+          yield `Creating SSL certificate for ${input.domain}...`
+          yield* createDomainCertificate({
+            domain: input.domain,
+            userId: ctx.auth.user.id,
+            namespace: ctx.kube.namespace,
+            kubeClient,
+            cluster: 'eu',
+            ssl: true,
+          })
+        } else {
+          throw error
         }
       }
     }

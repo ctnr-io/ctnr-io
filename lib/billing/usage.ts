@@ -261,6 +261,7 @@ export async function* checkUsage(opts: {
   kubeClient: KubeClient
   namespace: string
   additionalResource?: ResourceUsage
+  force: boolean
   signal: AbortSignal
 }): AsyncGenerator<string, Usage> {
   const { kubeClient, namespace, signal } = opts
@@ -345,7 +346,11 @@ export async function* checkUsage(opts: {
         usage.costs.next.hourly.toFixed(4)
       } credits/hour`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits.`
-      throw new Error('Insufficient credits for provisioning')
+      if (!opts.force) {
+        throw new Error('Insufficient credits for provisioning')
+      }
+      yield `🚨 Force flag enabled but insufficient credits - cannot proceed with forced resource creation.`
+      throw new Error('Cannot force resource creation: insufficient credits')
     }
 
     case 'resource_limits_reached_for_current_usage': {
@@ -366,7 +371,12 @@ export async function* checkUsage(opts: {
       yield `⚠️  Resource limit would be exceeded with this additional provisioning!`
       yield `📊 With additional: CPU ${usage.resources.cpu.next}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.next}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.next}/${usage.resources.storage.limit}`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
-      throw new Error('Resource limits would be exceeded with provisioning')
+      if (!opts.force) {
+        throw new Error('Resource limits would be exceeded with provisioning')
+      }
+      yield `🔥 Force flag enabled - proceeding despite resource limit warnings!`
+      yield `⚠️  Warning: This may cause resource contention and performance issues.`
+      break
     }
 
     // TODO: add low_balance case w/ notification only if credits < 5 * max daily cost

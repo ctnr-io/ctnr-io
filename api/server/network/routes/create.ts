@@ -1,198 +1,109 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
+import { ensureUserRoute } from 'lib/kubernetes/kube-client.ts'
+import * as shortUUID from '@opensrc/short-uuid'
+import { ContainerName, PortName } from 'lib/api/schemas.ts'
+import { isDomainVerified, verifyDomainOwnership } from 'lib/domains/verification.ts'
+import getContainer from 'api/server/compute/containers/get.ts'
+import { string } from 'zod'
 
 export const Meta = {
   aliases: {
     options: {
-      output: 'o',
+      port: 'p',
     },
   },
 }
 
 export const Input = z.object({
-  name: z.string().min(1, 'Route name is required'),
-  path: z.string().min(1, 'Route path is required'),
-  targetService: z.string().min(1, 'Target service is required'),
-  targetPort: z.number().min(1).max(65535),
-  domain: z.string().min(1, 'Domain is required'),
-  protocol: z.enum(['http', 'https']).default('https'),
-  methods: z.array(z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])).default(['GET']),
-  cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2']).optional(),
-  output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
+  name: string,
+  container: ContainerName,
+  domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
+    'Parent domain name for the routing',
+  ),
+  port: z.array(PortName).optional().describe(
+    'Ports to expose, defaults to all ports of the container',
+  ),
 })
 
 export type Input = z.infer<typeof Input>
 
-export interface CreateRouteResult {
-  id: string
-  name: string
-  path: string
-  targetService: string
-  targetPort: number
-  domain: string
-  protocol: 'http' | 'https'
-  status: 'pending'
-  created: string
-  methods: string[]
-}
+const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
 
-type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
-  'raw': CreateRouteResult
-  'json': string
-  'yaml': string
-  'name': string
-  'wide': void
-}[Type]
+export default async function* createRoute(request: ServerRequest<Input>): ServerResponse<void> {
+  const { ctx, input, signal } = request
 
-export default async function* (
-  { ctx, input }: ServerRequest<Input>,
-): ServerResponse<Output<NonNullable<typeof input['output']>>> {
-  const { 
-    name, 
-    path, 
-    targetService, 
-    targetPort, 
-    domain, 
-    protocol = 'https', 
-    methods = ['GET'],
-    cluster = 'eu',
-    output = 'raw'
-  } = input
+  const kubeClient = ctx.kube.client['eu']
 
   try {
-    // Validate route name format
-    if (!/^[a-z0-9-]+$/.test(name)) {
-      throw new Error('Route name must contain only lowercase letters, numbers, and hyphens')
-    }
-
-    // Create ConfigMap for route configuration
-    const client = ctx.kube.client[cluster as keyof typeof ctx.kube.client]
-    
-    // Check if route already exists
-    try {
-      await client.CoreV1.namespace(ctx.kube.namespace).getConfigMap(`route-${name}`)
-      throw new Error(`Route '${name}' already exists`)
-    } catch (error: any) {
-      if (error.status !== 404) {
-        throw error
-      }
-      // Route doesn't exist, proceed with creation
-    }
-
-    const configMapName = `route-${name}`
-    const configMapData = {
-      name,
-      path,
-      targetService,
-      targetPort: String(targetPort),
-      domain,
-      protocol,
-      methods: methods.join(','),
-      status: 'pending',
-    }
-
-    const configMap = {
-      apiVersion: 'v1' as const,
-      kind: 'ConfigMap' as const,
-      metadata: {
-        name: configMapName,
-        namespace: ctx.kube.namespace,
-        labels: {
-          'ctnr.io/resource-type': 'route',
-          'ctnr.io/route-name': name,
-          'ctnr.io/domain': domain,
-        },
-        annotations: {
-          'ctnr.io/created-by': 'ctnr-io-api',
-          'ctnr.io/created-at': new Date().toISOString(),
-        },
+    const container = yield* getContainer({
+      ...request,
+      input: {
+        name: input.container,
       },
-      data: configMapData,
+    })
+    if (!container) {
+      throw new Error(`Container ${input.container} not found`)
     }
 
-    const createdConfigMap = await client.CoreV1.namespace(ctx.kube.namespace).createConfigMap(configMap)
+    // If no ports is not specified, use all ports, if ports length === 0, remove all ports
+    const routedPorts = (
+      input.port === undefined ? container.ports : input.port.length === 0 ? [] : container.ports
+    ).filter((p) => input.port!.includes(p.name ?? '') || input.port!.includes(p.number.toString()))
 
-    const result: CreateRouteResult = {
-      id: createdConfigMap.metadata?.uid || '',
-      name,
-      path,
-      targetService,
-      targetPort,
-      domain,
-      protocol,
-      status: 'pending',
-      created: String(createdConfigMap.metadata?.creationTimestamp || new Date().toISOString()),
-      methods,
+    if (routedPorts.length === 0) {
+      throw new Error(`No ports found for container ${input.container} matching specified ports`)
     }
 
-    yield `Route '${name}' created successfully`
+    const clusters = container.clusters
 
-    switch (output) {
-      case 'raw':
-        return result
+    const userIdShort = shortUUIDtranslator.fromUUID(ctx.auth.user.id)
+    const hostnames = [
+      ...routedPorts.map((port) => [
+        ...clusters.map((cluster) => `${port.name}-${input.container}-${userIdShort}.${cluster}.ctnr.io`),
+        input.domain! && `${port.name}.${input.domain}`,
+      ]),
+    ].flat().filter(Boolean)
 
-      case 'json':
-        return JSON.stringify(result, null, 2)
+    // Check for domain ownership and create certificate if needed
+    if (input.domain) {
+      const rootDomain = input.domain.split('.').slice(-2).join('.')
 
-      case 'yaml':
-        return `name: ${result.name}\n` +
-          `path: ${result.path}\n` +
-          `domain: ${result.domain}\n` +
-          `targetService: ${result.targetService}\n` +
-          `targetPort: ${result.targetPort}\n` +
-          `protocol: ${result.protocol}\n` +
-          `status: ${result.status}\n` +
-          `methods: [${result.methods.join(', ')}]\n` +
-          `created: ${result.created}\n`
+      // Check if domain is already verified
+      const alreadyVerified = yield* isDomainVerified(
+        input.domain,
+        ctx.auth.user.id,
+        ctx.auth.user.createdAt,
+      )
 
-      case 'name':
-        return result.name
-
-      case 'wide':
-      default: {
-        // Header
-        yield 'NAME'.padEnd(20) +
-          'PATH'.padEnd(20) +
-          'DOMAIN'.padEnd(25) +
-          'TARGET'.padEnd(20) +
-          'PROTOCOL'.padEnd(10) +
-          'STATUS'.padEnd(10) +
-          'METHODS'.padEnd(15) +
-          'AGE'
-
-        // Route row
-        const age = formatAge(result.created)
-        const target = `${result.targetService}:${result.targetPort}`
-        const methodsStr = result.methods.join(',')
-        
-        yield result.name.padEnd(20) +
-          result.path.padEnd(20) +
-          result.domain.padEnd(25) +
-          target.padEnd(20) +
-          result.protocol.toUpperCase().padEnd(10) +
-          result.status.padEnd(10) +
-          methodsStr.padEnd(15) +
-          age
-        return
+      if (!alreadyVerified) {
+        yield `Domain ownership verification required for ${rootDomain}`
+        yield* verifyDomainOwnership({
+          domain: input.domain,
+          userId: ctx.auth.user.id,
+          userCreatedAt: ctx.auth.user.createdAt,
+          signal,
+        })
       }
+    }
+
+    await ensureUserRoute(kubeClient, ctx.kube.namespace, {
+      hostnames,
+      name: input.container,
+      userId: ctx.auth.user.id,
+      ports: routedPorts.map((p) => ({
+        name: p.name || `${p.number}`,
+        port: p.number,
+      })),
+      clusters,
+    }, signal)
+
+    yield `Routes created successfully for container ${input.container}:`
+    for (const hostname of hostnames) {
+      yield `  - https://${hostname}`
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    yield `Error creating route: ${errorMessage}`
+    yield `Error creating route`
     throw error
   }
-}
-
-function formatAge(createdAt: string): string {
-  const now = new Date()
-  const created = new Date(createdAt)
-  const diffMs = now.getTime() - created.getTime()
-  
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-  
-  if (days > 0) return `${days}d`
-  if (hours > 0) return `${hours}h`
-  return `${minutes}m`
 }

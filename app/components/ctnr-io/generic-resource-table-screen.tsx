@@ -1,7 +1,7 @@
 'use dom'
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
-import { Plus, Trash2, LucideIcon } from 'lucide-react'
+import { LucideIcon, Plus, Trash2 } from 'lucide-react'
 import { ReactNode, useCallback, useState } from 'react'
 import {
   Dialog,
@@ -32,7 +32,7 @@ export interface GenericResourceTableScreenProps<T extends ResourceItem> {
 
   // Table configuration
   columns: TableColumn<T>[]
-  
+
   // CRUD operations
   onAdd?: (item: Omit<T, 'id'>) => Promise<void>
   onDelete?: (item: T) => Promise<void>
@@ -91,12 +91,12 @@ function DefaultConfirmDeleteDialog<T extends ResourceItem>({
         </DialogDescription>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline" disabled={isDeleting}>
+            <Button variant='outline' disabled={isDeleting}>
               Cancel
             </Button>
           </DialogClose>
           <Button
-            variant="destructive"
+            variant='destructive'
             onClick={handleConfirm}
             disabled={isDeleting}
           >
@@ -178,11 +178,13 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
   }
 
   // Build primary action
-  const primaryAction = onAdd ? {
-    label: addButtonLabel || `Add ${resourceName}`,
-    icon: Plus,
-    onClick: () => setAddDialogOpen(true),
-  } : undefined
+  const primaryAction = onAdd
+    ? {
+      label: addButtonLabel || `Add ${resourceName}`,
+      icon: Plus,
+      onClick: () => setAddDialogOpen(true),
+    }
+    : undefined
 
   return (
     <>
@@ -207,8 +209,9 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
         searchPlaceholder={searchPlaceholder || `Search ${resourceNamePlural.toLowerCase()}...`}
         searchKeys={searchKeys}
         columnFilterable
-        defaultVisibleColumns={columns.map(col => col.key)}
-        emptyMessage={emptyMessage || `No ${resourceNamePlural.toLowerCase()} found. Create your first ${resourceName.toLowerCase()} to get started.`}
+        defaultVisibleColumns={columns.map((col) => col.key)}
+        emptyMessage={emptyMessage ||
+          `No ${resourceNamePlural.toLowerCase()} found. Create your first ${resourceName.toLowerCase()} to get started.`}
         loading={isLoading}
       />
 

@@ -934,6 +934,15 @@ export async function ensureService(
     })
 }
 
+export async function deleteService(
+  kc: KubeClient,
+  namespace: string,
+  name: string,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  await kc.CoreV1.namespace(namespace).deleteService(name, { abortSignal }).catch(() => null)
+}
+
 export async function ensureIngressRoute(
   kc: KubeClient,
   namespace: string,
@@ -959,6 +968,15 @@ export async function ensureIngressRoute(
       await kc.TraefikV1Alpha1(namespace).deleteIngressRoute(currentIngressRoute!.metadata.name, { abortSignal })
       await kc.TraefikV1Alpha1(namespace).createIngressRoute(nextIngressRoute as any, { abortSignal })
     })
+}
+
+export async function deleteIngressRoute(
+  kc: KubeClient,
+  namespace: string,
+  name: string,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  await kc.TraefikV1Alpha1(namespace).deleteIngressRoute(name, { abortSignal }).catch(() => null)
 }
 
 export async function ensureHTTPRoute(
@@ -1009,6 +1027,20 @@ export async function ensureHTTPRoute(
     })
 }
 
+export async function deleteHTTPRoute(
+  kc: KubeClient,
+  namespace: string,
+  name: string,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  await kc.performRequest({
+    method: 'DELETE',
+    path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
+    expectJson: true,
+    abortSignal,
+  }).catch(() => null)
+}
+
 export async function ensureTLSRoute(
   kc: KubeClient,
   namespace: string,
@@ -1031,6 +1063,15 @@ export async function ensureTLSRoute(
       await kc.GatewayNetworkingV1Alpha2(namespace).deleteTLSRoute(currentTLSRoute!.metadata.name, { abortSignal })
       await kc.GatewayNetworkingV1Alpha2(namespace).createTLSRoute(nextTLSRoute as any, { abortSignal })
     })
+}
+
+export async function deleteTLSRoute(
+  kc: KubeClient,
+  namespace: string,
+  name: string,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  await kc.GatewayNetworkingV1Alpha2(namespace).deleteTLSRoute(name, { abortSignal }).catch(() => null)
 }
 
 export async function ensureDNSEndpoint(
@@ -1453,4 +1494,15 @@ export async function ensureUserRoute(
       },
     }, abortSignal)
   }
+}
+
+export async function deleteUserRoute(
+  kc: KubeClient,
+  namespace: string,
+  name: string,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  await deleteService(kc, namespace, name, abortSignal).catch(() => null)
+  await deleteHTTPRoute(kc, namespace, name, abortSignal).catch(() => null)
+  await deleteIngressRoute(kc, namespace, name, abortSignal).catch(() => null)
 }

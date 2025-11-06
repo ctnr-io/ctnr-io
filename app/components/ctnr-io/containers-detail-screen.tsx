@@ -297,12 +297,14 @@ export function ContainersDetailScreen(props: {
                 Logs
               </span>
             </TabsTrigger>
-            {/* <TabsTrigger value='exec' className='text-sm font-medium flex-1'>
+            {
+              /* <TabsTrigger value='exec' className='text-sm font-medium flex-1'>
               <Terminal className='h-4 w-4 sm:mr-2' />
               <span className='hidden sm:inline'>
                 Exec
               </span>
-            </TabsTrigger> */}
+            </TabsTrigger> */
+            }
           </TabsList>
 
           {/* Overview Tab */}
@@ -535,7 +537,7 @@ export function ContainersDetailScreen(props: {
           </TabsContent>
 
           {/* Logs Tab */}
-          <TabsContent value='logs' className="-mx-6 sm:mx-0">
+          <TabsContent value='logs' className='-mx-6 sm:mx-0'>
             <ContainerLogs
               containerName={data.name}
               replicas={data.replicas.instances}

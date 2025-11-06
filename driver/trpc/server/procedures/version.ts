@@ -1,9 +1,6 @@
 import { z } from 'zod'
 import { trpc } from '../trpc.ts'
-import {
-  transformWebhookRequest,
-  withWebhookContext,
-} from './_utils.ts'
+import { transformWebhookRequest, withWebhookContext } from './_utils.ts'
 
 import * as GetVersion from 'api/server/version/get_version.ts'
 

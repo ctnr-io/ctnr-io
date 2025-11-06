@@ -4,8 +4,8 @@ import { calculateTotalCostWithFreeTier } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
 import {
   extractDeploymentCurrentResourceUsage,
-  parseResourceUsageToPrimitiveValues,
   parseResourceToPrimitiveValue,
+  parseResourceUsageToPrimitiveValues,
   ResourceUsage,
 } from './resource.ts'
 
@@ -135,7 +135,9 @@ export async function getUsage(opts: {
 
   // Process each deployment
   for (const deployment of deployments.items) {
-    const { cpu, memory, storage } = parseResourceUsageToPrimitiveValues(extractDeploymentCurrentResourceUsage(deployment))
+    const { cpu, memory, storage } = parseResourceUsageToPrimitiveValues(
+      extractDeploymentCurrentResourceUsage(deployment),
+    )
     totalMilliCpuUsed += cpu
     totalMemoryUsed += memory
     totalStorageUsed += storage
@@ -259,7 +261,7 @@ export async function* checkUsage(opts: {
   kubeClient: KubeClient
   namespace: string
   additionalResource?: ResourceUsage
-  force: boolean
+  force?: boolean
   signal: AbortSignal
 }): AsyncGenerator<string, Usage> {
   const { kubeClient, namespace, signal } = opts

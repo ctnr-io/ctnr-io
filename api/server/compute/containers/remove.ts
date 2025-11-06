@@ -7,14 +7,14 @@ import stop from './stop.ts'
 export const Meta = {
   aliases: {
     options: {
-			'force': 'f',
+      'force': 'f',
     },
   },
 }
 
 export const Input = z.object({
   name: ContainerName,
-	force: z.boolean().optional().describe('Force delete even if container is running'),
+  force: z.boolean().optional().describe('Force delete even if container is running'),
 })
 
 export type Input = z.infer<typeof Input>
@@ -26,25 +26,27 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     name,
   } = input
 
-	// Check if deployment 
-	const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
-	if (!deployment) {
-		yield `❌ Container ${name} not found`
-		return
-	}
+  // Check if deployment
+  const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>
+    null
+  )
+  if (!deployment) {
+    yield `❌ Container ${name} not found`
+    return
+  }
 
-	const currentResources = extractDeploymentCurrentResourceUsage(deployment)
-	if (currentResources.replicas > 0 && !input.force) {
-		yield `⚠️ Container ${name} is currently running with ${currentResources.replicas} replicas. Use --force to stop and remove it.`
-		return
-	} else {
-		yield* stop(request)
-	}
+  const currentResources = extractDeploymentCurrentResourceUsage(deployment)
+  if (currentResources.replicas > 0 && !input.force) {
+    yield `⚠️ Container ${name} is currently running with ${currentResources.replicas} replicas. Use --force to stop and remove it.`
+    return
+  } else {
+    yield* stop(request)
+  }
 
-	// Delete the deployment
-	await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
-		abortSignal: signal,
-	})
+  // Delete the deployment
+  await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
+    abortSignal: signal,
+  })
 
-	yield `🗑️  Container ${name} has been removed`
+  yield `🗑️  Container ${name} has been removed`
 }

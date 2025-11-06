@@ -33,7 +33,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
 
   try {
     // First, try to find the deployment
-    const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(
+    const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(input.name).catch(
       () => null,
     )
 
@@ -44,7 +44,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       containerPorts = deployment.spec?.template?.spec?.containers?.[0]?.ports || []
     } else {
       // Fallback: try to find the pod directly (for backward compatibility)
-      const pod = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPod(input.name).catch(() => {
+      const pod = await ctx.kube.client['karmada'].CoreV1.namespace(ctx.kube.namespace).getPod(input.name).catch(() => {
         throw new Error(`Container ${input.name} not found`)
       })
       containerPorts = pod.spec?.containers?.[0]?.ports || []
@@ -124,7 +124,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       }
     }
 
-    await ensureUserRoute(ctx.kube.client['eu'], ctx.kube.namespace, {
+    await ensureUserRoute(ctx.kube.client['karmada'], ctx.kube.namespace, {
       hostnames,
       name: input.name,
       userId: ctx.auth.user.id,

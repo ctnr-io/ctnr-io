@@ -49,9 +49,9 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     }
 
     const controller = new AbortController()
-    const namespace = await ensureUserNamespace(ctx.kube.client['eu'], userId, controller.signal)
+    const namespace = await ensureUserNamespace(ctx.kube.client['karmada'], userId, controller.signal)
 
-    const namespaceObj = await ctx.kube.client['eu'].CoreV1.getNamespace(namespace)
+    const namespaceObj = await ctx.kube.client['karmada'].CoreV1.getNamespace(namespace)
 
     // Get qonto client id
     const qontoClientId = namespaceObj.metadata?.labels?.['ctnr.io/qonto-client-id']
@@ -100,7 +100,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     // Handle successful payment
     console.info(`Payment ${paymentId} succeeded:`, payment)
 
-    const newBalance = await addCredits(ctx.kube.client['eu'], namespace, metadata.data.credits, controller.signal)
+    const newBalance = await addCredits(ctx.kube.client['karmada'], namespace, metadata.data.credits, controller.signal)
 
     console.info(`New balance for user ${userId}:`, newBalance)
     

@@ -16,7 +16,7 @@ export async function getPodsFromAllClusters({
   pod: Pod
 }[]> {
   // First, try to find the deployment
-  const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name, {
+  const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name, {
     abortSignal: signal,
   }).catch(() => null)
 

@@ -19,7 +19,7 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
       while (signal.aborted === false) {
         // Implement every 5 minutes billing check
         // Retrieve all namespaces and check their usage
-        const namespaces = await ctx.kube.client['eu'].CoreV1.getNamespaceList(
+        const namespaces = await ctx.kube.client['karmada'].CoreV1.getNamespaceList(
           { labelSelector: 'ctnr.io/owner-id' },
         )
 
@@ -31,13 +31,13 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
           try {
             console.debug(`Updating balance for namespace ${namespace} (owner: ${userId})`)
             const usage = await getUsage({
-              kubeClient: ctx.kube.client['eu'],
+              kubeClient: ctx.kube.client['karmada'],
               namespace,
               signal,
             })
             try {
               for await (const msg of checkUsage({
-                kubeClient: ctx.kube.client['eu'],
+                kubeClient: ctx.kube.client['karmada'],
                 namespace,
                 signal,
               })) {

@@ -87,7 +87,7 @@ export default async function* PurchaseCredits({ ctx, input, signal }: ServerReq
   }
 
   await ensureQontoInvoiceClientId({
-    kubeClient: ctx.kube.client['eu'],
+    kubeClient: ctx.kube.client['karmada'],
     namespace: ctx.kube.namespace,
     qontoClient: ctx.billing.client['qonto'],
     abortSignal: signal,

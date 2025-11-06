@@ -27,7 +27,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   } = input
 
 	// Check if deployment 
-	const deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
+	const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
 	if (!deployment) {
 		yield `❌ Container ${name} not found`
 		return
@@ -42,7 +42,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
 	}
 
 	// Delete the deployment
-	await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
+	await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
 		abortSignal: signal,
 	})
 

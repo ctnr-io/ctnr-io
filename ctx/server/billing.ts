@@ -10,12 +10,12 @@ export async function createBillingContext(
   const mollieClient = getMollieClient()
   const qontoClient = getQontoClient()
 
-  const namespace = await ctx.kube.client['eu'].CoreV1.getNamespace(`ctnr-user-${ctx.auth.user.id}`, {
+  const namespace = await ctx.kube.client['karmada'].CoreV1.getNamespace(`ctnr-user-${ctx.auth.user.id}`, {
     abortSignal: signal,
   })
 
   const mollieCustomerId = await ensureMollieCustormerId({
-    kubeClient: ctx.kube.client['eu'],
+    kubeClient: ctx.kube.client['karmada'],
     mollieClient,
     namespaceObj: namespace,
     email: ctx.auth.user.email,

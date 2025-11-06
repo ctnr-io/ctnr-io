@@ -18,7 +18,7 @@ export type Output = Awaited<ReturnType<typeof getUsage>>
 export default async function* (
   { ctx, signal }: ServerRequest<Input>,
 ): ServerResponse<Output> {
-  const kubeClient = ctx.kube.client['eu']
+  const kubeClient = ctx.kube.client['karmada']
   const namespace = ctx.kube.namespace
 
   return await getUsage({

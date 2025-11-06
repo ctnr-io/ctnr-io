@@ -6,7 +6,6 @@ import z from 'zod'
 import { DEFAULT_RATES } from './cost.ts'
 import { parseResourceToPrimitiveValue } from './resource.ts'
 
-
 export const FreeTier = {
   cpu: '1G', // 1 CPU core
   memory: '2G', // 2 GB memory

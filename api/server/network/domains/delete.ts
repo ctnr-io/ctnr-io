@@ -11,10 +11,6 @@ export const Input = z.object({
   name: z.string()
     .min(1, 'Domain name is required')
     .describe('Name of the domain to delete'),
-  cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2'])
-    .optional()
-    .default('eu')
-    .describe('Cluster where the domain exists'),
   force: z.boolean()
     .optional()
     .default(false)
@@ -26,13 +22,13 @@ export type Input = z.infer<typeof Input>
 export default async function* (
   { ctx, input }: ServerRequest<Input>,
 ): ServerResponse<void> {
-  const { name, cluster = 'eu', force = false } = input
+  const { name, force = false } = input
 
   try {
     yield `Deleting domain ${name}...`
 
     // Get the Kubernetes client for the specified cluster
-    const client = ctx.kube.client[cluster as keyof typeof ctx.kube.client]
+    const client = ctx.kube.client['eu']
     const certificateName = name.replace(/\./g, '-')
 
     // Check if certificate exists
@@ -57,7 +53,9 @@ export default async function* (
         }) || []
 
         if (routesUsingDomain.length > 0) {
-          throw new Error(`Domain ${name} is currently in use by ${routesUsingDomain.length} route(s). Use --force to delete anyway.`)
+          throw new Error(
+            `Domain ${name} is currently in use by ${routesUsingDomain.length} route(s). Use --force to delete anyway.`,
+          )
         }
       } catch (error: any) {
         if (error.message.includes('in use')) {
@@ -70,7 +68,7 @@ export default async function* (
 
     // Perform the deletion
     yield `Removing certificate for ${name}...`
-    
+
     await client.CertManagerV1(ctx.kube.namespace).deleteCertificate(certificateName)
 
     yield `Certificate for ${name} has been deleted`
@@ -82,7 +80,6 @@ export default async function* (
     yield `3. Cancel domain registration if no longer needed`
 
     yield `Domain ${name} has been successfully deleted`
-
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     yield `Error deleting domain: ${errorMessage}`

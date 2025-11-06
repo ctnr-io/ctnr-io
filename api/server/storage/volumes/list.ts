@@ -24,7 +24,7 @@ export interface Volume {
   mountPath: string
   status: 'mounted' | 'available' | 'error'
   created: string
-  attachedTo: string[]  // Changed from string | null to string[] for multiple containers
+  attachedTo: string[] // Changed from string | null to string[] for multiple containers
   accessMode: string
   storageClass: string
 }
@@ -48,29 +48,26 @@ export default async function* (
     const pvcList = await client.CoreV1.namespace(ctx.kube.namespace).getPersistentVolumeClaimList()
 
     // Filter by name if specified
-    const filteredPVCs = name 
-      ? pvcList.items.filter(pvc => pvc.metadata?.name === name)
-      : pvcList.items
+    const filteredPVCs = name ? pvcList.items.filter((pvc) => pvc.metadata?.name === name) : pvcList.items
 
     // Transform PVCs to Volume format
-    const volumes: Volume[] = filteredPVCs.map(pvc => {
+    const volumes: Volume[] = filteredPVCs.map((pvc) => {
       const metadata = pvc.metadata || {}
       const spec = pvc.spec || {}
       const status = pvc.status || {}
-      
+
       // Determine attachment status by checking if volume is bound and has pods using it
-      const volumeStatus = status.phase === 'Bound' ? 'mounted' : 
-                          status.phase === 'Pending' ? 'available' : 'error'
+      const volumeStatus = status.phase === 'Bound' ? 'mounted' : status.phase === 'Pending' ? 'available' : 'error'
 
       // Extract size from resources request
       const sizeRequest = String(spec.resources?.requests?.storage || '0Gi')
-      
+
       // Get mount path from annotations if available
       const mountPath = metadata.annotations?.['ctnr.io/mount-path'] || '/mnt/volume'
-      
+
       // Get attached containers from labels (support comma-separated list)
       const attachedToLabel = metadata.labels?.['ctnr.io/attached-to'] || ''
-      const attachedTo = attachedToLabel ? attachedToLabel.split(',').map(s => s.trim()).filter(Boolean) : []
+      const attachedTo = attachedToLabel ? attachedToLabel.split(',').map((s) => s.trim()).filter(Boolean) : []
 
       return {
         id: metadata.uid || metadata.name || '',
@@ -94,7 +91,7 @@ export default async function* (
 
       case 'yaml':
         // Simple YAML output for volumes
-        return volumes.map(vol => 
+        return volumes.map((vol) =>
           `name: ${vol.name}\n` +
           `size: ${vol.size}\n` +
           `status: ${vol.status}\n` +
@@ -103,7 +100,7 @@ export default async function* (
         ).join('')
 
       case 'name':
-        return volumes.map(vol => vol.name).join('\n')
+        return volumes.map((vol) => vol.name).join('\n')
 
       case 'wide':
       default:
@@ -139,11 +136,11 @@ function formatAge(createdAt: string): string {
   const now = new Date()
   const created = new Date(createdAt)
   const diffMs = now.getTime() - created.getTime()
-  
+
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
   const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
   const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-  
+
   if (days > 0) return `${days}d`
   if (hours > 0) return `${hours}h`
   return `${minutes}m`

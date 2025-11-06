@@ -17,7 +17,8 @@ export function extractDeploymentMinimumResourceUsage(deployment: Deployment): R
   const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
   const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
   const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() || resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
+  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
+    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
   const annotations = deployment.metadata?.annotations || {}
   const minReplicas = parseInt(annotations['ctnr.io/min-replicas'] || '1', 10)
@@ -31,7 +32,8 @@ export function extractDeploymentMaximumResourceUsage(deployment: Deployment): R
   const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
   const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
   const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() || resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
+  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
+    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
   const annotations = deployment.metadata?.annotations || {}
   const maxReplicas = parseInt(annotations['ctnr.io/max-replicas'] || '1', 10)
@@ -45,7 +47,8 @@ export function extractDeploymentCurrentResourceUsage(deployment: Deployment): R
   const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
   const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
   const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() || resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
+  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
+    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
   const currentReplicas = deployment.status?.readyReplicas ?? deployment.status?.availableReplicas ?? 0
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * currentReplicas

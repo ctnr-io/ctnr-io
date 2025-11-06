@@ -1,38 +1,53 @@
 import { PersistentVolumeClaim } from '@cloudydeno/kubernetes-apis/core/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
-import { KubeClient } from '../kubernetes/kube-client.ts'
+import { KubeClient } from 'lib/kubernetes/kube-client.ts'
+import { ClusterName } from 'lib/api/schemas.ts'
 
 export interface CreateVolumeOptions {
   name: string
   size: string
-  mountPath?: string
+  mountPath: string
   userId: string
   namespace: string
   kubeClient: KubeClient
-  cluster?: string
-  createdBy?: string
 }
 
-export interface VolumeCreationResult {
-  created: boolean
-  pvc: PersistentVolumeClaim
+/**
+ * Ensure volume
+ */
+export async function* ensureVolume(
+  options: CreateVolumeOptions,
+) {
+  const {
+    name,
+    namespace,
+    kubeClient,
+  } = options
+
+  // Check if volume already exists
+  const existingPvc = await isVolumeExists(name, namespace, kubeClient)
+
+  if (existingPvc) {
+    yield `Volume ${name} already exists`
+  } else {
+    yield* createVolume(options)
+  }
+
+  return getVolumeInfo(name, namespace, kubeClient)
 }
 
 /**
  * Create a PersistentVolumeClaim for a volume
  */
 export async function* createVolume(
-  options: CreateVolumeOptions
-): AsyncGenerator<string, VolumeCreationResult> {
+  options: CreateVolumeOptions,
+): AsyncGenerator<string> {
   const {
     name,
     size,
-    mountPath,
     userId,
     namespace,
     kubeClient,
-    cluster = 'eu',
-    createdBy = 'ctnr-api',
   } = options
 
   // Check if volume already exists
@@ -49,6 +64,8 @@ export async function* createVolume(
 
   yield `Creating volume ${name} with size ${size}...`
 
+  // Check that volume is in same cluster
+
   // Create PersistentVolumeClaim manifest
   const pvcManifest: PersistentVolumeClaim = {
     apiVersion: 'v1' as const,
@@ -59,17 +76,11 @@ export async function* createVolume(
       labels: {
         'ctnr.io/owner-id': userId,
         'ctnr.io/resource-type': 'volume',
-        [`cluster.ctnr.io/${cluster}`]: 'true',
-      },
-      annotations: {
-        'ctnr.io/created-by': createdBy,
-        'ctnr.io/created-at': new Date().toISOString(),
-        ...(mountPath && { 'ctnr.io/mount-path': mountPath }),
       },
     },
     spec: {
-			accessModes: ['ReadWriteMany'],
-			storageClassName: 'default',
+      accessModes: ['ReadWriteMany'],
+      volumeMode: 'Block',
       resources: {
         requests: {
           storage: toQuantity(size),
@@ -79,19 +90,8 @@ export async function* createVolume(
   }
 
   // Create the PersistentVolumeClaim
-  const pvc = await kubeClient.CoreV1.namespace(namespace).createPersistentVolumeClaim(pvcManifest)
-
   yield `Volume ${name} created successfully`
   yield `  Size: ${size}`
-  if (mountPath) {
-    yield `  Mount Path: ${mountPath}`
-  }
-  yield `  Cluster: ${cluster}`
-
-  return {
-    created: true,
-    pvc,
-  }
 }
 
 /**
@@ -101,7 +101,7 @@ export async function* waitForVolumeReady(
   name: string,
   namespace: string,
   kubeClient: KubeClient,
-  timeoutSeconds: number = 30
+  timeoutSeconds: number = 30,
 ): AsyncGenerator<string, boolean> {
   yield `Waiting for volume ${name} to be provisioned...`
 
@@ -121,7 +121,7 @@ export async function* waitForVolumeReady(
     }
 
     attempts++
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
   }
 
   yield `Volume ${name} created but still provisioning. This may take a few more moments.`
@@ -131,10 +131,10 @@ export async function* waitForVolumeReady(
 /**
  * Check if a volume exists
  */
-export async function volumeExists(
+export async function isVolumeExists(
   name: string,
   namespace: string,
-  kubeClient: KubeClient
+  kubeClient: KubeClient,
 ): Promise<boolean> {
   try {
     await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaim(name)
@@ -153,7 +153,7 @@ export async function volumeExists(
 export async function* deleteVolume(
   name: string,
   namespace: string,
-  kubeClient: KubeClient
+  kubeClient: KubeClient,
 ): AsyncGenerator<string, boolean> {
   try {
     // Check if volume exists
@@ -181,7 +181,7 @@ export async function* deleteVolume(
 export async function getVolumeInfo(
   name: string,
   namespace: string,
-  kubeClient: KubeClient
+  kubeClient: KubeClient,
 ): Promise<{
   name: string
   size: string

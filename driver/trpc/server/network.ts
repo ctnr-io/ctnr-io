@@ -4,9 +4,9 @@ import { transformQueryProcedure, withServerContext } from './procedures/_utils.
 import * as ListDomains from 'api/server/network/domains/list.ts'
 import * as CreateDomain from 'api/server/network/domains/create.ts'
 import * as DeleteDomain from 'api/server/network/domains/delete.ts'
-import * as ListRoutes from 'api/server/network/domains/list.ts'
-import * as CreateRoute from 'api/server/network/domains/create.ts'
-import * as DeleteRoute from 'api/server/network/domains/delete.ts'
+import * as ListRoutes from 'api/server/network/routes/list.ts'
+import * as CreateRoute from 'api/server/network/routes/create.ts'
+import * as DeleteRoute from 'api/server/network/routes/delete.ts'
 
 export const domains = {
   list: trpc.procedure

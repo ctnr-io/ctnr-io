@@ -4,8 +4,7 @@ import { ContainerName } from 'lib/api/schemas.ts'
 
 export const Meta = {
   aliases: {
-    options: {
-    },
+    options: {},
   },
 }
 
@@ -15,13 +14,12 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
+export default async function* stopContainer(request: ServerRequest<Input>): ServerResponse<void> {
   const { ctx, input, signal } = request
 
   const {
     name,
   } = input
-
 
   // Patch deployment to set replicas
   await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).patchDeployment(name, 'json-merge', {

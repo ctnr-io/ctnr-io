@@ -1,4 +1,15 @@
-import { Code2, Container, Database, FunctionSquare, Globe, HardDrive, LucideIcon, RouteIcon, Terminal, Zap } from 'lucide-react'
+import {
+  Code2,
+  Container,
+  Database,
+  FunctionSquare,
+  Globe,
+  HardDrive,
+  LucideIcon,
+  RouteIcon,
+  Terminal,
+  Zap,
+} from 'lucide-react'
 import * as React from 'react'
 
 import { NavUser } from 'app/components/ctnr-io/nav-user.tsx'
@@ -33,29 +44,28 @@ const data = {
   //   },
   // ],
   categories: [
-    {
-      title: 'Development',
-      items: [{
-        title: 'Terminal',
-        url: '/terminal' as Route,
-        icon: Terminal,
-        disabled: true,
-      },
-      {
-        title: 'Code Editor',
-        url: '/editor' as Route,
-        icon: Code2,
-        disabled: true,
-      }],
-    },
+    // {
+    //   title: 'Development',
+    //   items: [{
+    //     title: 'Terminal',
+    //     url: '/terminal' as Route,
+    //     icon: Terminal,
+    //     disabled: true,
+    //   },
+    //   {
+    //     title: 'Code Editor',
+    //     url: '/editor' as Route,
+    //     icon: Code2,
+    //     disabled: true,
+    //   }],
+    // },
     {
       title: 'Compute',
       items: [{
         title: 'Containers',
         url: '/containers',
         icon: Container,
-      },
-      {
+      }, {
         title: 'Functions',
         url: '/functions' as Route,
         icon: FunctionSquare,
@@ -68,8 +78,7 @@ const data = {
         title: 'Volumes',
         url: '/volumes' as Route,
         icon: HardDrive,
-      },
-      {
+      }, {
         title: 'Databases',
         url: '/databases' as Route,
         icon: Database,
@@ -77,22 +86,22 @@ const data = {
       }],
     },
     {
-      title: "Network",
+      title: 'Network',
       items: [{
-        title: "Domains",
-        url: "/network/domains" as Route,
+        title: 'Domains',
+        url: '/network/domains' as Route,
         icon: Globe,
       }, {
-        title: "Routes",
-        url: "/network/routes" as Route,
+        title: 'Routes',
+        url: '/network/routes' as Route,
         icon: RouteIcon,
       }, {
-        title: "CDN",
-        url: "/network/cdn" as Route,
+        title: 'CDN',
+        url: '/network/cdn' as Route,
         icon: Zap,
         disabled: true,
-      }]
-    }
+      }],
+    },
   ] satisfies NavCategoryProps[],
 
   navMain: [

@@ -261,7 +261,7 @@ export async function* checkUsage(opts: {
   kubeClient: KubeClient
   namespace: string
   additionalResource?: ResourceUsage
-  force: boolean
+  force?: boolean
   signal: AbortSignal
 }): AsyncGenerator<string, Usage> {
   const { kubeClient, namespace, signal } = opts

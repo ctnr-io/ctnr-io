@@ -6,8 +6,7 @@ export const Meta = {
   aliases: {},
 }
 
-export const Input = z.object({
-})
+export const Input = z.object({})
 
 export type Input = z.infer<typeof Input>
 

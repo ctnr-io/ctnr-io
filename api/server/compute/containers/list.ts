@@ -3,6 +3,7 @@ import { ServerContext } from 'ctx/mod.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as YAML from '@std/yaml'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
+import { ClusterName, ContainerName } from 'lib/api/schemas.ts'
 
 export const Meta = {
   aliases: {
@@ -28,14 +29,30 @@ export const Input = z.object({
   ])).optional(),
 })
 
-export type Input = z.infer<typeof Input>
+type OutputType = NonNullable<z.infer<typeof Input>['output']>
+
+export type Input<T extends OutputType> = z.infer<typeof Input> & {
+  output?: T
+}
+
+export type Output<T extends OutputType> = {
+  'raw': Container[]
+  'json': string
+  'yaml': string
+  'name': string
+  'wide': void
+}[T]
 
 export type Container = {
   name: string
   image: any
   status: string
   createdAt: Date
-  ports: string[]
+  ports: {
+    name?: string
+    number: number
+    protocol: string
+  }[]
   cpu: string
   memory: string
   storage: string
@@ -60,18 +77,11 @@ export type Container = {
   volumes: string[]
 }
 
-type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
-  'raw': Container[]
-  'json': string
-  'yaml': string
-  'name': string
-  'wide': void
-}[Type]
-
-export default async function* (
-  { ctx, input, signal }: ServerRequest<Input>,
-): ServerResponse<Output<NonNullable<typeof input['output']>>> {
-  const { output = 'raw', name, cluster = 'karmada', fields = ['basic'] } = input
+export default async function* listContainer<T extends OutputType = 'raw'>(
+  request: ServerRequest<Input<T>>,
+): ServerResponse<Output<T>> {
+  const { ctx, input, signal } = request
+  const { output, name, cluster = 'eu', fields = ['basic'] } = input
 
   // Determine which fields to fetch based on input - be very specific
   const requestedFields = new Set(fields)
@@ -102,7 +112,7 @@ export default async function* (
 
   // Early return for simple cases (name-only queries, basic info)
   if (output === 'name') {
-    return deployments.items.map((deployment) => deployment.metadata?.name || '').join('\n')
+    return deployments.items.map((deployment) => deployment.metadata?.name || '').join('\n') as Output<T>
   }
 
   // Parallel fetch expensive operations only when needed
@@ -227,13 +237,13 @@ export default async function* (
 
   switch (output) {
     case 'raw':
-      return containers
+      return containers as Output<T>
 
     case 'json':
-      return JSON.stringify(containers, null, 2)
+      return JSON.stringify(containers, null, 2) as Output<T>
 
     case 'yaml':
-      return YAML.stringify(containers)
+      return YAML.stringify(containers) as Output<T>
 
     case 'wide':
     default:
@@ -256,11 +266,12 @@ export default async function* (
         const cpu = (container.cpu || '').padEnd(8)
         const memory = (container.memory || '').padEnd(10)
         const age = formatAge(container.createdAt).padEnd(12)
-        const ports = (container.ports.join(', ') || '').padEnd(20)
+        const ports = (container.ports.map((port) => `${port.name}:${port.number}/${port.protocol}`).join(', ') || '')
+          .padEnd(20)
 
         yield name + image + status + replicas + cpu + memory + age + ports
       }
-      return
+      return (void 0) as Output<T>
   }
 }
 
@@ -278,7 +289,7 @@ function mapDeploymentStatusToContainerStatus(status: any): string {
   return 'restarting'
 }
 
-function extractPortMappingsFromContainer(ports?: any[]): string[] {
+function extractPortMappingsFromContainer(ports?: any[]): Container['ports'] {
   if (!ports || ports.length === 0) return []
 
   return ports
@@ -287,10 +298,10 @@ function extractPortMappingsFromContainer(ports?: any[]): string[] {
       const portNumber = port.containerPort
       const portName = port.name
 
-      if (portName) {
-        return `${portName}:${portNumber}/${protocol}`
-      } else {
-        return `${portNumber}/${protocol}`
+      return {
+        name: portName,
+        number: portNumber,
+        protocol: protocol,
       }
     })
 }

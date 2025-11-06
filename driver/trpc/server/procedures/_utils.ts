@@ -103,7 +103,7 @@ export async function withServerContext({ ctx, signal, next }: {
     return next({ ctx: await createServerContext(ctx, signal) })
   } catch (error) {
     console.error('Error creating server context:', error)
-    throw new Error("An error occurred while creating server context")
+    throw new Error('An error occurred while creating server context')
   }
 }
 
@@ -117,7 +117,7 @@ export async function withWebhookContext({ ctx, next }: {
     return next({ ctx: await createWebhookContext(ctx) })
   } catch (error) {
     console.error('Error creating webhook context:', error)
-    throw new Error("An error occurred while creating server context")
+    throw new Error('An error occurred while creating server context')
   }
 }
 
@@ -131,7 +131,7 @@ export async function withWorkerContext({ ctx, next }: {
     return next({ ctx: await createWorkerContext(ctx) })
   } catch (error) {
     console.error('Error creating worker context:', error)
-    throw new Error("An error occurred while creating server context")
+    throw new Error('An error occurred while creating server context')
   }
 }
 

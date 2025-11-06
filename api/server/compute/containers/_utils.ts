@@ -1,5 +1,6 @@
 import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { ServerContext } from 'ctx/mod.ts'
+import { ClusterName } from 'lib/api/schemas.ts'
 
 export async function getPodsFromAllClusters({
   ctx,
@@ -12,7 +13,7 @@ export async function getPodsFromAllClusters({
   name: string
   replicas?: string[]
 }): Promise<{
-  cluster: string
+  cluster: ClusterName
   pod: Pod
 }[]> {
   // First, try to find the deployment
@@ -35,7 +36,7 @@ export async function getPodsFromAllClusters({
   }
 
   // Get running pods from all clusters
-  const allPods: Array<{ pod: Pod; cluster: string }> = []
+  const allPods: Array<{ pod: Pod; cluster: ClusterName }> = []
 
   await Promise.all(clusters.map(async (cluster) => {
     try {
@@ -47,7 +48,7 @@ export async function getPodsFromAllClusters({
 
       const runningPods = pods.items
         .filter((pod) => pod.status?.phase === 'Running')
-        .map((pod) => ({ pod, cluster }))
+        .map((pod) => ({ pod, cluster: cluster as ClusterName }))
 
       allPods.push(...runningPods)
     } catch (error) {

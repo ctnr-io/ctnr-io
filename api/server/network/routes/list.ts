@@ -43,6 +43,7 @@ export default async function* (
   try {
     // Get routes from HTTPRoutes and IngressRoutes (same as containers)
     const client = ctx.kube.client[cluster as keyof typeof ctx.kube.client]
+
     // Fetch both route types in parallel
     const [httpRoutesResult, ingressRoutesResult] = await Promise.allSettled([
       client.GatewayNetworkingV1(ctx.kube.namespace).listHTTPRoutes(),

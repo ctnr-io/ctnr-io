@@ -3,10 +3,10 @@ import { KubeClient } from '../kubernetes/kube-client.ts'
 import { Namespace } from '@cloudydeno/kubernetes-apis/core/v1'
 
 const env = {
-  MOLLIE_MODE: Deno.env.get("MOLLIE_MODE"),
+  MOLLIE_MODE: Deno.env.get('MOLLIE_MODE'),
   MOLLIE_API_KEY: Deno.env.get('MOLLIE_API_KEY'),
-  MOLLIE_API_URL: Deno.env.get("MOLLIE_API_URL"),
-  MOLLIE_PROFILE_ID: Deno.env.get("MOLLIE_PROFILE_ID"),
+  MOLLIE_API_URL: Deno.env.get('MOLLIE_API_URL'),
+  MOLLIE_PROFILE_ID: Deno.env.get('MOLLIE_PROFILE_ID'),
 }
 
 for (const [key, value] of Object.entries(env)) {
@@ -26,15 +26,15 @@ export function getMollieClient(): ReturnType<typeof createMollieClient> {
 
 export async function ensureMollieCustormerId(opts: {
   kubeClient: KubeClient
-  mollieClient: MollieClient,
-  namespaceObj: Namespace,
-  email: string, 
+  mollieClient: MollieClient
+  namespaceObj: Namespace
+  email: string
   userId: string
   signal: AbortSignal
 }): Promise<string> {
   const { kubeClient, mollieClient, namespaceObj, email, userId, signal } = opts
 
-  const mollieCustomerIdLabel = `ctnr.io/mollie-${Deno.env.get("MOLLIE_MODE")}-customer-id`
+  const mollieCustomerIdLabel = `ctnr.io/mollie-${Deno.env.get('MOLLIE_MODE')}-customer-id`
 
   let mollieCustomerId = namespaceObj.metadata?.labels?.[mollieCustomerIdLabel]
   if (!mollieCustomerId) {

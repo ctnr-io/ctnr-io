@@ -17,10 +17,8 @@ export const Input = z.object({
   size: z.string()
     .regex(/^\d+[KMGT]?i?$/, 'Size must be in format like 10Gi, 500Mi, 1Ti')
     .describe('Volume size (e.g., 10Gi, 500Mi, 1Ti)'),
-  mountPath: z.string()
-    .min(1, 'Mount path is required')
-    .regex(/^\/.*/, 'Mount path must start with /')
-    .describe('Path where the volume will be mounted'),
+  cluster: ClusterName.optional().describe('Cluster to create the volume in'),
+  mountPath: z.string().describe('Path to mount the volume'),
 })
 
 export type Input = z.infer<typeof Input>

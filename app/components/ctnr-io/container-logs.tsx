@@ -433,33 +433,33 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
               />
             )}
 
-          <div className='flex items-center gap-2'>
-            {/* Center Section - Stream Controls */}
-            <Button
-              variant={state.isStreaming ? 'default' : 'ghost'}
-              size='sm'
-              onClick={handleToggleStreaming}
-              className='h-8 px-3'
-              title={state.isStreaming ? 'Pause streaming' : 'Resume streaming'}
-            >
-              {state.isStreaming ? <Pause className='h-4 w-4' /> : <Play className='h-4 w-4' />}
-              <span className='ml-1 hidden xl:inline'>
-                {state.isStreaming ? 'Pause' : 'Resume'}
-              </span>
-            </Button>
+            <div className='flex items-center gap-2'>
+              {/* Center Section - Stream Controls */}
+              <Button
+                variant={state.isStreaming ? 'default' : 'ghost'}
+                size='sm'
+                onClick={handleToggleStreaming}
+                className='h-8 px-3'
+                title={state.isStreaming ? 'Pause streaming' : 'Resume streaming'}
+              >
+                {state.isStreaming ? <Pause className='h-4 w-4' /> : <Play className='h-4 w-4' />}
+                <span className='ml-1 hidden xl:inline'>
+                  {state.isStreaming ? 'Pause' : 'Resume'}
+                </span>
+              </Button>
 
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={handleRefreshLogs}
-              className='h-8 px-3 bg-card'
-              title='Refresh logs'
-            >
-              <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-[spin_reverse_1s_linear_infinite]' : ''}`} />
-              <span className='ml-1 hidden 2xl:inline'>
-                {isLoading ? 'Refreshing' : 'Refresh'}
-              </span>
-            </Button>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={handleRefreshLogs}
+                className='h-8 px-3 bg-card'
+                title='Refresh logs'
+              >
+                <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-[spin_reverse_1s_linear_infinite]' : ''}`} />
+                <span className='ml-1 hidden 2xl:inline'>
+                  {isLoading ? 'Refreshing' : 'Refresh'}
+                </span>
+              </Button>
             </div>
           </div>
           <div className='flex-1 flex flex-row gap-4 justify-between'>
@@ -483,7 +483,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                 title='Toggle line wrapping'
               >
                 <WrapText className='h-4 w-4' />
-               <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Wrap</span>
+                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Wrap</span>
               </Button>
             </div>
 

@@ -16,7 +16,7 @@ import { getNamespaceBalance } from '../billing/balance.ts'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
-export async function getKubeClient(context: 'eu' | 'eu-0' | 'eu-1' | 'eu-2') {
+export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2') {
   const decoder = new TextDecoder('utf-8')
   const kubeconfigFile = decoder.decode(await Deno.readFile(kubeconfig))
   const client = await SpdyEnabledRestClient.forKubeConfig(

@@ -237,7 +237,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
           // topologySpreadConstraints: [
           //   {
           //     maxSkew: 1,
-          //     topologyKey: "ctx.kube.client['eu'].io/hostname",
+          //     topologyKey: "ctx.kube.client['karmada'].io/hostname",
           //     whenUnsatisfiable: "DoNotSchedule",
           //     labelSelector: {
           //       matchLabels: {
@@ -265,7 +265,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   }
 
   // Check if the deployment already exists
-  let deployment = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>
+  let deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>
     null
   )
   if (deployment) {
@@ -274,12 +274,12 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       await Promise.all([
         // Wait for deployment to be fully deleted
         waitForDeploymentDeletion({ ctx, name, signal }),
-        ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
+        ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
           abortSignal: signal,
           gracePeriodSeconds: 0, // Force delete immediately
           propagationPolicy: 'Foreground', // Ensure all resources are cleaned up
         }),
-        ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).deletePodList({
+        ctx.kube.client['karmada'].CoreV1.namespace(ctx.kube.namespace).deletePodList({
           labelSelector: `ctnr.io/name=${name}`,
           abortSignal: signal,
           gracePeriodSeconds: 0, // Force delete immediately
@@ -293,7 +293,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
 
   // Initialize the deployment
   yield `✍️  Initializing containers ${name}...`
-  await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).createDeployment(deploymentResource, {
+  await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).createDeployment(deploymentResource, {
     abortSignal: signal,
   })
   // Wait for deployment to be ready
@@ -331,7 +331,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     } catch (error) {
       console.warn(`Failed to get pods from clusters:`, error)
       // Fallback to checking eu cluster directly
-      const pods = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).getPodList({
+      const pods = await ctx.kube.client['karmada'].CoreV1.namespace(ctx.kube.namespace).getPodList({
         labelSelector: `ctnr.io/name=${name}`,
       })
       pod = pods.items.find((p) => p.status?.phase === 'Running') || null
@@ -401,7 +401,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
 //   // TODO: Implement exponential backoff for failed watch attempts
 //   // TODO: Add circuit breaker pattern for resilience
 
-//   const podWatcher = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
+//   const podWatcher = await ctx.kube.client['karmada'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
 //     labelSelector: `ctnr.io/name=${name}`,
 //     abortSignal: signal,
 //   })
@@ -424,7 +424,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
 //   name: string,
 //   predicate: (pod: Pod) => boolean | Promise<boolean>,
 // ): Promise<Pod> {
-//   const podWatcher = await ctx.kube.client['eu'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
+//   const podWatcher = await ctx.kube.client['karmada'].CoreV1.namespace(ctx.kube.namespace).watchPodList({
 //     labelSelector: `ctnr.io/name=${name}`,
 //     abortSignal: signal,
 //   })
@@ -447,7 +447,7 @@ async function waitForDeployment({ ctx, name, predicate, signal }: {
   predicate: (deployment: Deployment) => boolean | Promise<boolean>
   signal: AbortSignal
 }): Promise<Deployment> {
-  const deploymentWatcher = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
+  const deploymentWatcher = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: signal,
   })
@@ -467,7 +467,7 @@ async function waitForDeployment({ ctx, name, predicate, signal }: {
 async function waitForDeploymentDeletion(
   { ctx, name, signal }: { ctx: ServerContext; name: string; signal: AbortSignal },
 ): Promise<void> {
-  const deploymentWatcher = await ctx.kube.client['eu'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
+  const deploymentWatcher = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: signal,
   })

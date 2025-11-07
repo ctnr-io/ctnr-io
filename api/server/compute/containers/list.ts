@@ -15,7 +15,7 @@ export const Meta = {
 export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
   name: z.string().optional(), // Filter by specific container name
-  cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2']).optional(), // Select specific cluster
+  cluster: z.enum(['karmada', 'eu-0', 'eu-1', 'eu-2']).optional(), // Select specific cluster
   fields: z.array(z.enum([
     'basic', // id, name, image, status, createdAt
     'resources', // cpu, memory, ports
@@ -71,7 +71,7 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
 export default async function* (
   { ctx, input, signal }: ServerRequest<Input>,
 ): ServerResponse<Output<NonNullable<typeof input['output']>>> {
-  const { output = 'raw', name, cluster = 'eu', fields = ['basic'] } = input
+  const { output = 'raw', name, cluster = 'karmada', fields = ['basic'] } = input
 
   // Determine which fields to fetch based on input - be very specific
   const requestedFields = new Set(fields)
@@ -85,7 +85,7 @@ export default async function* (
   const needsClusters = fetchAll || requestedFields.has('clusters')
   const needsConfig = fetchAll || requestedFields.has('config')
 
-  // Use the specified cluster or default to 'eu'
+  // Use the specified cluster or default to 'karmada'
   const kubeClient = ctx.kube.client[cluster]
 
   // Build label selector - if name is provided, filter by specific name
@@ -637,13 +637,13 @@ function formatAge(createdAt?: Date): string {
 // Optimized helper functions for parallel data fetching
 async function fetchPodMetricsOptimized(
   ctx: ServerContext,
-  cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2',
+  cluster: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2',
   signal: AbortSignal,
 ): Promise<any[]> {
   const podMetrics: any[] = []
 
-  if (cluster === 'eu') {
-    // For abstract 'eu' cluster, fetch metrics from all concrete clusters in parallel
+  if (cluster === 'karmada') {
+    // For abstract 'karmada' cluster, fetch metrics from all concrete clusters in parallel
     const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
     const promises = concreteClusters.map(async (concreteCluster) => {
       try {
@@ -684,13 +684,13 @@ async function fetchPodMetricsOptimized(
 
 async function fetchAllPodsOptimized(
   ctx: ServerContext,
-  cluster: 'eu' | 'eu-0' | 'eu-1' | 'eu-2',
+  cluster: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2',
   signal: AbortSignal,
 ): Promise<any[]> {
   const allPods: any[] = []
 
-  if (cluster === 'eu') {
-    // For abstract 'eu' cluster, fetch pods from all concrete clusters in parallel
+  if (cluster === 'karmada') {
+    // For abstract 'karmada' cluster, fetch pods from all concrete clusters in parallel
     const concreteClusters = ['eu-0', 'eu-1', 'eu-2'] as const
     const promises = concreteClusters.map(async (concreteCluster) => {
       try {

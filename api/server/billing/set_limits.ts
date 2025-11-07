@@ -45,7 +45,7 @@ export default async function* (
 ): ServerResponse<Output> {
   const { ctx, input, signal } = request
 
-  const kubeClient = ctx.kube.client['eu']
+  const kubeClient = ctx.kube.client['karmada']
   const namespace = ctx.kube.namespace
 
   const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace)

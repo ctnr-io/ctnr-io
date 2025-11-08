@@ -81,7 +81,7 @@ export default async function* listContainer<T extends OutputType = 'raw'>(
   request: ServerRequest<Input<T>>,
 ): ServerResponse<Output<T>> {
   const { ctx, input, signal } = request
-  const { output, name, cluster = 'eu', fields = ['basic'] } = input
+  const { output, name, cluster = 'karmada', fields = ['basic'] } = input
 
   // Determine which fields to fetch based on input - be very specific
   const requestedFields = new Set(fields)
@@ -648,7 +648,7 @@ function formatAge(createdAt?: Date): string {
 // Optimized helper functions for parallel data fetching
 async function fetchPodMetricsOptimized(
   ctx: ServerContext,
-  cluster: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2',
+  cluster: 'karmada' | ClusterName,
   signal: AbortSignal,
 ): Promise<any[]> {
   const podMetrics: any[] = []
@@ -695,7 +695,7 @@ async function fetchPodMetricsOptimized(
 
 async function fetchAllPodsOptimized(
   ctx: ServerContext,
-  cluster: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2',
+  cluster: 'karmada' | ClusterName,
   signal: AbortSignal,
 ): Promise<any[]> {
   const allPods: any[] = []

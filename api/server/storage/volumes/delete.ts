@@ -11,9 +11,9 @@ export const Input = z.object({
   name: z.string()
     .min(1, 'Volume name is required')
     .describe('Name of the volume to delete'),
-  cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2'])
+  cluster: z.enum(['karmada', 'eu-0', 'eu-1', 'eu-2'])
     .optional()
-    .default('eu')
+    .default('karmada')
     .describe('Cluster where the volume exists'),
   force: z.boolean()
     .optional()
@@ -26,7 +26,7 @@ export type Input = z.infer<typeof Input>
 export default async function* (
   { ctx, input }: ServerRequest<Input>,
 ): ServerResponse<void> {
-  const { name, cluster = 'eu', force = false } = input
+  const { name, cluster = 'karmada', force = false } = input
 
   try {
     yield `Deleting volume ${name}...`

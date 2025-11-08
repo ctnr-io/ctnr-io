@@ -26,12 +26,14 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     name,
   } = input
 
-	// Check if deployment 
-	const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() => null)
-	if (!deployment) {
-		yield `❌ Container ${name} not found`
-		return
-	}
+  // Check if deployment
+  const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name).catch(() =>
+    null
+  )
+  if (!deployment) {
+    yield `❌ Container ${name} not found`
+    return
+  }
 
   const currentResources = extractDeploymentCurrentResourceUsage(deployment)
   if (currentResources.replicas > 0 && !input.force) {
@@ -41,10 +43,10 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     yield* stop(request)
   }
 
-	// Delete the deployment
-	await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
-		abortSignal: signal,
-	})
+  // Delete the deployment
+  await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).deleteDeployment(name, {
+    abortSignal: signal,
+  })
 
   yield `🗑️  Container ${name} has been removed`
 }

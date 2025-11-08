@@ -26,7 +26,7 @@ export default async function* (
     name,
   } = input
 
-  const kubeClient = ctx.kube.client['eu']
+  const kubeClient = ctx.kube.client['karmada']
 
   const rootDomain = name.split('.').slice(-2).join('.').match(
     /^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/,

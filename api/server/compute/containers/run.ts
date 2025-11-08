@@ -156,7 +156,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       mountPath: volDevice.mountPath,
       userId: ctx.auth.user.id,
       namespace: ctx.kube.namespace,
-      kubeClient: ctx.kube.client['eu'],
+      kubeClient: ctx.kube.client['karmada'],
       cluster: cluster,
     })
   }

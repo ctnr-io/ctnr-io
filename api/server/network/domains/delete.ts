@@ -28,7 +28,7 @@ export default async function* (
     yield `Deleting domain ${name}...`
 
     // Get the Kubernetes client for the specified cluster
-    const client = ctx.kube.client['eu']
+    const client = ctx.kube.client['karmada']
     const certificateName = name.replace(/\./g, '-')
 
     // Check if certificate exists

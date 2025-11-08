@@ -12,7 +12,7 @@ export const Meta = {
 export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
   name: z.string().optional(), // Filter by specific volume name
-  cluster: z.enum(['eu', 'eu-0', 'eu-1', 'eu-2']).optional(),
+  cluster: z.enum(['karmada', 'eu-0', 'eu-1', 'eu-2']).optional(),
 })
 
 export type Input = z.infer<typeof Input>
@@ -40,7 +40,7 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
 export default async function* (
   { ctx, input }: ServerRequest<Input>,
 ): ServerResponse<Output<NonNullable<typeof input['output']>>> {
-  const { output = 'raw', name, cluster = 'eu' } = input
+  const { output = 'raw', name, cluster = 'karmada' } = input
 
   try {
     // Get all PersistentVolumeClaims from the specified cluster

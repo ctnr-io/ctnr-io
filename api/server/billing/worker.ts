@@ -36,12 +36,14 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
               signal,
             })
             try {
-              for await (const msg of checkUsage({
-                kubeClient: ctx.kube.client['karmada'],
-                namespace,
-                signal,
-              })) {
-                // console.debug(`Usage check for namespace ${namespace}:`, msg)
+              for await (
+                const msg of checkUsage({
+                  kubeClient: ctx.kube.client['karmada'],
+                  namespace,
+                  signal,
+                })
+              ) {
+                console.debug(`Usage check for namespace ${namespace}:`, msg)
               }
             } catch (error) {
               if (error instanceof Error) {

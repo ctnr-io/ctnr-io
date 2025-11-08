@@ -207,6 +207,7 @@ export default function VolumesTableScreen() {
   const handleDelete = async (volume: VolumeData) => {
     await deleteVolume.mutateAsync({
       name: volume.name,
+      cluster: 'karmada' as 'karmada' | 'eu-0' | 'eu-1' | 'eu-2',
       force: false,
     })
   }

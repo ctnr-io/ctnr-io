@@ -12,6 +12,7 @@ export const Meta = {
 export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
   name: z.string().optional(), // Filter by specific route name
+  cluster: z.enum(['karmada', 'eu-0', 'eu-1', 'eu-2']).optional(),
 })
 
 export type Input = z.infer<typeof Input>
@@ -24,7 +25,6 @@ export interface Route {
   protocol: 'http' | 'https'
   status: 'active' | 'pending' | 'error'
   container: string
-  createdAt: string
 }
 
 type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
@@ -136,7 +136,6 @@ export default async function* (
           `protocol: ${route.protocol}\n` +
           `status: ${route.status}\n` +
           `container: ${route.container}\n` +
-          `createdAt: ${route.createdAt}\n---\n`
         ).join('')
 
       case 'name':
@@ -163,7 +162,6 @@ export default async function* (
             route.protocol.toUpperCase().padEnd(10) +
             route.status.padEnd(10) +
             route.container.padEnd(20) +
-            route.createdAt.padEnd(20)
         }
         return
     }

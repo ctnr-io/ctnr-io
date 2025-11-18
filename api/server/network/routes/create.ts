@@ -6,6 +6,7 @@ import { ContainerName, PortName } from 'lib/api/schemas.ts'
 import { isDomainVerified, verifyDomainOwnership } from 'lib/domains/verification.ts'
 import getContainer from 'api/server/compute/containers/get.ts'
 import { string } from 'zod'
+import { ContainerData } from 'api/server/compute/containers/list.ts'
 
 export const Meta = {
   aliases: {
@@ -16,7 +17,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: string,
+  name: z.string().describe('Route name, must be unique'),
   container: ContainerName,
   domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
     'Parent domain name for the routing',
@@ -40,6 +41,7 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
       ...request,
       input: {
         name: input.container,
+        fields: ['basic', 'resources']
       },
     })
     if (!container) {
@@ -47,9 +49,21 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
     }
 
     // If no ports is not specified, use all ports, if ports length === 0, remove all ports
-    const routedPorts = (
-      input.port === undefined ? container.ports : input.port.length === 0 ? [] : container.ports
-    ).filter((p) => input.port!.includes(p.name ?? '') || input.port!.includes(p.number.toString()))
+    const routedPorts: ContainerData['ports'] = []
+    if (input.port === undefined) {
+      routedPorts.push(...container.ports)
+    } else if (input.port.length === 0) {
+      // No ports to route
+    } else {
+      for (const portNameOrNumber of input.port) {
+        const port = container.ports.find((p) =>
+          p.name === portNameOrNumber || p.number.toString() === portNameOrNumber
+        )
+        if (port) {
+          routedPorts.push(port)
+        }
+      }
+    }
 
     if (routedPorts.length === 0) {
       throw new Error(`No ports found for container ${input.container} matching specified ports`)
@@ -89,7 +103,7 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
 
     await ensureUserRoute(kubeClient, ctx.kube.namespace, {
       hostnames,
-      name: input.container,
+      name: input.name,
       userId: ctx.auth.user.id,
       ports: routedPorts.map((p) => ({
         name: p.name || `${p.number}`,

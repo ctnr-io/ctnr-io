@@ -36,14 +36,14 @@ export type Input<T extends OutputType> = z.infer<typeof Input> & {
 }
 
 export type Output<T extends OutputType> = {
-  'raw': Container[]
+  'raw': ContainerData[]
   'json': string
   'yaml': string
   'name': string
   'wide': void
 }[T]
 
-export type Container = {
+export type ContainerData = {
   name: string
   image: any
   status: string
@@ -81,7 +81,7 @@ export default async function* listContainer<T extends OutputType = 'raw'>(
   request: ServerRequest<Input<T>>,
 ): ServerResponse<Output<T>> {
   const { ctx, input, signal } = request
-  const { output, name, cluster = 'karmada', fields = ['basic'] } = input
+  const { output = 'raw', name, cluster = 'karmada', fields = ['basic'] } = input
 
   // Determine which fields to fetch based on input - be very specific
   const requestedFields = new Set(fields)
@@ -162,7 +162,7 @@ export default async function* listContainer<T extends OutputType = 'raw'>(
     const container = deployment.spec?.template?.spec?.containers?.[0]
 
     // Build container object with only requested fields - avoid unnecessary processing
-    const containerData: Partial<Container> = {}
+    const containerData: Partial<ContainerData> = {}
 
     // Basic fields (always included for core functionality)
     containerData.name = deployment.metadata?.name || ''
@@ -289,7 +289,7 @@ function mapDeploymentStatusToContainerStatus(status: any): string {
   return 'restarting'
 }
 
-function extractPortMappingsFromContainer(ports?: any[]): Container['ports'] {
+function extractPortMappingsFromContainer(ports?: any[]): ContainerData['ports'] {
   if (!ports || ports.length === 0) return []
 
   return ports

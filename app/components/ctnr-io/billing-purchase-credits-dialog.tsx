@@ -307,7 +307,7 @@ function CreditPurchaseForm({
       const updates: any = {
         type: clientData.type || 'individual',
         currency: clientData.currency || 'EUR',
-        locale: clientData.locale || 'FR',
+        locale: clientData.locale || 'fr',
         billingAddress: clientData.billingAddress || null,
       }
 
@@ -357,7 +357,16 @@ function CreditPurchaseForm({
   }
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
-    await onSubmit(data)
+    console.log("Submitting credit purchase data:", data)
+    try {
+      await onSubmit(data)
+    } catch (error) {
+      console.error('Form submission error:', error)
+    }
+  }
+
+  const handleFormError = (errors: any) => {
+    console.error('Form validation errors:', errors)
   }
 
   const handleCancel = () => {
@@ -376,7 +385,7 @@ function CreditPurchaseForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+      <form onSubmit={form.handleSubmit(handleSubmit, handleFormError)} className='space-y-4'>
         {step === 'amount' && (
           <Card>
             <CardHeader>
@@ -516,6 +525,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
   })
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
+    console.log("Dialog handleSubmit called with data:", data)
     setGeneralError('')
 
     const amount = parseInt(data.amount)
@@ -540,7 +550,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
       const result = await purchaseCredits.mutateAsync({
         amount,
         type: 'one-time',
-        // @ts-ignore
+        // @ts-ignore: BillingClient type compatibility issue with TRPC mutation
         client: clientPayload,
       })
 

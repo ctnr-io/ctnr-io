@@ -6,6 +6,7 @@ export function createProjectContext(): ProjectContext {
       id: '',
       namespace: '',
       ownerId: '',
+      cluster: '',
     },
   }
 }

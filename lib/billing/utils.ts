@@ -7,9 +7,9 @@ import { DEFAULT_RATES } from './cost.ts'
 import { parseResourceToPrimitiveValue } from './resource.ts'
 
 export const FreeTier = {
-  cpu: '1G', // 1 CPU core
+  cpu: '1', // 1 CPU core
   memory: '2G', // 2 GB memory
-  storage: '1G', // 1 GB storage
+  storage: '4G', // 4 GB storage
 }
 
 export type TierLimits = {

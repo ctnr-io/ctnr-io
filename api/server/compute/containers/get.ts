@@ -23,7 +23,7 @@ export type Input<T extends OutputType> = z.infer<typeof Input> & {
 }
 
 export type Output<T extends OutputType> = {
-  'raw': ListContainers.Container
+  'raw': ListContainers.ContainerData
   'json': string
   'yaml': string
   'name': string
@@ -34,7 +34,7 @@ export default async function* getContainer<T extends OutputType = 'raw'>(
   request: ServerRequest<Input<T>>,
 ): ServerResponse<Output<T>> {
   const containers = yield* listContainers<T>(request)
-  if (request.input.output === 'raw') {
+  if (request.input.output === undefined || request.input.output === 'raw') {
     return containers?.[0] as Output<T>
   }
   return containers as any as Output<T>

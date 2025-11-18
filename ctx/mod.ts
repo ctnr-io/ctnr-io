@@ -2,6 +2,7 @@ import { MollieClient } from '@mollie/api-client'
 import { KubeClient } from 'lib/kubernetes/kube-client.ts'
 import { Session, SupabaseClient } from '@supabase/supabase-js'
 import { QontoClient } from 'lib/billing/qonto/mod.ts'
+import { Project } from 'lib/api/schemas.ts'
 
 export type Signals =
   | 'SIGINT'
@@ -79,11 +80,7 @@ export type ClientAuthContext =
  * TODO: Project context for managing user projects.
  */
 export type ProjectContext = {
-  project: {
-    id: string
-    namespace: string
-    ownerId: string
-  }
+  project: Project
 }
 
 /**

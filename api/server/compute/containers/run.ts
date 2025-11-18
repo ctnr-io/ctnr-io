@@ -4,7 +4,7 @@ import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import attach from './attach.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import * as Route from './route.ts'
+import route from './route.ts'
 import logs from './logs.ts'
 import { getPodsFromAllClusters } from './_utils.ts'
 import { ServerContext } from 'ctx/mod.ts'
@@ -393,10 +393,9 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     yield `Containers ports are available for routing.`
 
     if (input.route) {
-      yield `Route container ports ${name}...`
       // Route the container's published ports to a domain
       try {
-        yield* Route.default({
+        yield* route({
           ctx,
           input: {
             name,

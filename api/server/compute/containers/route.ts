@@ -28,7 +28,8 @@ export default async function* routeContainer(request: ServerRequest<Input>): Se
     ...request,
     input: {
       ...request.input,
-      container: name,
+      name: request.input.name,
+      container: request.input.name,
     },
   })
 }

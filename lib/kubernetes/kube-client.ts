@@ -324,6 +324,36 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             ...opts,
           }),
 
+        getClusterPropagationPolicy: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
+            expectJson: true,
+            ...opts,
+          }) as Promise<KarmadaV1Alpha1ClusterPropagationPolicy>,
+        getClusterPropagationPolicyList: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies`,
+            expectJson: true,
+            ...opts,
+          }) as Promise<List<KarmadaV1Alpha1ClusterPropagationPolicy>>,
+        createClusterPropagationPolicy: (body: KarmadaV1Alpha1ClusterPropagationPolicy, opts?: Pick<PutOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'POST',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies`,
+            bodyJson: body,
+            expectJson: true,
+            ...opts,
+          }),
+        deleteClusterPropagationPolicy: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'DELETE',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
+            expectJson: true,
+            ...opts,
+          }),
+
         getFederatedResourceQuota: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
@@ -610,6 +640,33 @@ export type KarmadaV1Alpha1PropagationPolicy = {
   }
 }
 
+export type KarmadaV1Alpha1ClusterPropagationPolicy = {
+  apiVersion: 'policy.karmada.io/v1alpha1'
+  kind: 'ClusterPropagationPolicy'
+  metadata: {
+    name: string
+    namespace: string
+    labels: Record<string, string>
+  }
+  spec: {
+    resourceSelectors: Array<{
+      apiVersion?: string
+      kind?: string
+      name?: string
+      namespace?: string
+      labelSelector?: {
+        matchLabels: Record<string, string>
+      }
+    }>
+    placement: {
+      clusterAffinity: {
+        clusterNames: string[]
+      }
+    },
+    propagateDeps?: boolean
+  }
+}
+
 export type KarmadaV1Alpha1FederatedResourceQuota = {
   apiVersion: 'policy.karmada.io/v1alpha1'
   kind: 'FederatedResourceQuota'
@@ -766,6 +823,29 @@ export async function ensureFederatedResourceQuota(
     })
 }
 
+export async function ensureClusterPropagationPolicy(
+  kc: KubeClient,
+  namespace: string,
+  propagationPolicy: KarmadaV1Alpha1ClusterPropagationPolicy,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  const propagationPolicyName = propagationPolicy.metadata.name
+  await match(
+    // Get the federated resource quota and return null if it does not exist
+    await kc.KarmadaV1Alpha1(namespace).getClusterPropagationPolicy(propagationPolicyName, { abortSignal }).catch(() => null),
+  )
+    // if federated resource quota does not exist, create it
+    .with(null, () => kc.KarmadaV1Alpha1(namespace).createClusterPropagationPolicy(propagationPolicy, { abortSignal }))
+    // if federated resource quota exists, and match values, do nothing, else, patch it to ensure it match
+    .with(propagationPolicy as any, () => true)
+    .otherwise(async () => {
+      // Delete the existing federated resource quota first
+      await kc.KarmadaV1Alpha1(namespace).deleteClusterPropagationPolicy(propagationPolicyName, { abortSignal })
+      // Then create the new one
+      return kc.KarmadaV1Alpha1(namespace).createClusterPropagationPolicy(propagationPolicy, { abortSignal })
+    })
+}
+
 async function ensurePropagationPolicy(
   kc: KubeClient,
   namespace: string,
@@ -789,7 +869,7 @@ async function ensurePropagationPolicy(
     })
 }
 
-async function ensureNamespace(
+export async function ensureNamespace(
   kc: KubeClient,
   namespaceObj: Namespace,
   abortSignal: AbortSignal,
@@ -838,7 +918,7 @@ async function _ensureResourceQuota(
       return kc.CoreV1.namespace(namespace).createResourceQuota(resourceQuota)
     })
 }
-async function ensureCiliumNetworkPolicy(
+export async function ensureCiliumNetworkPolicy(
   kc: KubeClient,
   namespace: string,
   networkPolicy: CiliumNetworkPolicy,
@@ -1378,6 +1458,10 @@ export async function ensureUserRoute(
     `cluster.ctnr.io/${cluster}`,
     'true',
   ]))
+
+  console.log('Ensuring user route', {
+    userId, name, hostnames, ports, clusters
+  })
 
   await ensureService(kc, namespace, {
     metadata: {

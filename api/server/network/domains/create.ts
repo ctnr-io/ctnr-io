@@ -40,7 +40,7 @@ export default async function* (
     const annotations = {
       ['domain.ctnr.io/' + rootDomain]: 'pending',
     }
-    await kubeClient.CoreV1.patchNamespace(ctx.kube.namespace, 'json-merge', { metadata: { annotations } }, {
+    await kubeClient.CoreV1.patchNamespace(ctx.project.namespace, 'json-merge', { metadata: { annotations } }, {
       abortSignal: signal,
     })
 

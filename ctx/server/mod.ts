@@ -3,13 +3,16 @@ import { ServerContext, StdioContext } from '../mod.ts'
 import { createServerKubeContext } from './kube.ts'
 import { createServerStdioContext } from './stdio.ts'
 import { createBillingContext } from './billing.ts'
-import { createProjectContext } from './project.ts'
+import { createServerProjectContext } from './project.ts'
 import { createVersionContext } from '../version.ts'
 
 export async function createServerContext(opts: {
   auth: {
     accessToken: string | undefined
     refreshToken: string | undefined
+  }
+  project: {
+    id?: string
   }
   stdio: StdioContext['stdio']
 }, signal: AbortSignal): Promise<ServerContext> {
@@ -21,7 +24,15 @@ export async function createServerContext(opts: {
     ...kubeContext,
     ...authContext,
   }, signal)
-  const projectContext = await createProjectContext()
+  const ServerProjectContext = await createServerProjectContext(
+    {
+      ...authContext,
+      ...kubeContext,
+    },
+    {
+      id: opts.project.id,
+    },
+  )
   return {
     __type: 'server',
     ...versionContext,
@@ -29,6 +40,6 @@ export async function createServerContext(opts: {
     ...kubeContext,
     ...stdioContext,
     ...billingContext,
-    ...projectContext,
+    ...ServerProjectContext,
   }
 }

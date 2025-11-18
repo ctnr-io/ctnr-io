@@ -22,12 +22,12 @@ export default async function* stopContainer(request: ServerRequest<Input>): Ser
   } = input
 
   // Patch deployment to set replicas
-  await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).patchDeployment(name, 'json-merge', {
+  await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).patchDeployment(name, 'json-merge', {
     spec: { replicas: 0, template: {}, selector: {} },
   })
 
   // Delete horizontal pod autoscaler if it exists
-  await ctx.kube.client['karmada'].AutoScalingV2Api.namespace(ctx.kube.namespace).deleteHorizontalPodAutoscaler(name, {
+  await ctx.kube.client['karmada'].AutoScalingV2Api.namespace(ctx.project.namespace).deleteHorizontalPodAutoscaler(name, {
     abortSignal: signal,
   }).catch(() => {})
 

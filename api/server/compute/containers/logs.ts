@@ -41,7 +41,7 @@ export default async function* ({ ctx, input, signal }: ServerRequest<Input>): S
         const containerName = podInfo.pod.spec?.containers?.[0]?.name!
         const name = podInfo.pod.metadata?.name!
 
-        const stream = await clusterClient.CoreV1.namespace(ctx.kube.namespace).streamPodLog(name, {
+        const stream = await clusterClient.CoreV1.namespace(ctx.project.namespace).streamPodLog(name, {
           container: containerName,
           follow,
           tailLines,

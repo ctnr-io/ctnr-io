@@ -37,7 +37,7 @@ export default async function* (
     // Check if volume exists and get its current status
     let pvc
     try {
-      pvc = await client.CoreV1.namespace(ctx.kube.namespace).getPersistentVolumeClaim(name)
+      pvc = await client.CoreV1.namespace(ctx.project.namespace).getPersistentVolumeClaim(name)
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
         throw new Error(`Volume ${name} not found`)
@@ -56,7 +56,7 @@ export default async function* (
 
     // Check if volume is in use by any pods
     if (!force) {
-      const podList = await client.CoreV1.namespace(ctx.kube.namespace).getPodList()
+      const podList = await client.CoreV1.namespace(ctx.project.namespace).getPodList()
       const podsUsingVolume = podList.items.filter((pod) => {
         const volumes = pod.spec?.volumes || []
         return volumes.some((volume) => volume.persistentVolumeClaim?.claimName === name)
@@ -74,7 +74,7 @@ export default async function* (
     // Perform the deletion
     yield `Removing volume ${name} from cluster ${cluster}...`
 
-    await client.CoreV1.namespace(ctx.kube.namespace).deletePersistentVolumeClaim(name)
+    await client.CoreV1.namespace(ctx.project.namespace).deletePersistentVolumeClaim(name)
 
     yield `Volume ${name} deletion initiated`
 
@@ -86,7 +86,7 @@ export default async function* (
 
     while (attempts < maxAttempts) {
       try {
-        await client.CoreV1.namespace(ctx.kube.namespace).getPersistentVolumeClaim(name)
+        await client.CoreV1.namespace(ctx.project.namespace).getPersistentVolumeClaim(name)
         // If we get here, the volume still exists
         attempts++
         await new Promise((resolve) => setTimeout(resolve, 1000))

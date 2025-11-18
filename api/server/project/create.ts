@@ -4,6 +4,9 @@ import * as shortUUID from '@opensrc/short-uuid'
 import { Name, Project } from 'lib/api/schemas.ts'
 import _ensureProject from './_ensure.ts'
 import deleteProject from 'api/server/project/delete.ts'
+import { createServerProjectContext } from 'ctx/server/project.ts'
+import selectProject from './select.ts'
+import listProjects from './list.ts'
 
 export const Meta = {
   aliases: {
@@ -31,6 +34,21 @@ export default async function* createProject(request: ServerRequest<Input>): Ser
   // 0. Determine the projectId and cluster in which the project will be created.
   const projectId = shortUUIDtranslator.new()
 
+  try {
+    // Check project does not already exist
+    const existingProjects = yield* listProjects({
+      ...request,
+      input: {
+        name: input.name,
+      },
+    })
+    if (existingProjects.find((p) => p.name === input.name)) {
+      throw new Error(`Project with name ${input.name} already exists`)
+    }
+  } catch (error) {
+    throw new Error(`Failed to create project: ${error}`)
+  }
+
   // 1. Ensure the project is created.
   try {
     const project = yield* _ensureProject({
@@ -42,7 +60,7 @@ export default async function* createProject(request: ServerRequest<Input>): Ser
     })
 
     // 2. Set project as current project in context.
-    ctx.project = project
+    yield* selectProject(request)
 
     return project
   } catch (error) {

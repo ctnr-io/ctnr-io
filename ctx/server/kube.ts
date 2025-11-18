@@ -1,4 +1,4 @@
-import { ensureUserNamespace, getKubeClient } from 'lib/kubernetes/kube-client.ts'
+import { getKubeClient } from 'lib/kubernetes/kube-client.ts'
 import { ServerKubeContext } from '../mod.ts'
 
 const contexts = ['karmada', 'eu-0', 'eu-1', 'eu-2'] as const
@@ -10,7 +10,6 @@ export async function createServerKubeContext(userId: string, signal: AbortSigna
   return {
     kube: {
       client: clients,
-      namespace: await ensureUserNamespace(clients['karmada'], userId, signal),
     },
   }
 }

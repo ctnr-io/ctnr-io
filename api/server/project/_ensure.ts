@@ -4,14 +4,16 @@ import { ClusterName, ClusterNames, Project } from 'lib/api/schemas.ts'
 import {
   CiliumNetworkPolicy,
   ensureCiliumNetworkPolicy,
-  ensureClusterPropagationPolicy,
   ensureFederatedResourceQuota,
   ensureNamespace,
+  ensurePropagationPolicy,
 } from 'lib/kubernetes/kube-client.ts'
 import { getNamespaceBalance } from 'lib/billing/balance.ts'
 import { FreeTier } from 'lib/billing/utils.ts'
 import { yaml } from '@tmpl/core'
 import * as YAML from '@std/yaml'
+import { ServerProjectContext } from 'ctx/mod.ts'
+import { createProjectLabels } from 'lib/api/labels.ts'
 
 export const Meta = {
   aliases: {
@@ -21,8 +23,9 @@ export const Meta = {
 
 export const Input = Project.pick({
   id: true,
+}).and(Project.partial().pick({
   name: true,
-})
+}))
 
 export type Input = z.infer<typeof Input>
 
@@ -37,63 +40,68 @@ export type Input = z.infer<typeof Input>
  * A project represents a namespace in a specific Kubernetes cluster.
  * The project will be owned by the authenticated user.
  */
-export default async function* ensureProject(request: ServerRequest<Input>): ServerResponse<Project> {
+export default async function* ensureProject(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<Project> {
   const { ctx, input, signal } = request
 
   const kubeClient = ctx.kube.client['karmada']
 
   // 0. Determine resources names like namespace, propagation policy, network policies, etc.
 
+  const projectId = input.id
+
   // Determine namespace name
-  const namespaceName = 'ctnr-project-' + input.id
+  const namespaceName = 'ctnr-project-' + projectId
 
   // Get namespace if exists
   let namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal }).catch(() => null)
 
+  // Retrieve project name
+  const projectName = input.name || namespaceObj?.metadata?.labels?.['ctnr.io/project-name'] || 'default'
+
   // Retrieve user ID from context
-  const ownerId = namespaceObj?.metadata?.labels?.['ctnr.io/owner-id'] || ctx.auth.user.id
+  const ownerId = namespaceObj?.metadata?.labels?.['ctnr.io/owner-id'] || ctx.project.ownerId
 
   // Determine cluster name
   const clusterName = (namespaceObj?.metadata?.labels?.['ctnr.io/cluster-name'] ?? ClusterNames[Math.floor(Math.random() * 10 % ClusterNames.length)]) as ClusterName
 
-  const clusterPropagationPolicyName = namespaceName + '-cluster-propagation-policy'
+  const propagationPolicyName = namespaceName + '-propagation-policy'
   const networkPolicyName = namespaceName + '-network-policy'
+  const resourceQuotaName = namespaceName + '-resource-quota'
+
+  const labels = createProjectLabels({
+    id: projectId,
+    name: projectName,
+    ownerId: ownerId,
+  })
 
   // 1. Create namespace representing the project in a specific Kubernetes cluster.
   await ensureNamespace(kubeClient, {
     metadata: {
       name: namespaceName,
-      labels: {
-        'ctnr.io/owner-id': ownerId,
-        'ctnr.io/project-id': input.id,
-        'ctnr.io/project-name': input.name,
-        'ctnr.io/cluster-name': clusterName,
-      },
+      labels,
     },
   }, signal)
 
   // 2. Ensure propagation policy to the cluster.
-  await ensureClusterPropagationPolicy(kubeClient, namespaceName, {
+  await ensurePropagationPolicy(kubeClient, namespaceName, {
     apiVersion: 'policy.karmada.io/v1alpha1',
-    kind: 'ClusterPropagationPolicy',
+    kind: 'PropagationPolicy',
     metadata: {
-      name: clusterPropagationPolicyName,
+      name: propagationPolicyName,
       namespace: namespaceName,
-      labels: {
-        'ctnr.io/owner-id': ownerId,
-      },
+      labels,
     },
     spec: {
       resourceSelectors: [{
-        kind: 'Namespace',
-        name: namespaceName,
+        apiVersion: '*',
+        kind: '*',
+        namespace: namespaceName,
       }],
       placement: {
         clusterAffinity: {
           clusterNames: [clusterName],
         },
       },
-      propagateDeps: true, // Also propagate dependent resources
     },
   }, signal)
 
@@ -168,11 +176,9 @@ export default async function* ensureProject(request: ServerRequest<Input>): Ser
       apiVersion: 'policy.karmada.io/v1alpha1',
       kind: 'FederatedResourceQuota',
       metadata: {
-        name: 'ctnr-resource-quota',
+        name: resourceQuotaName,
         namespace: namespaceName,
-        labels: {
-          'ctnr.io/owner-id': ownerId,
-        },
+        labels
       },
       spec: {
         overall: {
@@ -185,9 +191,8 @@ export default async function* ensureProject(request: ServerRequest<Input>): Ser
   }
 
   return {
-    id: input.id,
-    name: input.name,
+    id: projectId,
+    name: projectName,
     ownerId: ownerId,
-    clusterName: clusterName,
   }
 }

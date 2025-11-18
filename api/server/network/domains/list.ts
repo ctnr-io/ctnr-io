@@ -46,7 +46,7 @@ export default async function* listDomains(
     const kubeClient = ctx.kube.client['karmada']
 
     // Fetch only Certificates (these represent custom domains)
-    const certificatesResult = await kubeClient.CertManagerV1(ctx.kube.namespace).getCertificatesList()
+    const certificatesResult = await kubeClient.CertManagerV1(ctx.project.namespace).getCertificatesList()
     const certificates = certificatesResult?.items || []
 
     // Transform Certificates to Domain format

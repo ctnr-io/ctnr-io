@@ -29,7 +29,6 @@ type KubeCluster = 'karmada' | 'eu-0' | 'eu-1' | 'eu-2'
 export type ServerKubeContext = {
   kube: {
     client: Record<KubeCluster, KubeClient>
-    namespace: string
   }
 }
 
@@ -77,10 +76,14 @@ export type ClientAuthContext =
   })
 
 /**
- * TODO: Project context for managing user projects.
+ * Project context for managing projects.
  */
-export type ProjectContext = {
-  project: Project
+export type ServerProjectContext = ServerKubeContext & {
+  project: {
+    id: string
+    ownerId: string
+    namespace: string
+  },
 }
 
 /**
@@ -113,7 +116,7 @@ export type ServerContext =
   & StdioContext
   & ServerKubeContext
   & ServerAuthContext
-  & ProjectContext
+  & ServerProjectContext
   & ServerBillingContext
   & {
     __type: 'server'

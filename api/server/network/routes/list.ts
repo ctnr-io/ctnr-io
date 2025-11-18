@@ -46,8 +46,8 @@ export default async function* (
 
     // Fetch both route types in parallel
     const [httpRoutesResult, ingressRoutesResult] = await Promise.allSettled([
-      client.GatewayNetworkingV1(ctx.kube.namespace).listHTTPRoutes(),
-      client.TraefikV1Alpha1(ctx.kube.namespace).listIngressRoutes(),
+      client.GatewayNetworkingV1(ctx.project.namespace).listHTTPRoutes(),
+      client.TraefikV1Alpha1(ctx.project.namespace).listIngressRoutes(),
     ])
 
     const httpRoutes = httpRoutesResult.status === 'fulfilled' ? (httpRoutesResult.value as any)?.items || [] : []

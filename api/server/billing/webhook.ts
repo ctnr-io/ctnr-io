@@ -1,9 +1,10 @@
 import { WebhookRequest, WebhookResponse } from 'lib/api/types.ts'
 import z from 'zod'
-import { ensureUserNamespace } from 'lib/kubernetes/kube-client.ts'
 import { PaymentMetadataV1 } from 'lib/billing/utils.ts'
 import { formatDate } from 'date-fns'
 import { addCredits } from 'lib/billing/balance.ts'
+import ensureProject from '../project/_ensure.ts'
+import { createServerProjectContext } from 'ctx/server/project.ts'
 
 export const Meta = {
   openapi: { method: 'POST', path: '/billing/webhook' },
@@ -49,14 +50,19 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     }
 
     const controller = new AbortController()
-    const namespace = await ensureUserNamespace(ctx.kube.client['karmada'], userId, controller.signal)
 
-    const namespaceObj = await ctx.kube.client['karmada'].CoreV1.getNamespace(namespace)
+    const project = yield* ensureProject({
+    })
+
+    const ServerProjectContext = createServerProjectContext({ userId, id: project.id }).project
+
+
+    const namespaceObj = await ctx.kube.client['karmada'].CoreV1.getNamespace(ServerProjectContext.namespace)
 
     // Get qonto client id
     const qontoClientId = namespaceObj.metadata?.labels?.['ctnr.io/qonto-client-id']
     if (!qontoClientId) {
-      console.error(`No Qonto client ID found for namespace ${namespace}`)
+      console.error(`No Qonto client ID found for namespace ${ServerProjectContext.namespace}`)
       return new Response('Internal Server Error', { status: 500 })
     }
 
@@ -100,7 +106,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     // Handle successful payment
     console.info(`Payment ${paymentId} succeeded:`, payment)
 
-    const newBalance = await addCredits(ctx.kube.client['karmada'], namespace, metadata.data.credits, controller.signal)
+    const newBalance = await addCredits(ctx.kube.client['karmada'], ServerProjectContext.namespace, metadata.data.credits, controller.signal)
 
     console.info(`New balance for user ${userId}:`, newBalance)
 

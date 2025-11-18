@@ -88,6 +88,7 @@ export async function* createVolume(
       },
     },
   }
+  await kubeClient.CoreV1.namespace(namespace).createPersistentVolumeClaim(pvcManifest)
 
   // Create the PersistentVolumeClaim
   yield `Volume ${name} created successfully`

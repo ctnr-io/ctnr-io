@@ -29,7 +29,7 @@ export default async function* (
   const kubeClient = ctx.kube.client['karmada'] // Currently only 'karmada' cluster is supported
   await deleteUserRoute(
     kubeClient,
-    ctx.kube.namespace,
+    ctx.project.namespace,
     input.name,
     signal,
   )

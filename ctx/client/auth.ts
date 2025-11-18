@@ -1,5 +1,8 @@
 import { getSupabaseClient } from 'lib/auth/supabase.ts'
 import type { ClientAuthContext } from '../mod.ts'
+import * as shortUUID from '@opensrc/short-uuid'
+
+const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
 
 export async function createClientAuthContext(
   { storage }: { storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> },
@@ -25,7 +28,7 @@ export async function createClientAuthContext(
       client: supabase.auth,
       session,
       user: {
-        id: user.id,
+        id: shortUUIDtranslator.fromUUID(user.id),
         email: user.email || '',
         name: user.user_metadata.name || '',
         avatar: user.user_metadata.avatar_url || '',

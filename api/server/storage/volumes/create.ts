@@ -41,7 +41,7 @@ export default async function* (
       name,
       size,
       userId: ctx.auth.user.id,
-      namespace: ctx.kube.namespace,
+      namespace: ctx.project.namespace,
       kubeClient: kubeClient,
       mountPath,
     })
@@ -51,7 +51,7 @@ export default async function* (
     }
 
     // Wait for the volume to be ready
-    yield* waitForVolumeReady(name, ctx.kube.namespace, kubeClient, 30)
+    yield* waitForVolumeReady(name, ctx.project.namespace, kubeClient, 30)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     yield `❌ Error creating volume: ${errorMessage}`

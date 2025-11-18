@@ -45,7 +45,7 @@ export default async function* (
   try {
     // Get all PersistentVolumeClaims from the specified cluster
     const client = ctx.kube.client[cluster as keyof typeof ctx.kube.client]
-    const pvcList = await client.CoreV1.namespace(ctx.kube.namespace).getPersistentVolumeClaimList()
+    const pvcList = await client.CoreV1.namespace(ctx.project.namespace).getPersistentVolumeClaimList()
 
     // Filter by name if specified
     const filteredPVCs = name ? pvcList.items.filter((pvc) => pvc.metadata?.name === name) : pvcList.items

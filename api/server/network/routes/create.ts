@@ -101,7 +101,7 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
       }
     }
 
-    await ensureUserRoute(kubeClient, ctx.kube.namespace, {
+    await ensureUserRoute(kubeClient, ctx.project.namespace, {
       hostnames,
       name: input.name,
       userId: ctx.auth.user.id,

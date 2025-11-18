@@ -31,14 +31,14 @@ export default async function* startContainer(request: ServerRequest<Input>): Se
 
   // Patch deployment replicas and add HPA if needed ---
   // Fetch deployment
-  const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name)
+  const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).getDeployment(name)
   if (!deployment) throw new Error('Deployment not found')
 
   const resources = extractDeploymentResourceUsage(deployment)
 
   yield* checkUsage({
     kubeClient: ctx.kube.client['karmada'],
-    namespace: ctx.kube.namespace,
+    namespace: ctx.project.namespace,
     signal,
     additionalResource: resources.min,
     force: input.force,
@@ -54,18 +54,18 @@ export default async function* startContainer(request: ServerRequest<Input>): Se
   }
 
   // Patch deployment to set replicas
-  await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).patchDeployment(name, 'json-merge', {
+  await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).patchDeployment(name, 'json-merge', {
     spec: { replicas: minReplicas, template: {}, selector: {} },
   })
 
   // If minReplicas != maxReplicas, create or update HPA
   if (minReplicas !== maxReplicas) {
-    await ensureHorizontalPodAutoscaler(ctx.kube.client['karmada'], ctx.kube.namespace, {
+    await ensureHorizontalPodAutoscaler(ctx.kube.client['karmada'], ctx.project.namespace, {
       apiVersion: 'autoscaling/v2',
       kind: 'HorizontalPodAutoscaler',
       metadata: {
         name,
-        namespace: ctx.kube.namespace,
+        namespace: ctx.project.namespace,
         labels: deployment.metadata?.labels || {},
       },
       spec: {
@@ -121,7 +121,7 @@ async function waitForDeployment({ ctx, name, predicate, signal }: {
   predicate: (deployment: Deployment) => boolean | Promise<boolean>
   signal: AbortSignal
 }): Promise<Deployment> {
-  const deploymentWatcher = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).watchDeploymentList({
+  const deploymentWatcher = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).watchDeploymentList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: signal,
   })

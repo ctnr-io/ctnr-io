@@ -12,6 +12,9 @@ export type TrpcServerContext = {
     accessToken: string | undefined
     refreshToken: string | undefined
   }
+  project: {
+    id: string | undefined
+  }
   stdio: StdioContext['stdio']
 }
 
@@ -133,6 +136,9 @@ export function createTrpcServerContext(opts: CreateWSSContextFnOptions): TrpcSe
       auth: {
         accessToken: opts.info.connectionParams?.accessToken,
         refreshToken: opts.info.connectionParams?.refreshToken,
+      },
+      project: {
+        id: opts.info.connectionParams?.projectId,
       },
       stdio,
     }

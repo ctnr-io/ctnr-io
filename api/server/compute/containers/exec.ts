@@ -50,7 +50,7 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
   const containerName = podInfo.pod.spec?.containers?.[0]?.name!
   const clusterClient = ctx.kube.client[podInfo.cluster as keyof typeof ctx.kube.client]
 
-  const tunnel = await clusterClient.CoreV1.namespace(ctx.kube.namespace).tunnelPodExec(podName, {
+  const tunnel = await clusterClient.CoreV1.namespace(ctx.project.namespace).tunnelPodExec(podName, {
     command: command === '/bin/sh' ? ['/bin/sh'] : ['sh', '-c', command],
     stdin: interactive,
     tty: terminal,

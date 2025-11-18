@@ -46,7 +46,7 @@ export default async function* (
   const { ctx, input, signal } = request
 
   const kubeClient = ctx.kube.client['karmada']
-  const namespace = ctx.kube.namespace
+  const namespace = ctx.project.namespace
 
   const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace)
 

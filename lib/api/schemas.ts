@@ -58,7 +58,6 @@ export const Project = z.object({
   id: Id.describe('Project unique identifier'),
   name: Name.describe('Project name'),
   ownerId: z.string().describe('Owner user unique identifier'),
-  clusterName: ClusterName.describe('Cluster where the project is hosted'),
 })
 
 export type Project = z.infer<typeof Project>

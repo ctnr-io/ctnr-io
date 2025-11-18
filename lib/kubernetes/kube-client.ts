@@ -846,7 +846,7 @@ export async function ensureClusterPropagationPolicy(
     })
 }
 
-async function ensurePropagationPolicy(
+export async function ensurePropagationPolicy(
   kc: KubeClient,
   namespace: string,
   propagationPolicy: KarmadaV1Alpha1PropagationPolicy,
@@ -1199,246 +1199,148 @@ async function _ensureReferenceGrant(
     })
 }
 
-export const ensureUserNamespace = async (
-  kc: KubeClient,
-  userId: string,
-  abortSignal: AbortSignal,
-): Promise<string> => {
-  const namespace = 'ctnr-user-' + userId
-  let namespaceObj: Namespace = {
-    metadata: {
-      name: namespace,
-      labels: {
-        'ctnr.io/owner-id': userId,
-      },
-    },
-  }
+// export const ensureUserNamespace = async (
+//   kc: KubeClient,
+//   userId: string,
+//   abortSignal: AbortSignal,
+// ): Promise<string> => {
+//   const namespace = 'ctnr-user-' + userId
+//   let namespaceObj: Namespace = {
+//     metadata: {
+//       name: namespace,
+//       labels: {
+//         'ctnr.io/owner-id': userId,
+//       },
+//     },
+//   }
 
-  await ensureNamespace(kc, namespaceObj, abortSignal)
+//   await ensureNamespace(kc, namespaceObj, abortSignal)
 
-  namespaceObj = await kc.CoreV1.getNamespace(namespace, { abortSignal })
+//   namespaceObj = await kc.CoreV1.getNamespace(namespace, { abortSignal })
 
-  const clusterNames = ['eu-0', 'eu-1', 'eu-2']
+//   const clusterNames = ['eu-0', 'eu-1', 'eu-2']
 
-  const resources = [{
-    apiVersion: 'v1',
-    kind: 'Pod',
-  }, {
-    apiVersion: 'v1',
-    kind: 'Service',
-  }, {
-    apiVersion: 'apps/v1',
-    kind: 'Deployment',
-  }, {
-    apiVersion: 'apps/v1',
-    kind: 'StatefulSet',
-  }, {
-    apiVersion: 'apps/v1',
-    kind: 'DaemonSet',
-  }, {
-    apiVersion: 'apps/v1',
-    kind: 'ReplicaSet',
-  }, {
-    apiVersion: 'gateway.networking.k8s.io/v1',
-    kind: 'HTTPRoute',
-  }, {
-    apiVersion: 'gateway.networking.k8s.io/v1beta1',
-    kind: 'HTTPRoute',
-  }, {
-    apiVersion: 'cert-manager.io/v1',
-    kind: 'Certificate',
-  }, {
-    apiVersion: 'traefik.io/v1alpha1',
-    kind: 'IngressRoute',
-  }, {
-    apiVersion: 'autoscaling/v2',
-    kind: 'HorizontalPodAutoscaler',
-  }, {
-    apiVersion: 'cilium.io/v2',
-    kind: 'CiliumNetworkPolicy',
-  }]
+//   await ensurePropagationPolicy(kc, namespace, {
+//     apiVersion: 'policy.karmada.io/v1alpha1',
+//     kind: 'PropagationPolicy',
+//     metadata: {
+//       name: 'ctnr-user-propagation-policy-all',
+//       namespace: namespace,
+//       labels: {
+//         'ctnr.io/owner-id': userId,
+//       },
+//     },
+//     spec: {
+//       resourceSelectors: [
+//         {
+//           labelSelector: {
+//             matchLabels: {
+//               'cluster.ctnr.io/all': 'true',
+//             },
+//           },
+//         },
+//       ],
+//       placement: {
+//         clusterAffinity: {
+//           clusterNames,
+//         },
+//       },
+//     },
+//   }, abortSignal)
+//   for (const clusterName of clusterNames) {
+//     const resources = [{
+//       apiVersion: 'v1',
+//       kind: 'Pod',
+//     }, {
+//       apiVersion: 'v1',
+//       kind: 'Service',
+//     }, {
+//       apiVersion: 'apps/v1',
+//       kind: 'Deployment',
+//     }, {
+//       apiVersion: 'apps/v1',
+//       kind: 'StatefulSet',
+//     }, {
+//       apiVersion: 'apps/v1',
+//       kind: 'DaemonSet',
+//     }, {
+//       apiVersion: 'apps/v1',
+//       kind: 'ReplicaSet',
+//     }, {
+//       apiVersion: 'gateway.networking.k8s.io/v1',
+//       kind: 'HTTPRoute',
+//     }, {
+//       apiVersion: 'gateway.networking.k8s.io/v1beta1',
+//       kind: 'HTTPRoute',
+//     }, {
+//       apiVersion: 'cert-manager.io/v1',
+//       kind: 'Certificate',
+//     }, {
+//       apiVersion: 'traefik.io/v1alpha1',
+//       kind: 'IngressRoute',
+//     }, {
+//       apiVersion: 'autoscaling/v2',
+//       kind: 'HorizontalPodAutoscaler',
+//     }, {
+//       apiVersion: 'v1',
+//       kind: 'PersistentVolumeClaim',
+//     }]
+//     const labelSelector = {
+//       matchLabels: {
+//         ['cluster.ctnr.io/' + clusterName]: 'true',
+//       },
+//     }
+//     await ensurePropagationPolicy(kc, namespace, {
+//       apiVersion: 'policy.karmada.io/v1alpha1',
+//       kind: 'PropagationPolicy',
+//       metadata: {
+//         name: 'ctnr-user-propagation-policy-' + clusterName,
+//         namespace: namespace,
+//         labels: {
+//           'ctnr.io/owner-id': userId,
+//         },
+//       },
+//       spec: {
+//         resourceSelectors: resources.map((resource) => ({
+//           ...resource,
+//           labelSelector,
+//         })),
+//         placement: {
+//           clusterAffinity: {
+//             clusterNames: [clusterName],
+//           },
+//         },
+//       },
+//     }, abortSignal)
+//   }
 
-  const labelSelector = {
-    matchLabels: {
-      'cluster.ctnr.io/all': 'true',
-    },
-  }
+//   // If credits-balance === 0, set limits to Free Tier
+//   const balance = getNamespaceBalance(namespaceObj)
+//   if (balance.credits === 0) {
+//     await ensureFederatedResourceQuota(kc, namespace, {
+//       apiVersion: 'policy.karmada.io/v1alpha1',
+//       kind: 'FederatedResourceQuota',
+//       metadata: {
+//         name: 'ctnr-resource-quota',
+//         namespace: namespace,
+//         labels: {
+//           'ctnr.io/owner-id': userId,
+//         },
+//       },
+//       spec: {
+//         overall: {
+//           'limits.cpu': FreeTier.cpu,
+//           'limits.memory': FreeTier.memory,
+//           'requests.storage': FreeTier.storage,
+//         },
+//       },
+//     }, abortSignal)
+//   }
 
-  await ensurePropagationPolicy(kc, namespace, {
-    apiVersion: 'policy.karmada.io/v1alpha1',
-    kind: 'PropagationPolicy',
-    metadata: {
-      name: 'ctnr-user-propagation-policy-all',
-      namespace: namespace,
-      labels: {
-        'ctnr.io/owner-id': userId,
-      },
-    },
-    spec: {
-      resourceSelectors: resources.map((resource) => ({
-        ...resource,
-        labelSelector,
-      })),
-      placement: {
-        clusterAffinity: {
-          clusterNames,
-        },
-      },
-    },
-  }, abortSignal)
-  for (const clusterName of clusterNames) {
-    const resources = [{
-      apiVersion: 'v1',
-      kind: 'Pod',
-    }, {
-      apiVersion: 'v1',
-      kind: 'Service',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'Deployment',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'StatefulSet',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'DaemonSet',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'ReplicaSet',
-    }, {
-      apiVersion: 'gateway.networking.k8s.io/v1',
-      kind: 'HTTPRoute',
-    }, {
-      apiVersion: 'gateway.networking.k8s.io/v1beta1',
-      kind: 'HTTPRoute',
-    }, {
-      apiVersion: 'cert-manager.io/v1',
-      kind: 'Certificate',
-    }, {
-      apiVersion: 'traefik.io/v1alpha1',
-      kind: 'IngressRoute',
-    }, {
-      apiVersion: 'autoscaling/v2',
-      kind: 'HorizontalPodAutoscaler',
-    }, {
-      apiVersion: 'v1',
-      kind: 'PersistentVolumeClaim',
-    }]
-    const labelSelector = {
-      matchLabels: {
-        ['cluster.ctnr.io/' + clusterName]: 'true',
-      },
-    }
-    await ensurePropagationPolicy(kc, namespace, {
-      apiVersion: 'policy.karmada.io/v1alpha1',
-      kind: 'PropagationPolicy',
-      metadata: {
-        name: 'ctnr-user-propagation-policy-' + clusterName,
-        namespace: namespace,
-        labels: {
-          'ctnr.io/owner-id': userId,
-        },
-      },
-      spec: {
-        resourceSelectors: resources.map((resource) => ({
-          ...resource,
-          labelSelector,
-        })),
-        placement: {
-          clusterAffinity: {
-            clusterNames: [clusterName],
-          },
-        },
-      },
-    }, abortSignal)
-  }
+//   await ensureCiliumNetworkPolicy(kc, namespace, networkPolicy, abortSignal)
 
-  // If credits-balance === 0, set limits to Free Tier
-  const balance = getNamespaceBalance(namespaceObj)
-  if (balance.credits === 0) {
-    await ensureFederatedResourceQuota(kc, namespace, {
-      apiVersion: 'policy.karmada.io/v1alpha1',
-      kind: 'FederatedResourceQuota',
-      metadata: {
-        name: 'ctnr-resource-quota',
-        namespace: namespace,
-        labels: {
-          'ctnr.io/owner-id': userId,
-        },
-      },
-      spec: {
-        overall: {
-          'limits.cpu': FreeTier.cpu,
-          'limits.memory': FreeTier.memory,
-          'requests.storage': FreeTier.storage,
-        },
-      },
-    }, abortSignal)
-  }
-
-  // Ensure the namespace has correct network policies
-  const networkPolicyName = 'ctnr-user-network-policy'
-  const networkPolicy = yaml`
-    apiVersion: cilium.io/v2
-    kind: CiliumNetworkPolicy
-    metadata:
-      name: ${networkPolicyName}
-      namespace: ${namespace}
-      labels:
-        "ctnr.io/owner-id": ${userId}
-        "cluster.ctnr.io/all": "true"
-    spec:
-      endpointSelector:
-        matchLabels:
-          "k8s:io.kubernetes.pod.namespace": ${namespace}
-      ingress:
-        # Allow from same namespace
-        - fromEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespace}
-        # Allow from ctnr-api
-        - fromEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ctnr-system
-        # Allow from traefik
-        - fromEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": traefik
-        # Allow from external/public (outside cluster)
-        - fromEntities:
-            - world
-      egress:
-        # Allow to same namespace
-        - toEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": ${namespace}
-        # Allow DNS to kube-dns/CoreDNS in cluster
-        - toEndpoints:
-            - matchLabels:
-                io.kubernetes.pod.namespace: kube-system
-                k8s-app: kube-dns
-          toPorts:
-            - ports:
-              - port: "53"
-                protocol: TCP
-              - port: "53"
-                protocol: UDP
-              rules:
-                dns:
-                  - matchPattern: "*"
-        # Allow to traefik
-        - toEndpoints:
-            - matchLabels:
-                "k8s:io.kubernetes.pod.namespace": traefik
-        # Allow to external/public (outside cluster)
-        - toEntities:
-            - world
-  `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
-  console.log('Ensuring CiliumNetworkPolicy in namespace', namespace)
-  await ensureCiliumNetworkPolicy(kc, namespace, networkPolicy, abortSignal)
-
-  return namespace
-}
+//   return namespace
+// }
 
 export async function ensureUserRoute(
   kc: KubeClient,

@@ -20,16 +20,16 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
         // Implement every 5 minutes billing check
         // Retrieve all namespaces and check their usage
         const namespaces = await ctx.kube.client['karmada'].CoreV1.getNamespaceList(
-          { labelSelector: 'ctnr.io/owner-id' },
+          { labelSelector: 'ctnr.io/project-id' },
         )
 
         for (const ns of namespaces.items) {
           const namespace = ns.metadata?.name
-          const userId = ns.metadata?.labels?.['ctnr.io/owner-id']
+          const projectId = ns.metadata?.labels?.['ctnr.io/project-id']
 
           if (!namespace) continue
           try {
-            console.debug(`Updating balance for namespace ${namespace} (owner: ${userId})`)
+            console.debug(`Updating balance for namespace ${namespace} (project: ${projectId})`)
             const usage = await getUsage({
               kubeClient: ctx.kube.client['karmada'],
               namespace,

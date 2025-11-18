@@ -105,7 +105,7 @@ export default async function* listContainer<T extends OutputType = 'raw'>(
   }
 
   // Always fetch deployments first (this is the core data)
-  const deployments = await kubeClient.AppsV1.namespace(ctx.kube.namespace).getDeploymentList({
+  const deployments = await kubeClient.AppsV1.namespace(ctx.project.namespace).getDeploymentList({
     labelSelector,
     abortSignal: signal,
   })
@@ -137,7 +137,7 @@ export default async function* listContainer<T extends OutputType = 'raw'>(
   // Fetch routes only if routes are needed
   if (needsRoutes) {
     routesIndex = promiseIndex++
-    fetchPromises.push(fetchRoutesOptimized(kubeClient, ctx.kube.namespace))
+    fetchPromises.push(fetchRoutesOptimized(kubeClient, ctx.project.namespace))
   }
 
   // Wait for all parallel operations to complete
@@ -659,7 +659,7 @@ async function fetchPodMetricsOptimized(
     const promises = concreteClusters.map(async (concreteCluster) => {
       try {
         const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
-        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({
+        const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.project.namespace).getPodsListMetrics({
           abortSignal: signal,
         })
         const clusterMetrics = metricsResponse.items || []
@@ -681,7 +681,7 @@ async function fetchPodMetricsOptimized(
     // For specific clusters, fetch metrics only from that cluster
     try {
       const clusterClient = ctx.kube.client[cluster]
-      const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.kube.namespace).getPodsListMetrics({
+      const metricsResponse = await clusterClient.MetricsV1Beta1(ctx.project.namespace).getPodsListMetrics({
         abortSignal: signal,
       })
       podMetrics.push(...(metricsResponse.items || []))
@@ -706,7 +706,7 @@ async function fetchAllPodsOptimized(
     const promises = concreteClusters.map(async (concreteCluster) => {
       try {
         const clusterClient = ctx.kube.client[concreteCluster as keyof typeof ctx.kube.client]
-        const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
+        const podsResponse = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
           labelSelector: 'ctnr.io/name',
           abortSignal: signal,
         })
@@ -729,7 +729,7 @@ async function fetchAllPodsOptimized(
     // For specific clusters, fetch pods only from that cluster
     try {
       const clusterClient = ctx.kube.client[cluster]
-      const podsResponse = await clusterClient.CoreV1.namespace(ctx.kube.namespace).getPodList({
+      const podsResponse = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
         labelSelector: 'ctnr.io/name',
         abortSignal: signal,
       })

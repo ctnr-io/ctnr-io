@@ -18,7 +18,7 @@ export default async function* (
   { ctx, signal }: ServerRequest<Input>,
 ): ServerResponse<Output> {
   const kubeClient = ctx.kube.client['karmada']
-  const namespace = ctx.kube.namespace
+  const namespace = ctx.project.namespace
 
   return await getUsage({
     kubeClient,

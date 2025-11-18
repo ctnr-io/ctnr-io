@@ -1,10 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import * as shortUUID from '@opensrc/short-uuid'
-import { Id, Name, Project } from 'lib/api/schemas.ts'
-import ensureProject from 'api/server/project/ensure.ts'
-import deleteProject from 'api/server/project/delete.ts'
-import listProject from 'api/server/project/list.ts'
+import { Id } from 'lib/api/schemas.ts'
 
 export const Meta = {
   aliases: {

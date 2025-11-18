@@ -17,7 +17,7 @@ export async function getPodsFromAllClusters({
   pod: Pod
 }[]> {
   // First, try to find the deployment
-  const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.kube.namespace).getDeployment(name, {
+  const deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).getDeployment(name, {
     abortSignal: signal,
   }).catch(() => null)
 
@@ -40,7 +40,7 @@ export async function getPodsFromAllClusters({
 
   await Promise.all(clusters.map(async (cluster) => {
     try {
-      const pods = await ctx.kube.client[cluster as keyof typeof ctx.kube.client].CoreV1.namespace(ctx.kube.namespace)
+      const pods = await ctx.kube.client[cluster as keyof typeof ctx.kube.client].CoreV1.namespace(ctx.project.namespace)
         .getPodList({
           labelSelector: `ctnr.io/name=${name}`,
           abortSignal: signal,

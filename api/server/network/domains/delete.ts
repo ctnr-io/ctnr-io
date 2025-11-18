@@ -33,7 +33,7 @@ export default async function* (
 
     // Check if certificate exists
     try {
-      await client.CertManagerV1(ctx.kube.namespace).getCertificate(certificateName)
+      await client.CertManagerV1(ctx.project.namespace).getCertificate(certificateName)
     } catch (error: any) {
       if (error.status === 404) {
         throw new Error(`Domain ${name} not found`)
@@ -45,7 +45,7 @@ export default async function* (
     if (!force) {
       // Check HTTPRoutes for usage
       try {
-        const httpRoutesResponse = await client.GatewayNetworkingV1(ctx.kube.namespace).listHTTPRoutes()
+        const httpRoutesResponse = await client.GatewayNetworkingV1(ctx.project.namespace).listHTTPRoutes()
         const httpRoutes = httpRoutesResponse as any
         const routesUsingDomain = httpRoutes.items?.filter((route: any) => {
           const hostnames = route.spec?.hostnames || []
@@ -69,7 +69,7 @@ export default async function* (
     // Perform the deletion
     yield `Removing certificate for ${name}...`
 
-    await client.CertManagerV1(ctx.kube.namespace).deleteCertificate(certificateName)
+    await client.CertManagerV1(ctx.project.namespace).deleteCertificate(certificateName)
 
     yield `Certificate for ${name} has been deleted`
     yield ``

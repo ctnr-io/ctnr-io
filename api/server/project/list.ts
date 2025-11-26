@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ClusterName, Project } from 'lib/api/schemas.ts'
+import { ServerProjectContext } from 'ctx/mod.ts'
+import { ProjectLabels } from 'lib/api/labels.ts'
 
 export const Meta = {
   aliases: {
@@ -25,26 +27,26 @@ export type Input = z.infer<typeof Input>
  * 2. Return the list of projects.
  */
 export default async function* listProjects(
-  { ctx, input, signal }: ServerRequest<Input>,
+  { ctx, input, signal }: ServerRequest<Input, ServerProjectContext>,
 ): ServerResponse<Project[]> {
   const kubeClient = ctx.kube.client['karmada']
 
   // 0. Fetch all namespaces for the current user.
   const namespaces = await kubeClient.CoreV1.getNamespaceList({
     labelSelector: [
-      'ctnr.io/owner-id=' + ctx.auth.user.id,
-      input.id && 'ctnr.io/project-id=' + input.id,
-      input.name && 'ctnr.io/project-name=' + input.name,
+     `${ProjectLabels.OwnerId}=${ctx.auth.user.id}`,
+      input.id && `${ProjectLabels.Id}=` + input.id,
+      input.name && `${ProjectLabels.Name}=` + input.name,
     ].filter(Boolean).join(','),
     abortSignal: signal,
   })
 
   // 1. Transform namespaces to projects
   const projects: Project[] = namespaces.items.map((ns) => ({
-    id: ns.metadata?.labels?.['ctnr.io/project-id'] || '',
-    name: ns.metadata?.labels?.['ctnr.io/project-name'] || '',
-    ownerId: ns.metadata?.labels?.['ctnr.io/owner-id'] || '',
-    clusterName: (ns.metadata?.labels?.['ctnr.io/cluster-name'] || '') as ClusterName,
+    id: ns.metadata?.labels?.[ProjectLabels.Id] || '',
+    name: ns.metadata?.labels?.[ProjectLabels.Name] || '',
+    ownerId: ns.metadata?.labels?.[ProjectLabels.OwnerId] || '',
+    cluster: (ns.metadata?.labels?.[ProjectLabels.Cluster] || '') as ClusterName,
   }))
 
   return projects

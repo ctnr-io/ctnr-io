@@ -78,10 +78,9 @@ export type ClientAuthContext =
 /**
  * Project context for managing projects.
  */
-export type ServerProjectContext = ServerKubeContext & {
+export type ServerProjectContext = ServerAuthContext & ServerKubeContext & {
   project: {
     id: string
-    ownerId: string
     namespace: string
   },
 }

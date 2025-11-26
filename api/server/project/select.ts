@@ -4,6 +4,7 @@ import { Project } from 'lib/api/schemas.ts'
 import listProjects from './list.ts'
 import { createServerProjectContext } from 'ctx/server/project.ts'
 import ensureProject from './_ensure.ts'
+import { ServerProjectContext } from 'ctx/mod.ts'
 
 export const Meta = {
   aliases: {
@@ -23,7 +24,7 @@ export type Input = z.infer<typeof Input>
  * Select project for user.
  */
 export default async function* selectProject(
-  request: ServerRequest<Input>,
+  request: ServerRequest<Input, ServerProjectContext>,
 ): ServerResponse<Project> {
   const { ctx } = request
 

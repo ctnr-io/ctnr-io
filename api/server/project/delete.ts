@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { Id } from 'lib/api/schemas.ts'
+import { ServerProjectContext } from 'ctx/mod.ts'
 
 export const Meta = {
   aliases: {
@@ -17,7 +18,7 @@ export type Input = z.infer<typeof Input>
 /**
  * Delete the whole project and its resources by deleting the namespace.
  */
-export default async function* createProject(request: ServerRequest<Input>): ServerResponse<void> {
+export default async function* createProject(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<void> {
   const { ctx, input } = request
 
   const kubeClient = ctx.kube.client['karmada']

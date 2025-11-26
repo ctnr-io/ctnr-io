@@ -144,6 +144,9 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   const annotations: Record<string, string> = {}
   annotations['ctnr.io/min-replicas'] = minReplicas.toString()
   annotations['ctnr.io/max-replicas'] = maxReplicas.toString()
+  // TODO: Add kyverno or something else to enforce bandwidth limits for all pods
+  annotations['kubernetes.io/ingress-bandwidth'] = '100M'
+  annotations['kubernetes.io/egress-bandwidth'] = '100M'
 
   // Create PersistentVolumeClaims for volumes that don't exist
   for (const volDevice of volumeDevices) {

@@ -1,33 +1,18 @@
-import { z } from 'zod'
-import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { ClusterName, ClusterNames, Project } from 'lib/api/schemas.ts'
+import { ClusterName, ClusterNames } from 'lib/api/schemas.ts'
 import {
   CiliumNetworkPolicy,
   ensureCiliumNetworkPolicy,
   ensureFederatedResourceQuota,
   ensureNamespace,
   ensurePropagationPolicy,
+  KubeClient,
 } from 'lib/kubernetes/kube-client.ts'
 import { getNamespaceBalance } from 'lib/billing/balance.ts'
 import { FreeTier } from 'lib/billing/utils.ts'
 import { yaml } from '@tmpl/core'
 import * as YAML from '@std/yaml'
-import { ServerProjectContext } from 'ctx/mod.ts'
-import { createProjectLabels } from 'lib/api/labels.ts'
-
-export const Meta = {
-  aliases: {
-    options: {},
-  },
-}
-
-export const Input = Project.pick({
-  id: true,
-}).and(Project.partial().pick({
-  name: true,
-}))
-
-export type Input = z.infer<typeof Input>
+import { createProjectLabels, ProjectLabels } from 'lib/api/labels.ts'
+import { Project } from 'lib/api/schemas.ts'
 
 /**
  * Ensure that a project exists and is properly set up.
@@ -36,33 +21,35 @@ export type Input = z.infer<typeof Input>
  * 0. Determine the cluster in which the project will be created.
  * 1. Create namespace representing the project in a specific Kubernetes cluster.
  * 2. Add network policies to the namespace.
+ * 3. Check project balance, set limits to Free Tier if no credits.
  *
  * A project represents a namespace in a specific Kubernetes cluster.
  * The project will be owned by the authenticated user.
  */
-export default async function* ensureProject(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<Project> {
-  const { ctx, input, signal } = request
+export default async function ensureProject(karmadaClient: KubeClient, input: {
+	userId: string,
+	projectId: string,
+	projectName?: string,
+}, signal: AbortSignal): Promise<Project> {
+	const { userId, projectId } = input
 
-  const kubeClient = ctx.kube.client['karmada']
+	const kubeClient = karmadaClient
 
   // 0. Determine resources names like namespace, propagation policy, network policies, etc.
-
-  const projectId = input.id
-
   // Determine namespace name
-  const namespaceName = 'ctnr-project-' + projectId
+  const namespaceName = projectId === userId ? 'ctnr-user-' + userId : 'ctnr-project-' + projectId
 
   // Get namespace if exists
   let namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal }).catch(() => null)
 
   // Retrieve project name
-  const projectName = input.name || namespaceObj?.metadata?.labels?.['ctnr.io/project-name'] || 'default'
+  const projectName = input.projectName || namespaceObj?.metadata?.labels?.[ProjectLabels.Name] || 'default'
 
   // Retrieve user ID from context
-  const ownerId = namespaceObj?.metadata?.labels?.['ctnr.io/owner-id'] || ctx.project.ownerId
+  const ownerId = namespaceObj?.metadata?.labels?.[ProjectLabels.OwnerId] || userId
 
   // Determine cluster name
-  const clusterName = (namespaceObj?.metadata?.labels?.['ctnr.io/cluster-name'] ?? ClusterNames[Math.floor(Math.random() * 10 % ClusterNames.length)]) as ClusterName
+  const cluster = (namespaceObj?.metadata?.labels?.[ProjectLabels.Cluster] ?? ClusterNames[Math.floor(Math.random() * 10 % ClusterNames.length)]) as ClusterName
 
   const propagationPolicyName = namespaceName + '-propagation-policy'
   const networkPolicyName = namespaceName + '-network-policy'
@@ -72,6 +59,7 @@ export default async function* ensureProject(request: ServerRequest<Input, Serve
     id: projectId,
     name: projectName,
     ownerId: ownerId,
+    cluster: cluster,
   })
 
   // 1. Create namespace representing the project in a specific Kubernetes cluster.
@@ -99,7 +87,7 @@ export default async function* ensureProject(request: ServerRequest<Input, Serve
       }],
       placement: {
         clusterAffinity: {
-          clusterNames: [clusterName],
+          clusterNames: [cluster],
         },
       },
     },
@@ -191,8 +179,9 @@ export default async function* ensureProject(request: ServerRequest<Input, Serve
   }
 
   return {
-    id: projectId,
-    name: projectName,
-    ownerId: ownerId,
+		id: projectId,
+		name: projectName,
+		ownerId: ownerId,
+		cluster: cluster,
   }
 }

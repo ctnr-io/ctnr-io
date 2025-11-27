@@ -38,7 +38,6 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         patchHorizontalPodAutoscaler: (
@@ -50,14 +49,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'PATCH',
             path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers/${name}`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deleteHorizontalPodAutoscaler: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/autoscaling/v2/namespaces/${namespace}/horizontalpodautoscalers/${name}`,
-            expectJson: true,
             ...opts,
           }),
         listHorizontalPodAutoscalers: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
@@ -114,14 +111,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deleteIngressRoute: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/ingressroutes/${name}`,
-            expectJson: true,
             ...opts,
           }),
         listIngressRoutes: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
@@ -147,7 +142,6 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         patchGateway: (name: string, body: GatewayV1, opts?: Pick<PatchOpts, 'abortSignal'>) =>
@@ -156,14 +150,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
             bodyJson: body,
             contentType: 'application/merge-patch+json',
-            expectJson: true,
             ...opts,
           }),
         deleteGateway: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/gateways/${name}`,
-            expectJson: true,
             ...opts,
           }),
         getHTTPRoute: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
@@ -178,7 +170,6 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         // patchHTTPRoute: (name: string, body: any) =>
@@ -186,20 +177,17 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
         //     method: "PATCH",
         //     path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
         //     body,
-        //     expectJson: true,
         //   }),
         deleteHTTPRoute: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${name}`,
-            expectJson: true,
             ...opts,
           }),
         listHTTPRoutes: (opts?: Pick<GetListOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'GET',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
-            expectJson: true,
             ...opts,
           }),
         getReferenceGrant: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
@@ -214,14 +202,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deleteReferenceGrant: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1beta1/namespaces/${namespace}/referencegrants/${name}`,
-            expectJson: true,
             ...opts,
           }),
       }
@@ -240,14 +226,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/gateway.networking.k8s.io/v1alpha2/namespaces/${namespace}/tlsroutes`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deleteTLSRoute: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/gateway.networking.k8s.io/v1alpha2/namespaces/${namespace}/tlsroutes/${name}`,
-            expectJson: true,
             ...opts,
           }),
       }
@@ -266,14 +250,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deleteDNSEndpoint: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/externaldns.k8s.io/v1alpha1/namespaces/${namespace}/dnsendpoints/${name}`,
-            expectJson: true,
             ...opts,
           }),
       }
@@ -299,14 +281,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deleteCertificate: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${name}`,
-            expectJson: true,
             ...opts,
           }),
       }
@@ -335,14 +315,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deletePropagationPolicy: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
-            expectJson: true,
             ...opts,
           }),
 
@@ -368,14 +346,12 @@ export async function getKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2
             method: 'POST',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas`,
             bodyJson: body,
-            expectJson: true,
             ...opts,
           }),
         deleteFederatedResourceQuota: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',
             path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/federatedresourcequotas/${name}`,
-            expectJson: true,
             ...opts,
           }),
       }
@@ -968,10 +944,7 @@ export async function ensureHTTPRoute(
   abortSignal: AbortSignal,
 ): Promise<void> {
   // Ensure the httproute
-  const currentHttpRoute = await kc.performRequest({
-    method: 'GET',
-    path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${httpRoute.metadata.name}`,
-    expectJson: true,
+  const currentHttpRoute = await kc.GatewayNetworkingV1(namespace).getHTTPRoute(httpRoute.metadata.name, {
     abortSignal,
   })
     .then((res) => res as HTTPRoute)
@@ -982,30 +955,12 @@ export async function ensureHTTPRoute(
   )
     // if httproute does not exist, create it
     .with(null, () =>
-      kc.performRequest({
-        method: 'POST',
-        path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
-        bodyJson: nextHttpRoute as any,
-        expectJson: true,
-        abortSignal,
-      }))
+      kc.GatewayNetworkingV1(namespace).createHTTPRoute(nextHttpRoute as any, { abortSignal })
+    )
     .with(nextHttpRoute as any, () => true)
     .otherwise(async () => {
-      // else if the httproute doesn't have the same name, delete it and create a new one
-      await kc.performRequest({
-        method: 'DELETE',
-        path:
-          `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes/${currentHttpRoute?.metadata.name}`,
-        expectJson: true,
-        abortSignal,
-      })
-      await kc.performRequest({
-        method: 'POST',
-        path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
-        bodyJson: nextHttpRoute as any,
-        expectJson: true,
-        abortSignal,
-      })
+      await kc.GatewayNetworkingV1(namespace).deleteHTTPRoute(currentHttpRoute!.metadata.name, { abortSignal })
+      await kc.GatewayNetworkingV1(namespace).createHTTPRoute(nextHttpRoute as any, { abortSignal })
     })
 }
 

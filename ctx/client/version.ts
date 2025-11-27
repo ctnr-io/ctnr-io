@@ -21,7 +21,7 @@ export async function createClientVersionContext(): Promise<VersionContext> {
     throw new Error('Failed to fetch server version')
   }
   const serverVersion: GetServerVersion.Output = await response.json()
-  const clientVersion = process.env.CTNR_VERSION
+  const clientVersion = process.env.CTNR_VERSION || process.env.EXPO_PUBLIC_CTNR_VERION || 'unknown'
 
   // If cli version != remote version, re-install cli
   if (serverVersion !== clientVersion) {
@@ -29,6 +29,6 @@ export async function createClientVersionContext(): Promise<VersionContext> {
   }
 
 	return {
-		version: process.env.CTNR_VERSION || process.env.EXPO_PUBLIC_CTNR_VERION || 'unknown'
+		version: clientVersion
 	}
 }

@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useSubscription } from '@trpc/tanstack-react-query'
 // @ts-ignore (no types)
 import Ansi from 'ansi-to-react'

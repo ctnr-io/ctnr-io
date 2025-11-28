@@ -3,7 +3,7 @@
 import { Link } from 'expo-router'
 import { Coins, Plus } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { CreditPurchaseDialog } from './billing-purchase-credits-dialog.tsx'
 import { useState } from 'react'

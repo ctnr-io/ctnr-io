@@ -1,1 +1,1 @@
-import 'driver/trpc/client/terminal/main.ts'
+import 'api/drivers/trpc/client/terminal/main.ts'

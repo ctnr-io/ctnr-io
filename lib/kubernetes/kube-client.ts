@@ -870,12 +870,14 @@ async function ensureCiliumNetworkPolicy(
     .otherwise(async () => {
       console.debug('Replacing existing CiliumNetworkPolicy', networkPolicyName)
       // Delete the existing network policy first
-      console.log(await kc.performRequest({
-        method: 'DELETE',
-        path: `/apis/cilium.io/v2/namespaces/${namespace}/ciliumnetworkpolicies/${networkPolicyName}`,
-        expectJson: true,
-        abortSignal,
-      }))
+      console.log(
+        await kc.performRequest({
+          method: 'DELETE',
+          path: `/apis/cilium.io/v2/namespaces/${namespace}/ciliumnetworkpolicies/${networkPolicyName}`,
+          expectJson: true,
+          abortSignal,
+        }),
+      )
       // Then create the new one
       return kc.performRequest({
         method: 'POST',
@@ -954,9 +956,7 @@ export async function ensureHTTPRoute(
     currentHttpRoute,
   )
     // if httproute does not exist, create it
-    .with(null, () =>
-      kc.GatewayNetworkingV1(namespace).createHTTPRoute(nextHttpRoute as any, { abortSignal })
-    )
+    .with(null, () => kc.GatewayNetworkingV1(namespace).createHTTPRoute(nextHttpRoute as any, { abortSignal }))
     .with(nextHttpRoute as any, () => true)
     .otherwise(async () => {
       await kc.GatewayNetworkingV1(namespace).deleteHTTPRoute(currentHttpRoute!.metadata.name, { abortSignal })
@@ -1099,6 +1099,50 @@ export const ensureUserNamespace = async (
 
   const clusterNames = ['eu-0', 'eu-1', 'eu-2']
 
+  const resources = [{
+    apiVersion: 'v1',
+    kind: 'Pod',
+  }, {
+    apiVersion: 'v1',
+    kind: 'Service',
+  }, {
+    apiVersion: 'apps/v1',
+    kind: 'Deployment',
+  }, {
+    apiVersion: 'apps/v1',
+    kind: 'StatefulSet',
+  }, {
+    apiVersion: 'apps/v1',
+    kind: 'DaemonSet',
+  }, {
+    apiVersion: 'apps/v1',
+    kind: 'ReplicaSet',
+  }, {
+    apiVersion: 'gateway.networking.k8s.io/v1',
+    kind: 'HTTPRoute',
+  }, {
+    apiVersion: 'gateway.networking.k8s.io/v1beta1',
+    kind: 'HTTPRoute',
+  }, {
+    apiVersion: 'cert-manager.io/v1',
+    kind: 'Certificate',
+  }, {
+    apiVersion: 'traefik.io/v1alpha1',
+    kind: 'IngressRoute',
+  }, {
+    apiVersion: 'autoscaling/v2',
+    kind: 'HorizontalPodAutoscaler',
+  }, {
+    apiVersion: 'cilium.io/v2',
+    kind: 'CiliumNetworkPolicy',
+  }]
+
+  const labelSelector = {
+    matchLabels: {
+      'cluster.ctnr.io/all': 'true',
+    },
+  }
+
   await ensurePropagationPolicy(kc, namespace, {
     apiVersion: 'policy.karmada.io/v1alpha1',
     kind: 'PropagationPolicy',
@@ -1110,15 +1154,10 @@ export const ensureUserNamespace = async (
       },
     },
     spec: {
-      resourceSelectors: [
-        {
-          labelSelector: {
-            matchLabels: {
-              'cluster.ctnr.io/all': 'true',
-            },
-          },
-        },
-      ],
+      resourceSelectors: resources.map((resource) => ({
+        ...resource,
+        labelSelector,
+      })),
       placement: {
         clusterAffinity: {
           clusterNames,
@@ -1127,43 +1166,6 @@ export const ensureUserNamespace = async (
     },
   }, abortSignal)
   for (const clusterName of clusterNames) {
-    const resources = [{
-      apiVersion: 'v1',
-      kind: 'Pod',
-    }, {
-      apiVersion: 'v1',
-      kind: 'Service',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'Deployment',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'StatefulSet',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'DaemonSet',
-    }, {
-      apiVersion: 'apps/v1',
-      kind: 'ReplicaSet',
-    }, {
-      apiVersion: 'gateway.networking.k8s.io/v1',
-      kind: 'HTTPRoute',
-    }, {
-      apiVersion: 'gateway.networking.k8s.io/v1beta1',
-      kind: 'HTTPRoute',
-    }, {
-      apiVersion: 'cert-manager.io/v1',
-      kind: 'Certificate',
-    }, {
-      apiVersion: 'traefik.io/v1alpha1',
-      kind: 'IngressRoute',
-    }, {
-      apiVersion: 'autoscaling/v2',
-      kind: 'HorizontalPodAutoscaler',
-    }, {
-      apiVersion: 'cilium.io/v2',
-      kind: 'CiliumNetworkPolicy',
-    }]
     const labelSelector = {
       matchLabels: {
         ['cluster.ctnr.io/' + clusterName]: 'true',

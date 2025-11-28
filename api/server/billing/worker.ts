@@ -41,10 +41,12 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
                 namespace,
                 signal,
               })) {
-                console.debug(`Usage check for namespace ${namespace}:`, msg)
+                // console.debug(`Usage check for namespace ${namespace}:`, msg)
               }
             } catch (error) {
-              console.warn(`Usage check issue for namespace ${namespace}:`, error)
+              if (error instanceof Error) {
+                console.warn(`Usage check issue for namespace ${namespace}:`, error.message)
+              }
             }
             console.debug(`Balance updated for namespace ${namespace}:`, usage.balance)
           } catch (error) {

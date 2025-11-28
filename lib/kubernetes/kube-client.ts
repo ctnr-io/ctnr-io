@@ -870,12 +870,12 @@ async function ensureCiliumNetworkPolicy(
     .otherwise(async () => {
       console.debug('Replacing existing CiliumNetworkPolicy', networkPolicyName)
       // Delete the existing network policy first
-      await kc.performRequest({
+      console.log(await kc.performRequest({
         method: 'DELETE',
         path: `/apis/cilium.io/v2/namespaces/${namespace}/ciliumnetworkpolicies/${networkPolicyName}`,
         expectJson: true,
         abortSignal,
-      })
+      }))
       // Then create the new one
       return kc.performRequest({
         method: 'POST',
@@ -1160,6 +1160,9 @@ export const ensureUserNamespace = async (
     }, {
       apiVersion: 'autoscaling/v2',
       kind: 'HorizontalPodAutoscaler',
+    }, {
+      apiVersion: 'cilium.io/v2',
+      kind: 'CiliumNetworkPolicy',
     }]
     const labelSelector = {
       matchLabels: {
@@ -1271,6 +1274,7 @@ export const ensureUserNamespace = async (
         - toEntities:
             - world
   `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!
+  console.log('Ensuring CiliumNetworkPolicy in namespace', namespace)
   await ensureCiliumNetworkPolicy(kc, namespace, networkPolicy, abortSignal)
 
   return namespace

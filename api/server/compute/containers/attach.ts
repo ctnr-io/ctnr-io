@@ -67,5 +67,16 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
     ctx.stdio?.exit(status.exitCode || 0)
   })
 
-  await handleStreams({ ctx, signal, defer, tunnel, interactive, terminal })
+  await handleStreams({
+    ctx,
+    signal,
+    defer,
+    interactive,
+    terminal,
+    tunnel: {
+      stdin: interactive ? tunnel.stdin : undefined,
+      stdout: tunnel.stdout,
+      stderr: tunnel.stderr,
+    },
+  })
 }

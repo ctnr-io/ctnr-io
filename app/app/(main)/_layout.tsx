@@ -1,6 +1,6 @@
 import { Slot } from 'expo-router'
-import { useExpoTrpcClientContext } from 'driver/trpc/client/expo/mod.tsx'
-import logout from 'api/client/auth/logout.ts'
+import { useExpoTrpcClientContext } from 'api/drivers/trpc/client/expo/mod.tsx'
+import logout from 'api/handlers/client/auth/logout.ts'
 import { Redirect } from 'expo-router'
 import { AppSidebarLayout } from 'app/components/ctnr-io/app-sidebar-layout.tsx'
 

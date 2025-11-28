@@ -9,7 +9,7 @@ import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Label } from 'app/components/shadcn/ui/label.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
 import { useState } from 'react'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // Volume type definition
@@ -61,7 +61,6 @@ function AddVolumeForm({
     name: '',
     size: '10',
     sizeUnit: 'GB',
-    mountPath: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +69,6 @@ function AddVolumeForm({
     const volumeData = {
       name: formData.name,
       size: `${formData.size}${formData.sizeUnit}`,
-      mountPath: formData.mountPath,
       status: 'available' as const,
       created: new Date().toISOString(),
       attachedTo: [] as string[], // Empty array for new volumes
@@ -119,17 +117,6 @@ function AddVolumeForm({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className='space-y-2'>
-        <Label htmlFor='mount-path'>Mount Path</Label>
-        <Input
-          id='mount-path'
-          value={formData.mountPath}
-          onChange={(e) => setFormData({ ...formData, mountPath: e.target.value })}
-          placeholder='e.g., /app/data'
-          required
-        />
       </div>
 
       <div className='text-sm text-muted-foreground bg-muted/50 p-3 rounded-md'>
@@ -200,14 +187,12 @@ export default function VolumesTableScreen() {
     await createVolume.mutateAsync({
       name: volumeForm.name,
       size: volumeForm.size,
-      mountPath: volumeForm.mountPath,
     })
   }
 
   const handleDelete = async (volume: VolumeData) => {
     await deleteVolume.mutateAsync({
       name: volume.name,
-      cluster: 'karmada' as 'karmada' | 'eu-0' | 'eu-1' | 'eu-2',
       force: false,
     })
   }

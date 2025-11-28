@@ -4,7 +4,7 @@ import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-i
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { Container, Copy, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useRouter } from 'expo-router'
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import {

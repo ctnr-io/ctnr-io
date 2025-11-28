@@ -11,13 +11,14 @@ import {
   DialogTitle,
 } from 'app/components/shadcn/ui/dialog.tsx'
 import { Slider } from 'app/components/shadcn/ui/slider.tsx'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
-import { ResourceLimits } from 'lib/billing/utils.ts'
-import { calculateTotalCostWithFreeTier, DEFAULT_RATES } from 'lib/billing/cost.ts'
+import { ResourceLimits } from 'core/rules/billing/utils.ts'
+import { calculateTotalCostWithFreeTier } from 'core/rules/billing/cost.ts'
 import { CreditPurchaseDialog } from './billing-purchase-credits-dialog.tsx'
+import { DEFAULT_RATES } from 'core/rules/billing/rates.ts'
 
 interface ResourceLimitsDialogProps {
   open: boolean

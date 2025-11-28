@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/c
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useRouter } from 'expo-router'
 import { ActivityIndicator } from 'react-native'
 import { useEffect } from 'react'

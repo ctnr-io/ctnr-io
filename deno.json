@@ -3,8 +3,8 @@
     "gen": "dotenvx run -- deno run -A jsr:@tmpl/gen .",
     "compile": "deno task gen && deno compile -A --unstable-net",
     "generate": "deno run -A jsr:@tmpl/gen . | tr ' ' '\n' | grep -v generated | xargs deno fmt",
-    "trpc:server:watch": "dotenvx run -- deno run -A --unstable-net --watch driver/trpc/server/main.ts",
-    "trpc:server:run": "dotenvx run -- deno run -A --unstable-net driver/trpc/server/main.ts",
+    "trpc:server:watch": "dotenvx run -- deno run -A --unstable-net --watch api/drivers/trpc/server/main.ts",
+    "trpc:server:run": "dotenvx run -- deno run -A --unstable-net api/drivers/trpc/server/main.ts",
     "trpc:client:cli": "dotenvx run -- deno run -A --unstable-net cli/main.ts",
     "app:start": "dotenvx run -- bun --cwd app start --tunnel",
     "app:build": "dotenvx run -- /bin/sh -c 'cd app && bunx expo export --platform web'",
@@ -52,9 +52,9 @@
     "zod": "npm:zod@^4.1.5",
     "api/": "./api/",
     "cli/": "./cli/",
-    "driver/": "./driver/",
+    "core/": "./core/",
     "lib/": "./lib/",
-    "ctx/": "./ctx/"
+    "infra/": "./infra/"
   },
   "compilerOptions": {
     "strictNullChecks": true,

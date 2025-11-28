@@ -8,9 +8,9 @@ import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Label } from 'app/components/shadcn/ui/label.tsx'
 import { useState } from 'react'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Domain } from 'api/server/network/domains/list.ts'
+import type { Domain } from 'api/handlers/server/network/domains/list.ts'
 
 // Domain type definition for frontend - only custom domains
 interface DomainData extends Domain {}

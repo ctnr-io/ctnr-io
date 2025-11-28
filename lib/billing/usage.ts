@@ -4,8 +4,8 @@ import { calculateTotalCostWithFreeTier } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
 import {
   extractDeploymentCurrentResourceUsage,
-  parseResourceUsageToPrimitiveValues,
   parseResourceToPrimitiveValue,
+  parseResourceUsageToPrimitiveValues,
   ResourceUsage,
 } from './resource.ts'
 
@@ -135,7 +135,9 @@ export async function getUsage(opts: {
 
   // Process each deployment
   for (const deployment of deployments.items) {
-    const { cpu, memory, storage } = parseResourceUsageToPrimitiveValues(extractDeploymentCurrentResourceUsage(deployment))
+    const { cpu, memory, storage } = parseResourceUsageToPrimitiveValues(
+      extractDeploymentCurrentResourceUsage(deployment),
+    )
     totalMilliCpuUsed += cpu
     totalMemoryUsed += memory
     totalStorageUsed += storage
@@ -302,37 +304,38 @@ export async function* checkUsage(opts: {
       const hours = thresholdDate
         ? Math.max(0, 24 - Math.floor((Date.now() - new Date(thresholdDate).getTime()) / 3600000))
         : 24
-      // if (hours > 0) {
-      // yield `⏳ You have ${hours} hours to add credits before your resources are paused.`
-      // } else {
-      yield `⏳ Grace period expired. Resources will be paused.`
-      // Get all deployments and scale to 0
-      const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
-        abortSignal: signal,
-      })
+      if (hours > 0) {
+        yield `⏳ You have ${hours} hours to add credits before your resources are paused.`
+        // TODO: send notification to user email
+      } else {
+        yield `⏳ Grace period expired. Resources will be paused.`
+        // Get all deployments and scale to 0
+        const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
+          abortSignal: signal,
+        })
 
-      await Promise.allSettled(
-        deployments.items.map((deployment) => {
-          const name = deployment.metadata?.name
-          if (!name) return Promise.resolve()
-          console.debug(`Scaling down deployment ${name} in namespace ${namespace} due to credit breach`)
-          return kubeClient.AppsV1.namespace(namespace).patchDeployment(
-            name,
-            'json-merge',
-            {
-              spec: {
-                replicas: 0,
-                selector: {},
-                template: {},
+        await Promise.allSettled(
+          deployments.items.map((deployment) => {
+            const name = deployment.metadata?.name
+            if (!name) return Promise.resolve()
+            console.debug(`Scaling down deployment ${name} in namespace ${namespace} due to credit breach`)
+            return kubeClient.AppsV1.namespace(namespace).patchDeployment(
+              name,
+              'json-merge',
+              {
+                spec: {
+                  replicas: 0,
+                  selector: {},
+                  template: {},
+                },
               },
-            },
-            { abortSignal: signal },
-          ).catch((error) => {
-            console.error(`Failed to scale down deployment ${name} in namespace ${namespace}:`, error)
-          })
-        }),
-      )
-      // }
+              { abortSignal: signal },
+            ).catch((error) => {
+              console.error(`Failed to scale down deployment ${name} in namespace ${namespace}:`, error)
+            })
+          }),
+        )
+      }
       throw new Error('Credit breach detected')
     }
 

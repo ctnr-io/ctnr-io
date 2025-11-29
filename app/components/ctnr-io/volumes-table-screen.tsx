@@ -9,7 +9,7 @@ import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Label } from 'app/components/shadcn/ui/label.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
 import { useState } from 'react'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // Volume type definition
@@ -207,7 +207,6 @@ export default function VolumesTableScreen() {
   const handleDelete = async (volume: VolumeData) => {
     await deleteVolume.mutateAsync({
       name: volume.name,
-      cluster: 'karmada' as 'karmada' | 'eu-0' | 'eu-1' | 'eu-2',
       force: false,
     })
   }

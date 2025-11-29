@@ -1,0 +1,68 @@
+import { z } from 'zod'
+import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
+import { DomainRepository } from 'core/repositories/domain_repository.ts'
+
+export const Meta = {
+  aliases: {
+    options: {},
+  },
+}
+
+export const Input = z.object({
+  name: z.string()
+    .min(1, 'Domain name is required')
+    .describe('Name of the domain to delete'),
+  force: z.boolean()
+    .optional()
+    .default(false)
+    .describe('Force delete even if domain is in use'),
+})
+
+export type Input = z.infer<typeof Input>
+
+export default async function* (
+  { ctx, input }: ServerRequest<Input>,
+): ServerResponse<void> {
+  const { name, force = false } = input
+
+  const domainRepo = new DomainRepository(
+    ctx.kube.client,
+    ctx.project,
+    ctx.auth.user.id,
+    ctx.auth.user.createdAt,
+  )
+
+  try {
+    yield `Deleting domain ${name}...`
+
+    // Check if domain exists
+    const exists = await domainRepo.exists(name)
+    if (!exists) {
+      throw new Error(`Domain ${name} not found`)
+    }
+
+    // Check if domain is in use by any routes (unless force is true)
+    if (!force) {
+      const routesUsingDomain = await domainRepo.getRoutesUsingDomain(name)
+      if (routesUsingDomain.length > 0) {
+        throw new Error(
+          `Domain ${name} is currently in use by ${routesUsingDomain.length} route(s). Use --force to delete anyway.`,
+        )
+      }
+    }
+
+    await domainRepo.delete(name)
+
+    yield `Domain ${name} has been successfully deleted`
+    yield ``
+    yield `Note: This removes the SSL certificate and domain configuration.`
+    yield `You may also need to:`
+    yield `1. Remove DNS records pointing to ctnr.io`
+    yield `2. Cancel domain registration if no longer needed`
+    yield `3. Update any routes that were using this domain`
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    yield `Error deleting domain: ${errorMessage}`
+    throw error
+  }
+}

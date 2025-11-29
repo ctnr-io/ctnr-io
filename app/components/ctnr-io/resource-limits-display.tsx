@@ -2,7 +2,7 @@
 
 import { Coins, Cpu, HardDrive, MemoryStick } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/ui/tooltip.tsx'
 import { useState } from 'react'

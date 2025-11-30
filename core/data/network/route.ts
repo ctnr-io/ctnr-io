@@ -1,4 +1,4 @@
-import type { KubeClient } from 'infra/kubernetes/mod.ts'
+import { ensureIngressRoute, type KubeClient } from 'infra/kubernetes/mod.ts'
 import { ensureHTTPRoute } from 'infra/kubernetes/resources/gateway/http_route.ts'
 import { ensureService } from 'infra/kubernetes/resources/core/service.ts'
 import { httpRouteToRoute, ingressRouteToRoute } from 'core/transform/route.ts'
@@ -74,6 +74,30 @@ export async function ensureRoute(
             port: port.port,
           })),
         }],
+      },
+    }, signal)
+  }
+
+  // 3. Ensure IngressRoute for custom domain hostnames
+  const customHostnames = hostnames.filter((h) => !h.endsWith('.ctnr.io'))
+  if (customHostnames.length > 0) {
+    await ensureIngressRoute(kubeClient, namespace, {
+      apiVersion: 'traefik.io/v1alpha1',
+      kind: 'IngressRoute',
+      metadata: {
+        name,
+        namespace,
+      },
+      spec: {
+        entryPoints: ['web', 'websecure'],
+        routes: customHostnames.map((hostname) => ({
+          match: `Host(\`${hostname}\`)`,
+          kind: 'Rule',
+          services: ports.map((port) => ({
+            name,
+            port: port.port,
+          })),
+        })),
       },
     }, signal)
   }

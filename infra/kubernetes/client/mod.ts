@@ -318,6 +318,14 @@ export async function createKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'e
             bodyJson: body,
             ...opts,
           }),
+        patchPropagationPolicy: (name: string, body: any, opts?: Pick<PatchOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'PATCH',
+            path: `/apis/policy.karmada.io/v1alpha1/namespaces/${namespace}/propagationpolicies/${name}`,
+            bodyJson: body,
+            contentType: 'application/merge-patch+json',
+            ...opts,
+          }),
         deletePropagationPolicy: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
           client.performRequest({
             method: 'DELETE',

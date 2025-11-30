@@ -132,15 +132,13 @@ console.log('Ensuring project:', projectId, 'for user:', userId)
         ['apps/v1', 'Deployment'],
         ['apps/v1', 'ReplicaSet'],
         // Gateway resources
-        ['networking.x-k8s.io/v1', 'Gateway'],
-        ['networking.x-k8s.io/v1', 'HTTPRoute'],
-        ['networking.x-k8s.io/v1', 'TCPRoute'],
-        ['networking.x-k8s.io/v1', 'TLSRoute'],
+        ['gateway.networking.k8s.io/v1', 'HTTPRoute'],
+        ['gateway.networking.k8s.io/v1beta1', 'HTTPRoute'],
+        ['gateway.networking.k8s.io/v1alpha2', 'TLSRoute'],
+        ['gateway.networking.k8s.io/v1alpha3', 'TLSRoute'],
         // Traefik resources
-        ['traefik.containo.us/v1alpha1', 'Middleware'],
-        ['traefik.containo.us/v1alpha1', 'IngressRoute'],
-        ['traefik.containo.us/v1alpha1', 'IngressRouteTCP'],
-        ['traefik.containo.us/v1alpha1', 'IngressRouteUDP'],
+        ['traefik.io/v1alpha1', 'Middleware'],
+        ['traefik.io/v1alpha1', 'IngressRoute'],
         // Cert-manager resources
         ['cert-manager.io/v1', 'Certificate'],
         // Cilium resources

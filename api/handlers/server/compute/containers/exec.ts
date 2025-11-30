@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/api/streams.ts'
-import { getPodsFromAllClusters } from './_utils.ts'
 import { ContainerName } from 'lib/api/schemas.ts'
 
 export const Meta = {
@@ -32,23 +31,24 @@ export type Input = z.infer<typeof Input>
 export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
   const { name, command = '/bin/sh', interactive = false, terminal = false, replica } = input
 
-  const pods = await getPodsFromAllClusters({
-    ctx,
-    name,
-    replicas: replica ? [replica] : undefined,
-    signal,
-  })
+  const clusterClient = ctx.kube.client[ctx.project.cluster]
+
+  let pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
+    labelSelector: `ctnr.io/name=${name}`,
+    abortSignal: signal,
+  }).then(list => list.items)
 
   if (pods.length === 0) {
-    yield `No running pods found for container ${name}.`
-    return
+    throw new Error(`No replicas found for container ${name}`)
   }
 
-  // Use the first available pod
-  const podInfo = pods[0]
-  const podName = podInfo.pod.metadata?.name!
-  const containerName = podInfo.pod.spec?.containers?.[0]?.name!
-  const clusterClient = ctx.kube.client[podInfo.cluster as keyof typeof ctx.kube.client]
+  // Filter by replica if specified
+  const [pod] = replica
+    ? pods.filter((pod) => replica.includes(pod.metadata?.name || ''))
+    : pods
+
+  const podName = pod.metadata?.name!
+  const containerName = pod.spec?.containers?.[0]?.name!
 
   const tunnel = await clusterClient.CoreV1.namespace(ctx.project.namespace).tunnelPodExec(podName, {
     command: command === '/bin/sh' ? ['/bin/sh'] : ['sh', '-c', command],

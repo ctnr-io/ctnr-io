@@ -20,6 +20,12 @@ export async function ensurePropagationPolicy(
 		.otherwise(async () => {
 			// Delete the existing federated resource quota first
 			await kc.KarmadaV1Alpha1(namespace).deletePropagationPolicy(propagationPolicyName, { abortSignal })
+			// Remove finalizer because sometimes deletion does not complete due to finalizers
+			await kc.KarmadaV1Alpha1(namespace).patchPropagationPolicy(propagationPolicyName, {
+				metadata: {
+					finalizers: null,
+				},
+			}, { abortSignal })
 			// Wait a moment to ensure deletion is propagated
 			await new Promise((resolve) => setTimeout(resolve, 1000))
 			// Then create the new one

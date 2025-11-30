@@ -3,7 +3,6 @@ import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import attachContainer from './attach.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import logContainer from './logs.ts'
-import { getPodsFromAllClusters } from './_utils.ts'
 import createContainer, * as CreateContinaer from './create.ts'
 import startContainer from './start.ts'
 
@@ -17,14 +16,6 @@ export const Meta = {
   },
 }
 
-// Volume mount specification
-const VolumeMount = z.string()
-  .regex(
-    /^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(?::\d+[G]?)?$/,
-    'Volume format must be name:path or name:path:size (e.g., "data:/app/data" or "data:/app/data:5G")',
-  )
-  .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
-
 export const Input = CreateContinaer.Input.extend({
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
@@ -36,7 +27,10 @@ export type Input = z.infer<typeof Input>
 export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
   const { ctx, input, signal, defer } = request
 
+  const clusterClient = ctx.kube.client[ctx.project.cluster]
+
   const {
+    name,
     interactive,
     terminal,
     detach,
@@ -66,14 +60,18 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   // Get the first pod for interactive/terminal operations
   let pod: Pod | null = null
   if (interactive || terminal || !detach) {
-    // Use the same multi-cluster approach as logs/attach/exec
+    // Use the same approach as logs/attach/exec
     try {
-      const pods = await getPodsFromAllClusters({
-        ctx,
-        name,
-        signal,
-      })
-      pod = pods.length > 0 ? pods[0].pod : null
+      const pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
+        labelSelector: `ctnr.io/name=${name}`,
+        abortSignal: signal,
+      }).then((list) => list.items)
+
+      if (pods.length === 0) {
+        throw new Error(`No replicas found for container ${name}`)
+      }
+
+      pod = pods.length > 0 ? pods[0] : null
     } catch (error) {
       console.warn(`Failed to get pods from clusters:`, error)
       // Fallback to checking eu cluster directly

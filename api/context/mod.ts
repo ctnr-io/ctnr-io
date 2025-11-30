@@ -2,6 +2,7 @@ import { MollieClient } from '@mollie/api-client'
 import { KubeClient } from 'infra/kubernetes/mod.ts'
 import { Session, SupabaseClient } from '@supabase/supabase-js'
 import { QontoClient } from 'infra/qonto/mod.ts'
+import { ClusterName } from 'core/schemas/common.ts'
 
 export type Signals =
   | 'SIGINT'
@@ -81,7 +82,7 @@ export type ServerProjectContext = ServerAuthContext & ServerKubeContext & {
   project: {
     id: string
     namespace: string
-    cluster: string
+    cluster: ClusterName
     ownerId: string
   }
 }

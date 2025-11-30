@@ -28,8 +28,6 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
-
 export default async function* createRoute(request: ServerRequest<Input>): ServerResponse<void> {
   const { ctx, input, signal } = request
 
@@ -71,11 +69,11 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
 
     const cluster = ctx.project.cluster
 
-    const userIdShort = ctx.auth.user.id
+    const userId = ctx.auth.user.id
     
     // Build hostnames for ctnr.io domain
     const ctnrHostnames = routedPorts.map((port) =>
-      `${port.name}-${input.container}-${userIdShort}.${cluster}.ctnr.io`
+      `${port.name}-${input.container}-${userId}.${cluster}.ctnr.io`
     )
     
     // Build hostnames for custom domain (if provided)

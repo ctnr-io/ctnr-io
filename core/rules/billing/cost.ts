@@ -1,6 +1,5 @@
 import { DEFAULT_RATES } from './rates.ts'
 import { parseResourceToPrimitiveValue } from './resource.ts'
-import { FreeTier } from './utils.ts'
 
 export interface CostRates {
   cpuPerHour: number // cost per CPU core per hour in credits
@@ -13,13 +12,13 @@ export interface CostRates {
  * @param usage
  * @returns cost in credits
  */
-export function calculateTotalCostWithFreeTierSince(
+export function calculateTotalCostSince(
   usage: { cpu: string; memory: string; storage: string },
   timestamp: number,
   rates: CostRates = DEFAULT_RATES,
 ): number {
   const { cpu, memory, storage } = usage
-  const cost = calculateTotalCostWithFreeTier(cpu, memory, storage, rates)
+  const cost = calculateTotalCost(cpu, memory, storage, rates)
   const hoursSince = (Date.now() - timestamp) / (1000 * 60 * 60)
   const costSince = cost.hourly * hoursSince
   return costSince
@@ -28,7 +27,7 @@ export function calculateTotalCostWithFreeTierSince(
 /**
  * Calculate cost per hour based on CPU, memory, and storage
  */
-export function calculateTotalCostWithFreeTier(
+export function calculateTotalCost(
   cpu: string,
   memory: string,
   storage: string,
@@ -43,20 +42,10 @@ export function calculateTotalCostWithFreeTier(
   const memoryGB = parseResourceToPrimitiveValue(memory, 'memory') / 1024
   const storageGB = parseResourceToPrimitiveValue(storage, 'storage')
 
-  // Free tier allowances (per replica)
-  const freeTierCpuCores = parseResourceToPrimitiveValue(FreeTier.cpu, 'cpu') / 1000
-  const freeTierMemoryGB = parseResourceToPrimitiveValue(FreeTier.memory, 'memory') / 1024
-  const freeTierStorageGB = parseResourceToPrimitiveValue(FreeTier.storage, 'storage')
-
-  // Calculate billable resources (subtract free tier allowances)
-  const billableCpuCores = Math.max(0, cpuCores - freeTierCpuCores)
-  const billableMemoryGB = Math.max(0, memoryGB - freeTierMemoryGB)
-  const billableStorageGB = Math.max(0, storageGB - freeTierStorageGB)
-
   return calculateCost(
-    `${billableCpuCores}`,
-    `${billableMemoryGB}G`,
-    `${billableStorageGB}G`,
+    `${cpuCores}`,
+    `${memoryGB}G`,
+    `${storageGB}G`,
     1,
     rates,
   )

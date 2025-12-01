@@ -1,5 +1,5 @@
 import { Namespace } from '@cloudydeno/kubernetes-apis/core/v1'
-import { calculateTotalCostWithFreeTierSince } from './cost.ts'
+import { calculateTotalCostSince } from './cost.ts'
 import { KubeClient } from 'infra/kubernetes/mod.ts'
 import z from 'zod'
 import SuperJSON from 'superjson'
@@ -15,7 +15,7 @@ export function getNextBalance(balance: Balance, usage: { cpu: string; memory: s
   const creditsBalance = balance.credits
   const lastUpdateed = balance.lastUpdated
 
-  const cost = calculateTotalCostWithFreeTierSince(
+  const cost = calculateTotalCostSince(
     usage,
     new Date(lastUpdateed).getTime(),
   )

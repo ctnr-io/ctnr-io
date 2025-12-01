@@ -1,6 +1,6 @@
 import { FreeTier } from 'core/rules/billing/utils.ts'
 import { ensureFederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.ts'
-import { calculateTotalCostWithFreeTier } from './cost.ts'
+import { calculateTotalCost } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
 import {
   extractDeploymentCurrentResourceUsage,
@@ -190,21 +190,21 @@ export async function getUsage(opts: {
     balance = await updateBalance(kubeClient, namespace, nextBalance, signal)
   }
 
-  const currentCost = calculateTotalCostWithFreeTier(
+  const currentCost = calculateTotalCost(
     resources.cpu.used,
     resources.memory.used,
     resources.storage.used,
   )
 
   const nextCost = additionalResource
-    ? calculateTotalCostWithFreeTier(
+    ? calculateTotalCost(
       resources.cpu.next,
       resources.memory.next,
       resources.storage.next,
     )
     : currentCost
 
-  const limitCost = calculateTotalCostWithFreeTier(
+  const limitCost = calculateTotalCost(
     resources.cpu.limit,
     resources.memory.limit,
     resources.storage.limit,
@@ -219,18 +219,31 @@ export async function getUsage(opts: {
     resources.memory.percentage >= 100 ||
     resources.storage.percentage >= 100
 
+  // Check if current usage is within free tier limits
+  const currentUsageWithinFreeTier =
+    parseResourceToPrimitiveValue(resources.cpu.used, 'cpu') <= freeTierLimits.cpu &&
+    parseResourceToPrimitiveValue(resources.memory.used, 'memory') <= freeTierLimits.memory &&
+    parseResourceToPrimitiveValue(resources.storage.used, 'storage') <= freeTierLimits.storage
+
+  // Check if next usage (with additional resource) would be within free tier limits
+  const nextUsageWithinFreeTier = additionalResource
+    ? parseResourceToPrimitiveValue(resources.cpu.next, 'cpu') <= freeTierLimits.cpu &&
+      parseResourceToPrimitiveValue(resources.memory.next, 'memory') <= freeTierLimits.memory &&
+      parseResourceToPrimitiveValue(resources.storage.next, 'storage') <= freeTierLimits.storage
+    : currentUsageWithinFreeTier
+
   // Priority order for status determination:
   // 1. If current usage exceeds credits, it's a breach
   // 2. If resource limits are reached, that takes priority over credit issues
   // 3. If next usage would exceed credits, insufficient credits
   // 4. If credits are 0, it's free tier (unless other issues exist)
-  if (currentCost.hourly > balance.credits) {
+  if (!currentUsageWithinFreeTier && currentCost.hourly > balance.credits) {
     status = 'insufficient_credits_for_current_usage'
-  } else if (resourceLimitReached) {
+  } else if (!currentUsageWithinFreeTier && resourceLimitReached) {
     status = 'resource_limits_reached_for_current_usage'
-  } else if (additionalResource && nextCost.hourly > balance.credits) {
+  } else if (!nextUsageWithinFreeTier && additionalResource && nextCost.hourly > balance.credits) {
     status = 'insufficient_credits_for_additional_resource'
-  } else if (additionalResource && nextCost.daily > limitCost.daily) {
+  } else if (!nextUsageWithinFreeTier && additionalResource && nextCost.daily > limitCost.daily) {
     status = 'resource_limits_reached_for_additional_resource'
   } else if (balance.credits === 0) {
     status = 'free_tier'

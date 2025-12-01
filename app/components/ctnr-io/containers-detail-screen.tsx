@@ -3,13 +3,13 @@
 import { ContainerExec } from 'app/components/ctnr-io/container-exec.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { ContainerLogs } from 'app/components/ctnr-io/container-logs.tsx'
-import { Copy, FileText, Info, Play, RotateCcw, Settings, Square, Terminal, Trash2 } from 'lucide-react'
+import { Copy, FileText, Info, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useRouter } from 'expo-router'
 import { ActivityIndicator } from 'react-native'
 import { useEffect } from 'react'
@@ -24,36 +24,6 @@ import {
 } from '../shadcn/ui/dialog.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
-
-interface ContainerData {
-  name: string
-  image: any
-  status: 'running' | 'stopped' | 'restarting'
-  createdAt: Date
-  ports: string[]
-  cpu: string
-  memory: string
-  replicas: {
-    max: number
-    min: number
-    current: number
-    instances: {
-      name: string
-      status: string
-      createdAt: Date
-      cpu: string
-      memory: string
-    }[]
-  }
-  routes: string[]
-  clusters: string[]
-  restartPolicy: string
-  command: string[]
-  workingDir: string
-  environment: Record<string, string>
-  volumes: string[]
-  networks: string[]
-}
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -78,6 +48,40 @@ function formatDate(dateString: string) {
   })
 }
 
+export type ContainerData = {
+  name: string
+  image: any
+  status: string
+  createdAt: Date
+  ports: {
+    name?: string
+    number: number
+    protocol: string
+  }[]
+  cpu: string
+  memory: string
+  storage: string
+  replicas: {
+    max: number
+    min: number
+    current: number
+    instances: {
+      name: string
+      status: string
+      createdAt: Date
+      cpu: string
+      memory: string
+    }[]
+  }
+  routes: string[]
+  clusters: string[]
+  restartPolicy: string
+  command: string[]
+  workingDir: string
+  environment: Record<string, string>
+  volumes: string[]
+}
+
 export function ContainersDetailScreen(props: {
   data: ContainerData
   isLoading: boolean
@@ -85,30 +89,8 @@ export function ContainersDetailScreen(props: {
   const { isLoading } = props
 
   // Create skeleton data for loading state
-  const data = isLoading
-    ? {
-      name: '',
-      image: '',
-      status: '',
-      createdAt: new Date(),
-      ports: [],
-      cpu: '',
-      memory: '',
-      replicas: {
-        max: 0,
-        min: 0,
-        current: 0,
-        instances: [],
-      },
-      routes: [],
-      clusters: [],
-      restartPolicy: '',
-      command: [],
-      workingDir: '',
-      environment: {},
-      volumes: [],
-      networks: [],
-    }
+  const data: ContainerData | null = isLoading
+    ? null
     : props.data
 
   const queryClient = useQueryClient()
@@ -152,7 +134,7 @@ export function ContainersDetailScreen(props: {
     }),
   )
 
-  const isPending = data.status === 'restarting' ||
+  const isPending = data?.status === 'restarting' ||
     startMutation.isPending ||
     stopMutation.isPending ||
     restartMutation.isPending ||
@@ -166,7 +148,7 @@ export function ContainersDetailScreen(props: {
     return () => clearInterval(interval)
   }, [isPending])
 
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
       <div className='bg-background'>
         <div className='container mx-auto px-6 py-8'>
@@ -297,12 +279,14 @@ export function ContainersDetailScreen(props: {
                 Logs
               </span>
             </TabsTrigger>
-            {/* <TabsTrigger value='exec' className='text-sm font-medium flex-1'>
+            {
+              /* <TabsTrigger value='exec' className='text-sm font-medium flex-1'>
               <Terminal className='h-4 w-4 sm:mr-2' />
               <span className='hidden sm:inline'>
                 Exec
               </span>
-            </TabsTrigger> */}
+            </TabsTrigger> */
+            }
           </TabsList>
 
           {/* Overview Tab */}
@@ -368,7 +352,7 @@ export function ContainersDetailScreen(props: {
                     <div className='space-y-1'>
                       {data.ports.map((port, index) => (
                         <div key={index} className='font-mono text-sm bg-muted/60 px-2 py-1 rounded'>
-                          {port}
+                          {port.name ? `${port.name}:${port.number}/${port.protocol}` : `${port.number}/${port.protocol}`}
                         </div>
                       ))}
                     </div>
@@ -535,7 +519,7 @@ export function ContainersDetailScreen(props: {
           </TabsContent>
 
           {/* Logs Tab */}
-          <TabsContent value='logs' className="-mx-6 sm:mx-0">
+          <TabsContent value='logs' className='-mx-6 sm:mx-0'>
             <ContainerLogs
               containerName={data.name}
               replicas={data.replicas.instances}

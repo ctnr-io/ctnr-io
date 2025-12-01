@@ -1,4 +1,4 @@
-import { ServerContext } from 'ctx/mod.ts'
+import { ServerContext } from 'api/context/mod.ts'
 import { Deferer } from './defer.ts'
 
 export const createCtrlPCtrlQHandler = ({ interactive, terminal, stderr }: {

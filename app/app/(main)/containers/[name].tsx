@@ -1,4 +1,4 @@
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { Redirect } from 'expo-router'
 import { useLocalSearchParams } from 'expo-router'

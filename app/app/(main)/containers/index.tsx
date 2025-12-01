@@ -1,5 +1,5 @@
 import ContainersTableScreen from 'app/components/ctnr-io/containers-table-screen.tsx'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 

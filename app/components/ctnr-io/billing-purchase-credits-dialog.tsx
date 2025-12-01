@@ -13,15 +13,15 @@ import {
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from 'app/components/shadcn/ui/form.tsx'
-import { useTRPC } from 'driver/trpc/client/expo/mod.tsx'
+import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { BillingClient } from 'lib/billing/utils.ts'
-import { CountryCodes } from 'lib/billing/country_codes.ts'
+import { BillingClient } from 'core/rules/billing/utils.ts'
+import { CountryCodes } from 'core/rules/billing/country_codes.ts'
 import { SearchableSelect } from './searchable-select.tsx'
 import { Label } from '../shadcn/ui/label.tsx'
 
@@ -307,7 +307,7 @@ function CreditPurchaseForm({
       const updates: any = {
         type: clientData.type || 'individual',
         currency: clientData.currency || 'EUR',
-        locale: clientData.locale || 'FR',
+        locale: clientData.locale || 'fr',
         billingAddress: clientData.billingAddress || null,
       }
 
@@ -357,7 +357,16 @@ function CreditPurchaseForm({
   }
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
-    await onSubmit(data)
+    console.log("Submitting credit purchase data:", data)
+    try {
+      await onSubmit(data)
+    } catch (error) {
+      console.error('Form submission error:', error)
+    }
+  }
+
+  const handleFormError = (errors: any) => {
+    console.error('Form validation errors:', errors)
   }
 
   const handleCancel = () => {
@@ -376,7 +385,7 @@ function CreditPurchaseForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+      <form onSubmit={form.handleSubmit(handleSubmit, handleFormError)} className='space-y-4'>
         {step === 'amount' && (
           <Card>
             <CardHeader>
@@ -516,6 +525,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
   })
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
+    console.log("Dialog handleSubmit called with data:", data)
     setGeneralError('')
 
     const amount = parseInt(data.amount)
@@ -540,7 +550,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
       const result = await purchaseCredits.mutateAsync({
         amount,
         type: 'one-time',
-        // @ts-ignore
+        // @ts-ignore: BillingClient type compatibility issue with TRPC mutation
         client: clientPayload,
       })
 

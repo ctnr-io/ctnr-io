@@ -186,11 +186,11 @@ export function DataTableScreen<T = any>({
           </div>
           {status && (
             <div>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0`}
-            >
-              {status.label}
-            </span>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${status.className} shadow-sm flex-shrink-0`}
+              >
+                {status.label}
+              </span>
             </div>
           )}
           <div className='w-56 hidden sm:flex items-center justify-end gap-3 min-w-0'>

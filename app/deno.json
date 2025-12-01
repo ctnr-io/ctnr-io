@@ -7,7 +7,7 @@
     "@trpc/tanstack-react-query": "npm:@trpc/tanstack-react-query@^11.5.0",
     "superjson": "npm:superjson@^2.2.1",
     "zod": "npm:zod@^4.1.5",
-    "api/": "api/",
+    "api/": "../api/",
     "app/": "../app/",
     "cli/": "../cli/",
     "lib/": "../lib/",

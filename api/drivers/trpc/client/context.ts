@@ -34,8 +34,9 @@ export async function createTrpcClientContext(
           throw new Error('Failed to refresh session. Please log in again.')
         }
 
+        console.warn('Connect to server at', process.env.CTNR_API_URL)
         const client = await createTRPCWebSocketClient({
-          url: process.env.CTNR_API_URL! || process.env.EXPO_PUBLIC_CTNR_API_URL!,
+          url: process.env.CTNR_API_URL!,
           accessToken: session.access_token,
           refreshToken: session.refresh_token,
         })

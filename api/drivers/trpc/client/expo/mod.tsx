@@ -9,6 +9,10 @@ import { createTrpcClientContext, TrpcClientContext } from 'api/drivers/trpc/cli
 import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
 import { ClientVersionError } from 'api/context/client/version.ts'
+import process from 'node:process'
+
+// Display env variables on startup
+console.info('Environment Variables:', process.env)
 
 SplashScreen.preventAutoHideAsync()
 
@@ -70,6 +74,7 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
 
   const updateState = async () => {
     try {
+      console.info('Environment Variables in Client:', process.env)
       const ctx = await createTrpcClientContext({
         auth: {
           storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,

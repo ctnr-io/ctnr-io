@@ -16,7 +16,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { ResourceLimits } from 'core/rules/billing/utils.ts'
-import { calculateTotalCostWithFreeTier } from 'core/rules/billing/cost.ts'
+import { calculateTotalCost } from 'core/rules/billing/cost.ts'
 import { CreditPurchaseDialog } from './billing-purchase-credits-dialog.tsx'
 import { DEFAULT_RATES } from 'core/rules/billing/rates.ts'
 
@@ -82,7 +82,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
 
   // Calculate estimated costs based on current slider values
   const calculateEstimatedCost = () => {
-    return calculateTotalCostWithFreeTier(
+    return calculateTotalCost(
       String(cpuValue), // CPU in cores
       memoryValue + 'G', // Memory in GB
       storageValue + 'G', // Storage in GB

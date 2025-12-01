@@ -1,6 +1,6 @@
 import { FreeTier } from 'core/rules/billing/utils.ts'
 import { ensureFederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.ts'
-import { calculateTotalCost } from './cost.ts'
+import { calculateTotalCostWithFreeTier } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
 import {
   extractDeploymentCurrentResourceUsage,
@@ -190,21 +190,21 @@ export async function getUsage(opts: {
     balance = await updateBalance(kubeClient, namespace, nextBalance, signal)
   }
 
-  const currentCost = calculateTotalCost(
+  const currentCost = calculateTotalCostWithFreeTier(
     resources.cpu.used,
     resources.memory.used,
     resources.storage.used,
   )
 
   const nextCost = additionalResource
-    ? calculateTotalCost(
+    ? calculateTotalCostWithFreeTier(
       resources.cpu.next,
       resources.memory.next,
       resources.storage.next,
     )
     : currentCost
 
-  const limitCost = calculateTotalCost(
+  const limitCost = calculateTotalCostWithFreeTier(
     resources.cpu.limit,
     resources.memory.limit,
     resources.storage.limit,

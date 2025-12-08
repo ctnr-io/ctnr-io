@@ -19,7 +19,7 @@ export async function ensureClusterPropagationPolicy(
 		.with(propagationPolicy as any, () => true)
 		.otherwise(async () => {
 			// Delete the existing federated resource quota first
-			await kc.KarmadaV1Alpha1(namespace).deleteClusterPropagationPolicy(clusterPropagationPolicyName, { abortSignal })
+			await kc.KarmadaV1Alpha1(namespace).deleteClusterPropagationPolicy(clusterPropagationPolicyName, { abortSignal }).catch(() => null)
 			// Wait a moment to ensure deletion is propagated
 			await new Promise((resolve) => setTimeout(resolve, 1000))
 			// Then create the new one

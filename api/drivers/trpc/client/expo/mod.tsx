@@ -5,7 +5,7 @@ import { Platform } from 'react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as SplashScreen from 'expo-splash-screen'
 import { createTRPCContext } from '@trpc/tanstack-react-query'
-import { createTrpcClientContext, TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
+import { ClientAuthError, createTrpcClientContext, TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
 import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
 import { ClientVersionError } from 'api/context/client/version.ts'
@@ -109,6 +109,10 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
           }
           return null
         }
+        case error instanceof ClientAuthError: {
+          console.error('Authentication error:', error.message)
+          return null
+        }
         case error instanceof Error: {
           console.error('Failed to connect to server:', error.message)
           return null
@@ -127,7 +131,7 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
     if (!state) return
     const {
       data: { subscription },
-    } = state.ctx.auth.client.onAuthStateChange((_event, _session) => {
+    } = state.ctx.auth.client.onAuthStateChange((_event: Event, _session: unknown) => {
       updateState()
     })
     return () => subscription.unsubscribe()

@@ -1,6 +1,6 @@
 'use dom'
 
-import { GenericResourceTableScreen } from 'app/components/ctnr-io/generic-resource-table-screen.tsx'
+import { GenericResourceTableScreen, ResourceItem } from 'app/components/ctnr-io/generic-resource-table-screen.tsx'
 import { TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { AlertTriangle, Clock, Globe, Shield } from 'lucide-react'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
@@ -10,10 +10,17 @@ import { Label } from 'app/components/shadcn/ui/label.tsx'
 import { useState } from 'react'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Domain } from 'api/handlers/server/network/domains/list.ts'
 
 // Domain type definition for frontend - only custom domains
-interface DomainData extends Domain {}
+interface DomainData extends ResourceItem {
+  createdAt?: string
+  verification?: {
+    type?: string
+    name?: string
+    value?: string
+    status?: string
+  }
+}
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -132,8 +139,9 @@ export default function DomainsTableScreen() {
       id: domain.id,
       name: domain.name,
       status: domain.status as 'active' | 'pending' | 'error' | 'expired',
-      created: domain.created,
-      verificationRecord: domain.verificationRecord,
+      createdAt: domain.createdAt ?? domain.created,
+      verification: domain.verification ?? domain.verificationRecord,
+      routeCount: domain.routes?.length ?? (domain.routeCount ?? 0),
     }))
     : []
 
@@ -184,7 +192,21 @@ export default function DomainsTableScreen() {
       className: 'text-sm',
     },
     {
-      key: 'created',
+      key: 'verification',
+      label: 'Verification',
+      render: (value) => (
+        <span className='text-sm font-mono'>{value?.status ?? '-'}</span>
+      ),
+      className: 'text-sm',
+    },
+    {
+      key: 'routeCount',
+      label: 'Routes',
+      render: (value) => <span className='text-sm font-mono'>{value ?? 0}</span>,
+      className: 'text-sm',
+    },
+    {
+      key: 'createdAt',
       label: 'Created',
       render: (value: string) => <span className='text-sm text-muted-foreground'>{formatDate(value)}</span>,
       className: 'text-sm',
@@ -206,7 +228,7 @@ export default function DomainsTableScreen() {
       description='Manage your custom domains and SSL certificates'
       infoDescription="Add custom domains to use with your containers. Each domain will get an SSL certificate automatically provisioned via Let's Encrypt. You'll need to configure DNS records to point to your ctnr.io cluster."
       searchPlaceholder='Search domains by name, status, or provider...'
-      searchKeys={['name', 'status', 'provider']}
+  searchKeys={['name', 'status', 'routeCount']}
       addButtonLabel='Add Domain'
       mobileCardSubtitle={(item) => `${item.name} • ${item.status}`}
       mobileCardStatus={(item) => ({

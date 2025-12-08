@@ -6,14 +6,17 @@ import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { createTRPCWebSocketClient } from './mod.ts'
 import process from 'node:process'
 
+export class ClientAuthError extends Error {}
+
 export type TrpcClientContext = ClientContext & {
   /**
    * This function prevent to start websocket connection until the first call to `connect`
    * This is useful to avoid unnecessary WebSocket connections when running commands that do not require it like --help.
    */
-  connect: <R>(
-    callback: (server: TRPCClient<TRPCServerRouter>) => Promise<R>,
-  ) => Promise<R>
+  connect: <R>(callback: (server: TRPCClient<TRPCServerRouter>) => Promise<R>, opts?: {
+    // Default to true, set to false to skip authentication check
+    authenticated?: false
+  }) => Promise<R>
 }
 
 export async function createTrpcClientContext(
@@ -27,18 +30,21 @@ export async function createTrpcClientContext(
   const ctx = await createClientContext(opts)
   return {
     ...ctx,
-    connect: async (callback) => {
+    connect: async (callback, connectOpts) => {
       try {
         const { data: { session } } = await ctx.auth.client.getSession()
-        if (!session) {
-          throw new Error('Failed to refresh session. Please log in again.')
+
+        if (!session && connectOpts?.authenticated !== false) {
+          throw new ClientAuthError('No active session found')
         }
 
         console.warn('Connect to server at', process.env.CTNR_API_URL)
+        const accessToken = session?.access_token
+        const refreshToken = session?.refresh_token
         const client = await createTRPCWebSocketClient({
           url: process.env.CTNR_API_URL!,
-          accessToken: session.access_token,
-          refreshToken: session.refresh_token,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         })
 
         if (opts.stdio) {
@@ -124,7 +130,18 @@ export async function createTrpcClientContext(
 
         return await callback(client.trpc)
       } catch (error) {
-        console.error(error instanceof Error ? error.message : 'An error occurred while executing command.')
+        if (error instanceof ClientAuthError) {
+          throw error
+        }
+        // Improve error messages for common scenarios
+        const msg = error instanceof Error ? error.message : String(error)
+        if (msg.includes('Connection refused') || msg.includes('Connect') || msg.includes('ECONNREFUSED')) {
+          console.error(`Unable to connect to CTNR API at ${process.env.CTNR_API_URL}. Is the server running? (${msg})`)
+        } else if (msg.includes('401') || msg.includes('Unauthorized') || msg.includes('Failed to refresh session')) {
+          console.error('Authentication failed or session expired. Please log in again (ctnr login).')
+        } else {
+          console.error(msg || 'An error occurred while executing command.')
+        }
         if (globalThis.Deno) {
           Deno.exit(1)
         } else {

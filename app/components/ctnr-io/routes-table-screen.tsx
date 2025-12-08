@@ -1,8 +1,8 @@
 'use dom'
 
-import { GenericResourceTableScreen, ResourceItem } from 'app/components/ctnr-io/generic-resource-table-screen.tsx'
+import { GenericResourceTableScreen } from 'app/components/ctnr-io/generic-resource-table-screen.tsx'
 import { TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
-import { Container, ExternalLink, Route as RouteIcon } from 'lucide-react'
+import { ExternalLink, Route as RouteIcon } from 'lucide-react'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
@@ -12,7 +12,7 @@ import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 import { useState } from 'react'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Route } from 'api/handlers/server/network/routes/list.ts'
+import type { Route } from 'core/schemas/network/route.ts'
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -27,22 +27,7 @@ function getStatusColor(status: string) {
   }
 }
 
-function getMethodColor(method: string) {
-  switch (method) {
-    case 'GET':
-      return 'text-blue-600 bg-blue-50'
-    case 'POST':
-      return 'text-green-600 bg-green-50'
-    case 'PUT':
-      return 'text-orange-600 bg-orange-50'
-    case 'DELETE':
-      return 'text-red-600 bg-red-50'
-    case 'PATCH':
-      return 'text-purple-600 bg-purple-50'
-    default:
-      return 'text-gray-600 bg-gray-50'
-  }
-}
+// Method color mapping no longer used in UI but kept for future use
 
 function formatDate(dateString: string) {
   const date = new Date(dateString)
@@ -68,8 +53,8 @@ function AddRouteForm({
   const [formData, setFormData] = useState({
     name: '',
     path: '/',
-    targetService: '',
-    targetPort: 80,
+    container: '',
+    port: 80,
     domain: '',
     protocol: 'https' as 'http' | 'https',
     methods: {
@@ -91,12 +76,12 @@ function AddRouteForm({
     const routeData = {
       name: formData.name,
       path: formData.path,
-      targetService: formData.targetService,
-      targetPort: formData.targetPort,
+      container: formData.container,
+      port: formData.port,
       domain: formData.domain,
       protocol: formData.protocol,
       status: 'pending' as const,
-      created: new Date().toISOString(),
+  createdAt: new Date(),
       methods: selectedMethods,
     }
 
@@ -165,11 +150,11 @@ function AddRouteForm({
       </div>
 
       <div className='space-y-2'>
-        <Label htmlFor='target-service'>Target Service</Label>
+        <Label htmlFor='target-service'>Target Service (Container)</Label>
         <Input
           id='target-service'
-          value={formData.targetService}
-          onChange={(e) => setFormData({ ...formData, targetService: e.target.value })}
+          value={formData.container}
+          onChange={(e) => setFormData({ ...formData, container: e.target.value })}
           placeholder='e.g., api-server'
           required
         />
@@ -182,12 +167,11 @@ function AddRouteForm({
           type='number'
           min='1'
           max='65535'
-          value={formData.targetPort}
-          onChange={(e) => setFormData({ ...formData, targetPort: parseInt(e.target.value) || 80 })}
+          value={formData.port}
+          onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 80 })}
           required
         />
       </div>
-
       <div className='space-y-2'>
         <Label>HTTP Methods</Label>
         <div className='flex flex-wrap gap-2'>
@@ -196,8 +180,7 @@ function AddRouteForm({
               <Checkbox
                 id={`method-${method}`}
                 checked={checked}
-                onCheckedChange={(checked) =>
-                  handleMethodChange(method, !!checked)}
+                onCheckedChange={(checked) => handleMethodChange(method, !!checked)}
               />
               <Label htmlFor={`method-${method}`} className='text-sm font-mono'>
                 {method}
@@ -258,23 +241,22 @@ export default function RoutesTableScreen() {
       id: route.id,
       name: route.name,
       domain: route.domain,
+      path: route.path ?? '/',
       port: route.port,
       protocol: route.protocol as 'http' | 'https',
       status: route.status as 'active' | 'pending' | 'error',
       container: route.container,
-      createdAt: route.createdAt,
+      createdAt: route.createdAt ? new Date(route.createdAt) : new Date(),
     }))
     : []
 
   const handleAdd = async (routeForm: Omit<Route, 'id'>) => {
     await createRoute.mutateAsync({
       name: routeForm.name,
-      domain: routeForm.domain,
-      port: routeForm.port,
-      protocol: routeForm.protocol,
-      status: routeForm.status,
       container: routeForm.container,
-      createdAt: routeForm.createdAt,
+      domain: routeForm.domain,
+      // Convert numeric port to array of strings as the API expects (names/numbers)
+      port: routeForm.port ? [String(routeForm.port)] : undefined,
     })
   }
 
@@ -293,7 +275,7 @@ export default function RoutesTableScreen() {
     {
       key: 'name',
       label: 'Route',
-      render: (value, item) => (
+      render: (value) => (
         <div className='flex items-center gap-2'>
           <RouteIcon className='h-4 w-4 text-muted-foreground' />
           <div className='flex flex-col'>
@@ -315,6 +297,12 @@ export default function RoutesTableScreen() {
       ),
       className: 'text-sm',
       visibleOnMobile: true,
+    },
+    {
+      key: 'path',
+      label: 'Path',
+      render: (value) => <span className='text-xs font-mono'>{value || '/'}</span>,
+      className: 'text-sm',
     },
     {
       key: 'status',
@@ -342,7 +330,7 @@ export default function RoutesTableScreen() {
     {
       key: 'protocol',
       label: 'Protocol',
-      render: (value) => <span className='text-xs font-mono'>{value.toUpperCase()}</span>,
+      render: (value) => <span className='text-xs font-mono'>{value?.toUpperCase?.() ?? String(value).toUpperCase()}</span>,
       className: 'text-sm',
     },
     {
@@ -368,7 +356,7 @@ export default function RoutesTableScreen() {
       description='Manage HTTP routes and traffic routing rules'
       infoDescription='Configure HTTP routes to direct traffic from domains to your services. Set up path-based routing, method filtering, and load balancing rules.'
       searchPlaceholder='Search routes by name, path, domain, or service...'
-      searchKeys={['name', 'path', 'domain', 'targetService', 'status']}
+      searchKeys={['name', 'path', 'domain', 'container', 'status']}
       addButtonLabel='Create Route'
       mobileCardSubtitle={(item) => `${item.protocol}://${item.domain}${item.path}`}
       mobileCardStatus={(item) => ({

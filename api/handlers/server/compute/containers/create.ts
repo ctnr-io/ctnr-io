@@ -345,30 +345,6 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     signal,
   })
 
-  // Note: Service management is now handled by the route command
-  // The --publish flag only affects container port configuration
-  if (publish && publish.length > 0) {
-    yield `Containers ports are available for routing.`
-
-    if (input.route) {
-      // Route the container's published ports to a domain
-      try {
-        yield* route({
-          ctx,
-          input: {
-            name,
-            port: publish.map((p) => p.name || p.port.toString()),
-            domain: input.domain,
-          },
-          signal,
-          defer,
-        })
-      } catch (err) {
-        console.error(`Failed to route container ${name}:`, err)
-        yield `Failed to route container ${name}`
-      }
-    }
-  }
 }
 
 async function waitForDeploymentDeletion(

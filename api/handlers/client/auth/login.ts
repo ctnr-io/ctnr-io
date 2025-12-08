@@ -8,7 +8,7 @@ export const Input = z.object({
 })
 export type Input = z.infer<typeof Input>
 
-export default async function* (
+export default async function* login(
   { ctx, input }: ClientRequest<Input, ClientAuthContext>,
 ): ClientResponse {
   try {

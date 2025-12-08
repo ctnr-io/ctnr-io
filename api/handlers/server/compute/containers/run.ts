@@ -5,6 +5,7 @@ import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import logContainer from './logs.ts'
 import createContainer, * as CreateContinaer from './create.ts'
 import startContainer from './start.ts'
+import routeContainer from './route.ts'
 
 export const Meta = {
   aliases: {
@@ -35,10 +36,36 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     terminal,
     detach,
     replicas,
+    publish,
   } = input
 
   // Create the container first
   yield* createContainer(request)
+
+  // Note: Service management is now handled by the route command
+  // The --publish flag only affects container port configuration
+  if (publish && publish.length > 0) {
+    yield `Containers ports are available for routing.`
+
+    if (input.route) {
+      // Route the container's published ports to a domain
+      try {
+        yield* routeContainer({
+          ctx,
+          input: {
+            name,
+            port: publish.map((p) => p.name || p.port.toString()),
+            domain: input.domain,
+          },
+          signal,
+          defer,
+        })
+      } catch (err) {
+        console.error(`Failed to route container ${name}:`, err)
+        yield `Failed to route container ${name}`
+      }
+    }
+  }
 
   // Start the deployment
   yield* startContainer(request)
@@ -81,6 +108,8 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       pod = pods.items.find((p) => p.status?.phase === 'Running') || null
     }
   }
+
+
 
   if (detach) {
     // If detach is enabled, just return without attaching

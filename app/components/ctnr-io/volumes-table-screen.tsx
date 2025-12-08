@@ -17,10 +17,11 @@ export interface VolumeData extends ResourceItem {
   id: string
   name: string
   size: string
-  mountPath: string
-  status: 'mounted' | 'available' | 'error'
-  created: string
-  attachedTo: string[] // Changed from string | null to string[] for multiple containers
+  // attachments hold mountPath and readOnly info, prefer using attachments for mountPath
+  attachments?: Array<{ containerName: string; mountPath: string; readOnly?: boolean }>
+  status: 'mounted' | 'available' | 'error' | 'pending' | 'bound' | 'released'
+  createdAt?: string
+  attachedTo: string[] // list of container names attached to
 }
 
 function getStatusColor(status: string) {
@@ -70,7 +71,7 @@ function AddVolumeForm({
       name: formData.name,
       size: `${formData.size}${formData.sizeUnit}`,
       status: 'available' as const,
-      created: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       attachedTo: [] as string[], // Empty array for new volumes
     }
 
@@ -176,10 +177,12 @@ export default function VolumesTableScreen() {
       id: volume.id,
       name: volume.name,
       size: volume.size,
-      mountPath: volume.mountPath,
-      status: volume.status as 'mounted' | 'available' | 'error',
-      created: volume.created,
-      attachedTo: volume.attachedTo,
+      attachments: volume.attachments ?? volume.attachment ? [volume.attachment] : undefined,
+      status: volume.status as 'mounted' | 'available' | 'error' | 'pending' | 'bound' | 'released',
+      createdAt: volume.createdAt ?? volume.created,
+      attachedTo: volume.attachedTo ?? [],
+      accessMode: volume.accessMode,
+      storageClass: volume.storageClass,
     }))
     : []
 
@@ -233,13 +236,28 @@ export default function VolumesTableScreen() {
       visibleOnMobile: true,
     },
     {
+      key: 'accessMode',
+      label: 'Access Mode',
+      render: (value) => <span className='text-xs font-mono'>{value}</span>,
+      className: 'text-sm',
+    },
+    {
+      key: 'storageClass',
+      label: 'Storage Class',
+      render: (value) => <span className='text-xs font-mono'>{value}</span>,
+      className: 'text-sm',
+    },
+    {
       key: 'mountPath',
       label: 'Mount Path',
-      render: (value) => (
-        <code className='text-xs bg-muted px-2 py-1 rounded font-mono'>
-          {value}
-        </code>
-      ),
+      render: (_value, item) => {
+        const firstMount = item.attachments?.[0]?.mountPath
+        return (
+          <code className='text-xs bg-muted px-2 py-1 rounded font-mono'>
+            {firstMount ?? '—'}
+          </code>
+        )
+      },
       className: 'text-sm',
     },
     {
@@ -273,7 +291,7 @@ export default function VolumesTableScreen() {
       className: 'text-sm',
     },
     {
-      key: 'created',
+      key: 'createdAt',
       label: 'Created',
       render: (value) => formatDate(value),
       className: 'text-sm text-muted-foreground',
@@ -295,7 +313,7 @@ export default function VolumesTableScreen() {
       description='Manage your persistent storage volumes'
       infoDescription='Create and manage storage volumes for your containers. Volumes use ReadWriteMany access mode, allowing them to be attached to multiple containers simultaneously for shared data access.'
       searchPlaceholder='Search volumes by name, status, or mount path...'
-      searchKeys={['name', 'status', 'mountPath', 'attachedTo']}
+  searchKeys={['name', 'status', 'attachedTo', 'attachments']}
       addButtonLabel='Create Volume'
       mobileCardSubtitle={(item) => `${item.size} • ${item.status}`}
       mobileCardStatus={(item) => ({

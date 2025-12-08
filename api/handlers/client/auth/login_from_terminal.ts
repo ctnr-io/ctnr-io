@@ -3,7 +3,7 @@ import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import login from './login.ts'
 import { html } from '@tmpl/core'
 
-export default async function* ({ ctx }: ClientRequest<unknown, ClientAuthContext>): ClientResponse {
+export default async function* loginFromTerminal({ ctx }: ClientRequest<unknown, ClientAuthContext>): ClientResponse {
   try {
     // Start callback server to get redirect URI
     const { server, promise, url: redirectUri } = startCallbackServer()

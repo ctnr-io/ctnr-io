@@ -1,7 +1,7 @@
 import { ClientAuthContext } from 'api/context/mod.ts'
 import { ClientRequest } from 'lib/api/types.ts'
 
-export default async ({ ctx }: ClientRequest<unknown, ClientAuthContext>) => {
+export default async function logout({ ctx }: ClientRequest<unknown, ClientAuthContext>) {
   try {
     // Clear Supabase session
     await ctx.auth.client.signOut()

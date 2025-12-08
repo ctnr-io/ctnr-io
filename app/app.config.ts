@@ -1,4 +1,5 @@
 import { ExpoConfig } from '@expo/config'
+import process from 'node:process'
 
 const config: ExpoConfig = {
   name: 'ctnr.io',

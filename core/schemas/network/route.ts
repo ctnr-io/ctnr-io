@@ -81,7 +81,7 @@ export const Route = z.object({
   
   // Backend
   container: z.string(),
-  port: z.number(),
+  port: z.string(),
   backends: z.array(RouteBackend).optional(),
   
   // Protocol
@@ -130,7 +130,6 @@ export const CreateRouteInput = z.object({
   domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional(),
   path: z.string().optional().default('/'),
   protocol: RouteProtocol.optional().default('https'),
-  tls: z.boolean().optional().default(true),
   cluster: z.enum(['eu-1']).optional(),
 })
 export type CreateRouteInput = z.infer<typeof CreateRouteInput>

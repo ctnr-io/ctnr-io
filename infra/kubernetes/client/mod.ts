@@ -10,8 +10,20 @@ import { SpdyEnabledRestClient } from './spdy-enabled-rest-client.ts'
 import process from 'node:process'
 import { DeleteOpts, GetListOpts, GetOpts, PatchOpts, PutOpts } from '@cloudydeno/kubernetes-apis/operations.ts'
 import { HorizontalPodAutoscaler } from '../types/autoscaling.ts'
-import { Certificate, ClusterPropagationPolicy, DNSEndpoint, FederatedResourceQuota, Gateway, HTTPRoute, IngressRoute, List, PodMetrics, PropagationPolicy, ReferenceGrant, TLSRoute } from '../types/mod.ts'
-
+import {
+  Certificate,
+  ClusterPropagationPolicy,
+  DNSEndpoint,
+  FederatedResourceQuota,
+  Gateway,
+  HTTPRoute,
+  IngressRoute,
+  List,
+  PodMetrics,
+  PropagationPolicy,
+  ReferenceGrant,
+  TLSRoute,
+} from '../types/mod.ts'
 
 export type KubeClient = Awaited<ReturnType<typeof createKubeClient>>
 
@@ -189,6 +201,7 @@ export async function createKubeClient(context: 'karmada' | 'eu-1') {
           client.performRequest({
             method: 'GET',
             path: `/apis/gateway.networking.k8s.io/v1/namespaces/${namespace}/httproutes`,
+            expectJson: true,
             ...opts,
           }),
         getReferenceGrant: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>

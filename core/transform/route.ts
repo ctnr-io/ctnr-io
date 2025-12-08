@@ -20,7 +20,7 @@ export function httpRouteToRoute(httpRoute: HTTPRoute): Route {
   const firstRule = rules[0]
   const backendRef = firstRule?.backendRefs?.[0]
   const container = backendRef?.name ?? 'unknown'
-  const port = backendRef?.port ?? 80
+  const port = backendRef?.port.toString() ?? '80'
 
   // Extract path from first rule match
   const pathMatch = firstRule?.matches?.[0]?.path
@@ -66,7 +66,7 @@ export function ingressRouteToRoute(ingressRoute: IngressRoute): Route {
   const firstRoute = routes[0]
   const service = firstRoute?.services?.[0]
   const container = service?.name ?? 'unknown'
-  const port = service?.port ?? 80
+  const port = service?.port.toString() ?? '80'
 
   // Extract hostname from match rule (e.g., "Host(`example.com`)")
   const match = firstRoute?.match ?? ''

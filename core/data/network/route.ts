@@ -161,6 +161,7 @@ export async function listRoutes(
   namespace: string,
   options: ListRoutesOptions = {}
 ): Promise<Route[]> {
+  console.log("Listing routes with options:", namespace, options)
   const { name, container, domain, signal } = options
 
   const routes: Route[] = []
@@ -170,6 +171,7 @@ export async function listRoutes(
     // deno-lint-ignore no-explicit-any
     const httpRoutesResponse: any = await kubeClient.GatewayNetworkingV1(namespace).listHTTPRoutes({ abortSignal: signal })
     const httpRoutes = (httpRoutesResponse.items ?? []) as HTTPRoute[]
+    console.log("Fetched HTTPRoutes:", httpRoutes)
     
     for (const httpRoute of httpRoutes) {
       const route = httpRouteToRoute(httpRoute)

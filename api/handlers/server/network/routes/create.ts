@@ -18,7 +18,7 @@ export const Meta = {
 export const Input = z.object({
   name: z.string().describe('Route name, must be unique'),
   container: ContainerName,
-  domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
+  domain: z.string().max(0).or(z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/)).optional().describe(
     'Parent domain name for the routing',
   ),
   port: z.array(PortName).optional().describe(

@@ -54,7 +54,7 @@ function AddRouteForm({
     name: '',
     path: '/',
     container: '',
-    port: 80,
+    port: '80',
     domain: '',
     protocol: 'https' as 'http' | 'https',
     methods: {
@@ -69,10 +69,6 @@ function AddRouteForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const selectedMethods = Object.entries(formData.methods)
-      .filter(([, selected]) => selected)
-      .map(([method]) => method)
-
     const routeData = {
       name: formData.name,
       path: formData.path,
@@ -81,21 +77,10 @@ function AddRouteForm({
       domain: formData.domain,
       protocol: formData.protocol,
       status: 'pending' as const,
-  createdAt: new Date(),
-      methods: selectedMethods,
+      createdAt: new Date(),
     }
 
     await onSubmit(routeData)
-  }
-
-  const handleMethodChange = (method: string, checked: boolean) => {
-    setFormData({
-      ...formData,
-      methods: {
-        ...formData.methods,
-        [method]: checked,
-      },
-    })
   }
 
   return (
@@ -129,7 +114,6 @@ function AddRouteForm({
           value={formData.domain}
           onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
           placeholder='e.g., app.example.com'
-          required
         />
       </div>
 
@@ -164,30 +148,10 @@ function AddRouteForm({
         <Label htmlFor='target-port'>Target Port</Label>
         <Input
           id='target-port'
-          type='number'
-          min='1'
-          max='65535'
           value={formData.port}
-          onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 80 })}
+          onChange={(e) => setFormData({ ...formData, port: e.target.value })}
           required
         />
-      </div>
-      <div className='space-y-2'>
-        <Label>HTTP Methods</Label>
-        <div className='flex flex-wrap gap-2'>
-          {Object.entries(formData.methods).map(([method, checked]) => (
-            <div key={method} className='flex items-center space-x-2'>
-              <Checkbox
-                id={`method-${method}`}
-                checked={checked}
-                onCheckedChange={(checked) => handleMethodChange(method, !!checked)}
-              />
-              <Label htmlFor={`method-${method}`} className='text-sm font-mono'>
-                {method}
-              </Label>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className='flex justify-end gap-2 pt-4'>
@@ -267,8 +231,8 @@ export default function RoutesTableScreen() {
   }
 
   const handleRowClick = (route: Route) => {
-    // TODO: Navigate to route details or edit page
-    console.log('Route clicked:', route)
+    // Open in new tab
+    globalThis.window.open(`${route.protocol}://${route.domain}${route.path}`, '_blank')
   }
   // Define table columns
   const columns: TableColumn<Route>[] = [
@@ -277,7 +241,7 @@ export default function RoutesTableScreen() {
       label: 'Route',
       render: (value) => (
         <div className='flex items-center gap-2'>
-          <RouteIcon className='h-4 w-4 text-muted-foreground' />
+          <ExternalLink className='h-3 w-3 text-muted-foreground' />
           <div className='flex flex-col'>
             <span className='font-medium'>{value}</span>
           </div>
@@ -287,12 +251,19 @@ export default function RoutesTableScreen() {
       visibleOnMobile: true,
     },
     {
+      key: 'protocol',
+      label: 'Protocol',
+      render: (value) => (
+        <span className='text-xs font-mono'>{value?.toUpperCase?.() ?? String(value).toUpperCase()}</span>
+      ),
+      className: 'text-sm',
+    },
+    {
       key: 'domain',
       label: 'Domain',
       render: (value, item) => (
         <div className='flex items-center gap-1'>
-          <ExternalLink className='h-3 w-3 text-muted-foreground' />
-          <span className='text-sm'>{item.protocol}://{value}</span>
+          <span className='text-sm'>{value}</span>
         </div>
       ),
       className: 'text-sm',
@@ -327,12 +298,7 @@ export default function RoutesTableScreen() {
       render: (value) => <span className='text-xs font-mono'>{value}</span>,
       className: 'text-sm',
     },
-    {
-      key: 'protocol',
-      label: 'Protocol',
-      render: (value) => <span className='text-xs font-mono'>{value?.toUpperCase?.() ?? String(value).toUpperCase()}</span>,
-      className: 'text-sm',
-    },
+
     {
       key: 'createdAt',
       label: 'Created',

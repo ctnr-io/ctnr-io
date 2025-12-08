@@ -275,7 +275,7 @@ export async function getProject(
 			id: ns.metadata.labels[ProjectNamespaceLabels.Id],
 			name: ns.metadata.labels[ProjectNamespaceLabels.Name] || 'default',
 			ownerId: ns.metadata.labels[ProjectNamespaceLabels.OwnerId] || userId,
-			cluster: (ns.metadata.labels[ProjectNamespaceLabels.Cluster] || 'eu-0') as ClusterName,
+			cluster: (ns.metadata.labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
       namespace: namespaceName,
       balance: getNamespaceBalance(ns),
       createdAt: ns.metadata?.creationTimestamp ?  new Date(ns.metadata.creationTimestamp).toISOString() : undefined,

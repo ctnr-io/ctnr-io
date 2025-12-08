@@ -86,7 +86,7 @@ export const CreateVolumeInput = z.object({
   accessMode: VolumeAccessMode.optional().default('ReadWriteOnce'),
   storageClass: z.string().optional().default('default'),
   mountPath: z.string().optional(),
-  cluster: z.enum(['eu-0', 'eu-1', 'eu-2']).optional(),
+  cluster: z.enum(['eu-1']).optional(),
 })
 export type CreateVolumeInput = z.infer<typeof CreateVolumeInput>
 

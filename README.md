@@ -96,7 +96,7 @@ ctnr --help
 ### 1. Authenticate
 
 ```bash
-ctnr auth login
+ctnr login
 ```
 
 ### 2. Run Your First Container
@@ -117,35 +117,32 @@ ctnr list
 
 ```bash
 # Run a container with custom options
-ctnr run nginx --port 80:8080 --env NODE_ENV=production
+ctnr run nginx --publish www:80 --env NODE_ENV=production --route www
 
 # List all containers
 ctnr list --all
 
 # View container logs
-ctnr logs <container-id>
+ctnr logs <container-name>
 
 # Attach to a container
-ctnr attach <container-id>
+ctnr attach <container-name>
 
 # Stop a container
-ctnr stop <container-id>
+ctnr stop <container-name>
 
 # Remove a container
-ctnr rm <container-id>
+ctnr rm <container-name>
 ```
 
 ### Authentication
 
 ```bash
 # Login to CTNR
-ctnr auth login
-
-# Check authentication status
-ctnr auth status
+ctnr login
 
 # Logout
-ctnr auth logout
+ctnr logout
 ```
 
 ## ⚙️ Configuration

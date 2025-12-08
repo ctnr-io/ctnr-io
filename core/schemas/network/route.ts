@@ -131,6 +131,6 @@ export const CreateRouteInput = z.object({
   path: z.string().optional().default('/'),
   protocol: RouteProtocol.optional().default('https'),
   tls: z.boolean().optional().default(true),
-  cluster: z.enum(['eu-0', 'eu-1', 'eu-2']).optional(),
+  cluster: z.enum(['eu-1']).optional(),
 })
 export type CreateRouteInput = z.infer<typeof CreateRouteInput>

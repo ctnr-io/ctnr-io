@@ -43,7 +43,7 @@ export default async function* listProjects(
       id: labels[ProjectNamespaceLabels.Id] || '',
       name: labels[ProjectNamespaceLabels.Name] || '',
       ownerId: labels[ProjectNamespaceLabels.OwnerId] || '',
-      cluster: (labels[ProjectNamespaceLabels.Cluster] || 'eu-0') as ClusterName,
+      cluster: (labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
     }
   })
 }

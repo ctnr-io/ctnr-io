@@ -47,7 +47,7 @@ export const Publish = z.string().transform((value) => {
   `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
 )
 
-export const ClusterNames = ['eu-0', 'eu-1', 'eu-2'] as const
+export const ClusterNames = ['eu-1'] as const
 export const ClusterName = z.enum(ClusterNames).transform(
   (value) =>
     !value ? ClusterNames[Math.floor(Math.random() * 10 % ClusterNames.length)] : value as typeof ClusterNames[number],

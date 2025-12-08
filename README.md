@@ -1,25 +1,67 @@
-# CTNR CLI
+<div align="center">
 
-The official command-line interface for CTNR - a modern container platform for running and managing containers in the
-cloud.
+# 🌥️ ctnr.io
 
-## Installation
+**A modern, cost-effective container platform for running and managing containers in the cloud.**
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Built with Deno](https://img.shields.io/badge/Built%20with-Deno-000000?logo=deno)](https://deno.land)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
+
+[Documentation](https://docs.ctnr.io) • [Discord](https://discord.gg/ctnr) • [Report Bug](https://github.com/ctnr-io/ctnr/issues)
+
+</div>
+
+---
+
+## ✨ Features
+
+- 🚀 **Simple & Fast** — Deploy containers in seconds with an intuitive CLI
+- 💰 **Cost-Effective** — Optimized for affordable cloud container hosting
+- 🌐 **Cross-Platform** — Native apps for Web, iOS, Android, and a powerful CLI
+- 🔒 **Secure** — Built-in authentication
+- 📊 **Real-time Monitoring** — Live logs, metrics, and container status
+- 🔌 **tRPC API** — Type-safe API with full TypeScript support
+- ☸️ **Kubernetes Native** — Powered by Kubernetes under the hood
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        CTNR Platform                        │
+├─────────────┬─────────────┬─────────────┬──────────────────┤
+│     CLI     │   Web App   │  iOS App    │   Android App    │
+│   (Deno)    │   (Expo)    │   (Expo)    │     (Expo)       │
+├─────────────┴─────────────┴─────────────┴──────────────────┤
+│                      tRPC API Layer                         │
+├─────────────────────────────────────────────────────────────┤
+│   Core Schemas   │   Rules Engine   │   Transformers       │
+├──────────────────┼──────────────────┼──────────────────────┤
+│  • Compute       │  • Billing       │  • Container         │
+│  • Network       │  • Tenancy       │  • Project           │
+│  • Storage       │                  │  • Route             │
+│  • Billing       │                  │  • Volume            │
+│  • Tenancy       │                  │                      │
+├─────────────────────────────────────────────────────────────┤
+│                   Infrastructure Layer                      │
+│   Kubernetes  │  Supabase  │  Mollie  │  DNS Provider      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 📦 Installation
 
 ### Quick Install (Recommended)
-
-Install the `ctnr` CLI using our installation script:
 
 ```bash
 curl -fsSL https://get.ctnr.io | bash
 ```
 
-### Alternative Installation Methods
+### Download from Releases
 
-#### Download from GitHub Releases
+Download the latest release for your platform from [GitHub Releases](https://github.com/ctnr-io/ctnr/releases).
 
-Download the latest release for your platform from the [releases page](https://github.com/ctnr-io/ctnr/releases).
-
-**Linux/macOS:**
+<details>
+<summary><strong>Linux/macOS</strong></summary>
 
 ```bash
 # Download and extract (replace with your platform)
@@ -30,60 +72,67 @@ sudo mv ctnr-linux-x64 /usr/local/bin/ctnr
 chmod +x /usr/local/bin/ctnr
 ```
 
-**Windows:**
+</details>
+
+<details>
+<summary><strong>Windows</strong></summary>
 
 ```powershell
 # Download and extract the zip file
 # Move ctnr-windows-x64.exe to a directory in your PATH
 ```
 
-#### Manual Installation Script
+</details>
 
-You can also download and run the install script manually:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ctnr-io/ctnr/main/cli/install.sh | bash
-```
-
-## Verify Installation
-
-After installation, verify that the CLI is working:
+### Verify Installation
 
 ```bash
 ctnr --version
 ctnr --help
 ```
 
-## Configuration
+## 🚀 Quick Start
 
-The CLI automatically creates a configuration file at `~/.ctnr/config` with default settings:
-
-```
-CTNR_API_URL=https://api.ctnr.io
-CTNR_DEFAULT_CONTEXT=production
-```
-
-You can modify these settings by editing the config file or using environment variables.
-
-## Usage
-
-### Basic Commands
+### 1. Authenticate
 
 ```bash
-# Get help
-ctnr --help
+ctnr auth login
+```
 
-# Run a container
-ctnr run <image>
+### 2. Run Your First Container
 
-# List containers
+```bash
+ctnr run nginx
+```
+
+### 3. View Your Containers
+
+```bash
 ctnr list
+```
+
+## 📖 Usage
+
+### Container Management
+
+```bash
+# Run a container with custom options
+ctnr run nginx --port 80:8080 --env NODE_ENV=production
+
+# List all containers
+ctnr list --all
+
+# View container logs
+ctnr logs <container-id>
 
 # Attach to a container
 ctnr attach <container-id>
 
-# Get container logs
-ctnr logs <container-id>
+# Stop a container
+ctnr stop <container-id>
+
+# Remove a container
+ctnr rm <container-id>
 ```
 
 ### Authentication
@@ -99,60 +148,117 @@ ctnr auth status
 ctnr auth logout
 ```
 
-### Container Management
+## ⚙️ Configuration
+
+The CLI automatically creates a configuration file at `~/.ctnr/config`:
 
 ```bash
-# Run a container with custom options
-ctnr run nginx --port 80:8080 --env NODE_ENV=production
-
-# List all containers
-ctnr list --all
-
-# Stop a container
-ctnr stop <container-id>
-
-# Remove a container
-ctnr rm <container-id>
+CTNR_API_URL=https://api.ctnr.io
+CTNR_DEFAULT_CONTEXT=production
 ```
 
-## Environment Variables
+### Environment Variables
 
-The CLI respects the following environment variables:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CTNR_API_URL` | CTNR API endpoint | `https://api.ctnr.io` |
+| `CTNR_DEFAULT_CONTEXT` | Default context | `production` |
+| `CTNR_CONFIG_DIR` | Configuration directory | `~/.ctnr` |
+| `CTNR_TOKEN` | Authentication token | — |
 
-| Variable               | Description             | Default               |
-| ---------------------- | ----------------------- | --------------------- |
-| `CTNR_API_URL`         | CTNR API endpoint       | `https://api.ctnr.io` |
-| `CTNR_DEFAULT_CONTEXT` | Default context         | `production`          |
-| `CTNR_CONFIG_DIR`      | Configuration directory | `~/.ctnr`             |
-| `CTNR_TOKEN`           | Authentication token    |                       |
+## 🛠️ Development
 
-## Development
+### Prerequisites
 
-This CLI is built with Deno and TypeScript. The source code is located in the `driver/trpc/remote-cli/` directory.
+- [Deno](https://deno.land) v1.40+
+- [Bun](https://bun.sh) (for the mobile/web app)
+- [Docker](https://docker.com) (optional, for local testing)
 
-### Building from Source
+### Project Structure
+
+```
+ctnr/
+├── api/              # API layer (tRPC handlers, drivers)
+│   ├── context/      # Request contexts
+│   ├── drivers/      # tRPC client/server drivers
+│   └── handlers/     # Route handlers
+├── app/              # Cross-platform app (Expo + React Native)
+├── cli/              # Command-line interface
+├── core/             # Business logic
+│   ├── data/         # Data access layer
+│   ├── rules/        # Business rules engine
+│   ├── schemas/      # Zod schemas (compute, network, storage, etc.)
+│   └── transform/    # Data transformers
+├── infra/            # Infrastructure integrations
+│   ├── dns/          # DNS provider
+│   ├── kubernetes/   # Kubernetes client
+│   ├── mollie/       # Payment processing
+│   └── supabase/     # Authentication & database
+└── lib/              # Shared utilities
+```
+
+### Running Locally
 
 ```bash
 # Clone the repository
 git clone https://github.com/ctnr-io/ctnr.git
-cd api
+cd ctnr
 
 # Install Deno (if not already installed)
 curl -fsSL https://deno.land/install.sh | sh
 
-# Run the CLI directly
-deno run -A driver/trpc/remote-cli/main.ts --help
+# Run the tRPC server
+deno task trpc:server:watch
 
-# Compile to binary
-deno compile --allow-all --output ctnr driver/trpc/remote-cli/main.ts
+# Run the CLI
+deno task ctnr --help
+
+# Run the app (requires Bun)
+deno task app:start
 ```
 
-## Support
+### Building from Source
 
-- **Documentation**: [docs.ctnr.io](https://docs.ctnr.io)
-- **Issues**: [GitHub Issues](https://github.com/ctnr-io/ctnr/issues)
-- **Community**: [Discord](https://discord.gg/ctnr)
+```bash
+# Compile CLI to binary
+deno task compile --output ctnr cli/main.ts
+```
 
-## License
+## 🧪 Testing
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```bash
+# Run all tests
+deno test -A
+
+# Run specific test file
+deno test -A e2e/api/core/
+```
+
+## 🤝 Contributing
+
+We love contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a pull request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the **GNU General Public License v3.0** — see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- 📖 **Documentation**: [docs.ctnr.io](https://docs.ctnr.io)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/ctnr-io/ctnr/issues)
+- 💬 **Community**: [Discord](https://discord.gg/ctnr)
+- 🌐 **Website**: [ctnr.io](https://ctnr.io)
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the CTNR team**
+
+</div>

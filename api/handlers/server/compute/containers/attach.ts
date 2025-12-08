@@ -13,7 +13,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
   replica: z.string().optional().describe(

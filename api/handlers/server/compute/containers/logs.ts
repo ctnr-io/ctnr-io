@@ -15,7 +15,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
   follow: z.boolean().optional().default(false).describe('Follow the logs of the container'),
   replica: z.array(z.string()).optional().describe(
     'Specific replicas name to get logs from. If not provided, logs from all replicas will be merged',

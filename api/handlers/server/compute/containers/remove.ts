@@ -14,7 +14,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
   force: z.boolean().optional().describe('Force delete even if container is running'),
 })
 

@@ -14,7 +14,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
   force: z.boolean().optional().default(false).describe(
     'Force start even if already running or insufficient resources',
   ),

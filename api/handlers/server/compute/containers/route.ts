@@ -12,7 +12,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
   domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
     'Parent domain name for the routing',
   ),

@@ -26,13 +26,14 @@ const VolumeMount = z.string()
   .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
   image: z.string()
     .min(1, 'Containers image cannot be empty')
     // TODO: Add image tag validation when stricter security is needed
     // .regex(/^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$/, "Container image must include a tag for security")
     // .refine((img) => !img.includes(":latest"), "Using ':latest' tag is not allowed for security reasons")
-    .describe('Containers image to run'),
+    .describe('Containers image to run')
+    .optional(),
   env: z.array(
     z.string()
       .regex(/^[A-Z_][A-Z0-9_]*=.*$/, 'Environment variables must follow format KEY=value with uppercase keys'),
@@ -81,7 +82,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
 
   const {
     name,
-    image,
+    image = name,
     env = [],
     publish,
     volume = [],

@@ -10,7 +10,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
 })
 
 export type Input = z.infer<typeof Input>

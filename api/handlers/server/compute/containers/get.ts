@@ -13,7 +13,7 @@ export const Meta = {
 
 export const Input = ListContainers.Input.extend({
   // The name of the container to get details for
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
 })
 
 type OutputType = NonNullable<z.infer<typeof Input>['output']>

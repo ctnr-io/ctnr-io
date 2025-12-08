@@ -13,7 +13,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: ContainerName,
+  name: ContainerName.meta({ positional: true }),
   command: z.string()
     .max(1000, 'Command length is limited for security reasons')
     .optional()

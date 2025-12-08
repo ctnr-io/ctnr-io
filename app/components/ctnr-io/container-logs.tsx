@@ -417,7 +417,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
         )}
       >
         {/* Main Controls Row */}
-        <div className='flex flex-row gap-4 p-4 flex-wrap justify-between'>
+        <div className='flex flex-row gap-4 p-4 justify-between'>
           <div className='flex-1 flex items-center gap-4'>
             {/* Left Section - Replica Selection */}
             {replicas && replicas.length > 0 && (
@@ -456,7 +456,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                 title='Refresh logs'
               >
                 <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-[spin_reverse_1s_linear_infinite]' : ''}`} />
-                <span className='ml-1 hidden 2xl:inline'>
+                <span className='ml-1 hidden xl:inline'>
                   {isLoading ? 'Refreshing' : 'Refresh'}
                 </span>
               </Button>
@@ -472,7 +472,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                 title='Toggle auto-scroll'
               >
                 <ArrowDown className='h-4 w-4' />
-                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Auto-scroll</span>
+                <span className={cn('ml-1 hidden', sidebar.open ? 'lg:inline' : 'md:inline')}>Auto-scroll</span>
               </Button>
 
               <Button
@@ -483,7 +483,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                 title='Toggle line wrapping'
               >
                 <WrapText className='h-4 w-4' />
-                <span className={cn('ml-1 hidden', sidebar.open ? 'xl:inline' : 'lg:inline')}>Wrap</span>
+                <span className={cn('ml-1 hidden', sidebar.open ? 'lg:inline' : 'md:inline')}>Wrap</span>
               </Button>
             </div>
 

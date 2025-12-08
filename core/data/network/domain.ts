@@ -1,12 +1,12 @@
 import type { KubeClient } from 'infra/kubernetes/mod.ts'
 import { getVerificationRecord } from '../../../infra/dns/mod.ts'
 import type { Domain, DomainStatus, DomainVerificationStatus } from 'core/schemas/network/domain.ts'
+import { ClusterName } from '../../schemas/common.ts'
 
 export interface DomainContext {
   kubeClient: KubeClient
   namespace: string
-  userId: string
-  userCreatedAt: Date
+  project: { id: string; cluster: ClusterName }
 }
 
 export interface DomainVerification {
@@ -41,7 +41,7 @@ export async function ensureDomain(
   ctx: DomainContext,
   name: string
 ): Promise<EnsureDomainResult> {
-  const { kubeClient, namespace, userId, userCreatedAt } = ctx
+  const { kubeClient, namespace, project } = ctx
 
   const rootDomain = getRootDomain(name)
   if (!rootDomain) {
@@ -58,7 +58,7 @@ export async function ensureDomain(
   })
 
   // Get verification record
-  const verificationRecord = getVerificationRecord(name, userId, userCreatedAt)
+  const verificationRecord = getVerificationRecord(name, project.id, project.cluster)
 
   return {
     name,
@@ -182,7 +182,7 @@ export async function listDomains(
   ctx: DomainContext,
   options: ListDomainsOptions = {}
 ): Promise<Domain[]> {
-  const { kubeClient, namespace, userId, userCreatedAt } = ctx
+  const { kubeClient, namespace, project } = ctx
   const { name: filterName } = options
 
   try {
@@ -214,7 +214,7 @@ export async function listDomains(
         value === 'pending' ? 'pending' : 'failed'
       
       // Get verification record
-      const verificationRecord = getVerificationRecord(rootDomain, userId, userCreatedAt)
+      const verificationRecord = getVerificationRecord(rootDomain, project.id, project.cluster)
 
       domains.push({
         id: `${namespace}/${rootDomain}`,
@@ -225,7 +225,7 @@ export async function listDomains(
           ? new Date(ns.metadata.creationTimestamp) 
           : new Date(),
         verification: {
-          type: verificationRecord.type as 'TXT',
+          type: verificationRecord.type as 'CNAME',
           name: verificationRecord.name,
           value: verificationRecord.value,
           status: verificationStatus,

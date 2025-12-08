@@ -191,14 +191,14 @@ export default function DomainsTableScreen() {
       label: 'Verification',
       render: (_value, item: DomainData) => {
         const verification = item.verification
-        if (!verification || verification.status === 'verified' || verification.type !== 'TXT') {
+        if (!verification || verification.status === 'verified') {
           return <span className='text-sm text-muted-foreground'>-</span>
         }
         return (
           <div className='text-xs font-mono bg-muted p-2 rounded border overflow-x-scroll no-scrollbar'>
             <div className='grid grid-cols-5 gap-1 text-xs'>
               <div className='font-semibold'>Type:</div>
-              <div className='col-span-4'>TXT</div>
+              <div className='col-span-4'>{verification.type}</div>
               <div className='font-semibold'>Name:</div>
               <div className='col-span-4'>{verification.name}</div>
               <div className='font-semibold'>Value:</div>

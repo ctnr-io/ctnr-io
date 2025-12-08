@@ -1,20 +1,18 @@
-import { hash } from 'node:crypto'
 import { resolveTxt } from 'node:dns/promises'
-import * as shortUUID from '@opensrc/short-uuid'
-
-const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
+import { ClusterName } from 'core/schemas/common.ts'
 
 export interface DomainVerificationOptions {
   domain: string
-  userId: string
-  userCreatedAt: Date
+  projectId: string
+  cluster: ClusterName
   signal?: AbortSignal
 }
 
 export interface DomainVerificationResult {
   verified: boolean
-  txtRecordName: string
-  txtRecordValue: string
+  recordType: 'CNAME'
+  recordName: string
+  recordValue: string
 }
 
 /**
@@ -23,23 +21,21 @@ export interface DomainVerificationResult {
 export async function* verifyDomainOwnership(
   options: DomainVerificationOptions,
 ): AsyncGenerator<string, DomainVerificationResult> {
-  const { domain, userId, userCreatedAt, signal } = options
+  const { domain, projectId, signal } = options
 
   const rootDomain = domain.split('.').slice(-2).join('.')
-  const userIdShort = shortUUIDtranslator.fromUUID(userId)
 
-  // Generate TXT record details
-  const txtRecordName = `ctnr-io-ownership-${userIdShort}.${rootDomain}`
-  const txtRecordValue = hash('sha256', userCreatedAt.toString() + rootDomain)
+  const record = getVerificationRecord(domain, projectId, options.cluster)
 
   // Check if already verified
-  const existingValues = await resolveTxt(txtRecordName).catch(() => [])
-  if (existingValues.flat().includes(txtRecordValue)) {
+  const existingValues = await resolveTxt(record.name).catch(() => [])
+  if (existingValues.flat().includes(record.value)) {
     yield `Domain ownership for ${rootDomain} already verified.`
     return {
       verified: true,
-      txtRecordName,
-      txtRecordValue,
+      recordType: 'CNAME',
+      recordName: record.name,
+      recordValue: record.value,
     }
   }
 
@@ -48,9 +44,9 @@ export async function* verifyDomainOwnership(
     '',
     `Verifying domain ownership for ${rootDomain}...`,
     '',
-    'Please create a TXT record with the following details:',
-    `Name: ${txtRecordName}`,
-    `Value: ${txtRecordValue}`,
+    `Please create a ${record.type} record with the following details:`,
+    `Name: ${record.name}`,
+    `Value: ${record.value}`,
     '',
     'After creating the record, we will automatically detect it.',
     '',
@@ -58,20 +54,21 @@ export async function* verifyDomainOwnership(
 
   // Wait for verification
   while (true) {
-    yield `Checking for TXT record...`
+    yield `Checking for CNAME record...`
 
     if (signal?.aborted) {
       throw new Error('Domain ownership verification aborted')
     }
 
     // Check the TXT record every 5 seconds
-    const values = await resolveTxt(txtRecordName).catch(() => [])
-    if (values.flat().includes(txtRecordValue)) {
-      yield `TXT record verified successfully for ${rootDomain}.`
+    const values = await resolveTxt(record.name).catch(() => [])
+    if (values.flat().includes(record.value)) {
+      yield `CNAME record verified successfully for ${rootDomain}.`
       return {
         verified: true,
-        txtRecordName,
-        txtRecordValue,
+        recordType: 'CNAME',
+        recordName: record.name,
+        recordValue: record.value,
       }
     }
 
@@ -84,41 +81,41 @@ export async function* verifyDomainOwnership(
  */
 export async function* isDomainVerified(
   domain: string,
-  userId: string,
-  userCreatedAt: Date,
+  projectId: string,
+  cluster: ClusterName,
 ): AsyncGenerator<string, boolean> {
-  const txtRecord = getVerificationRecord(domain, userId, userCreatedAt)
+  const record = getVerificationRecord(domain, projectId, cluster)
 
-  const values = await resolveTxt(txtRecord.name).catch(() => [])
+  const values = await resolveTxt(record.name).catch(() => [])
   if (!values || values.length === 0) {
     // Display verification instructions
     yield [
       '',
-      `Verify domain ownership failed for ${txtRecord.domain}:`,
+      `Verify domain ownership failed for ${record.domain}:`,
       '',
-      'Please create a TXT record with the following details:',
-      `Name: ${txtRecord.name}`,
-      `Value: ${txtRecord.value}`,
+      'Please create a CNAME record with the following details:',
+      `Name: ${record.name}`,
+      `Value: ${record.value}`,
       '',
       'After creating the record, we will automatically detect it.',
       '',
     ].join('\r\n')
   }
-  return values.flat().includes(txtRecord.value)
+  return values.flat().includes(record.value)
 }
 
 export function getVerificationRecord(
   domain: string,
-  userId: string,
-  userCreatedAt: Date,
+  projectId: string,
+  cluster: ClusterName,
 ): { domain: string; type: string; name: string; value: string } {
   const rootDomain = domain.split('.').slice(-2).join('.')
-  const txtRecordName = `${userId}.${rootDomain}`
-  const txtRecordValue = hash('sha256', userCreatedAt.toString() + rootDomain).slice(0, 32)
+  const recordName = `${projectId}.${rootDomain}`
+  const recordValue = `${projectId}.${cluster}.ctnr.io`
   return {
-    type: 'TXT',
-    name: txtRecordName,
-    value: txtRecordValue,
+    type: 'CNAME',
+    name: recordName,
+    value: recordValue,
     domain: rootDomain,
   }
 }

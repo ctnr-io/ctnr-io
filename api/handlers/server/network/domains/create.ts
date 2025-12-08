@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { ensureDomain, domainExists } from 'core/data/network/domain.ts'
+import { ensureDomain, domainExists, DomainContext } from 'core/data/network/domain.ts'
 
 export const Meta = {
   aliases: {
@@ -22,11 +22,10 @@ export default async function* (
 ): ServerResponse<void> {
   const { name } = input
 
-  const domainCtx = {
+  const domainCtx: DomainContext = {
     kubeClient: ctx.kube.client.karmada,
     namespace: ctx.project.namespace,
-    userId: ctx.auth.user.id,
-    userCreatedAt: ctx.auth.user.createdAt,
+    project: { id: ctx.project.id, cluster: ctx.project.cluster },
   }
 
   try {

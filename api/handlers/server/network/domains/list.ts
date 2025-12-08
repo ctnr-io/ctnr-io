@@ -34,8 +34,7 @@ export default async function* listDomains(
   const domainCtx: DomainContext = {
     kubeClient: ctx.kube.client['karmada'],
     namespace: ctx.project.namespace,
-    userId: ctx.auth.user.id,
-    userCreatedAt: ctx.auth.user.createdAt,
+    project: { id: ctx.project.id, cluster: ctx.project.cluster },
   }
 
   try {

@@ -69,11 +69,11 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
 
     const cluster = ctx.project.cluster
 
-    const userId = ctx.auth.user.id
+    const projectId = ctx.project.id
     
     // Build hostnames for ctnr.io domain
     const ctnrHostnames = routedPorts.map((port) =>
-      `${port.name}-${input.container}-${userId}.${cluster}.ctnr.io`
+      `${port.name}-${input.container}-${projectId}.${cluster}.ctnr.io`
     )
     
     // Build hostnames for custom domain (if provided)
@@ -89,16 +89,16 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
       // Check if domain is already verified
       const alreadyVerified = yield* isDomainVerified(
         input.domain,
-        ctx.auth.user.id,
-        ctx.auth.user.createdAt,
+        ctx.project.id,
+        ctx.project.cluster,
       )
 
       if (!alreadyVerified) {
         yield `Domain ownership verification required for ${rootDomain}`
         yield* verifyDomainOwnership({
           domain: input.domain,
-          userId: ctx.auth.user.id,
-          userCreatedAt: ctx.auth.user.createdAt,
+          projectId: ctx.project.id,
+          cluster: ctx.project.cluster,
           signal,
         })
       }

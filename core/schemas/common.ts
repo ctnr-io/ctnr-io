@@ -53,11 +53,11 @@ export type ResourceMetadata = z.infer<typeof ResourceMetadata>
 /**
  * Cluster identifiers
  */
-export const ClusterNames = ['eu-0', 'eu-1', 'eu-2'] as const
+export const ClusterNames = ['eu-1'] as const
 export const ClusterName = z.enum(ClusterNames)
 export type ClusterName = z.infer<typeof ClusterName>
 
-export const ClusterOrKarmada = z.enum(['karmada', 'eu-0', 'eu-1', 'eu-2'])
+export const ClusterOrKarmada = z.enum(['karmada', 'eu-1'])
 export type ClusterOrKarmada = z.infer<typeof ClusterOrKarmada>
 
 /**

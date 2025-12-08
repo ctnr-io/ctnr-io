@@ -17,7 +17,7 @@ export type KubeClient = Awaited<ReturnType<typeof createKubeClient>>
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
-export async function createKubeClient(context: 'karmada' | 'eu-0' | 'eu-1' | 'eu-2') {
+export async function createKubeClient(context: 'karmada' | 'eu-1') {
   const decoder = new TextDecoder('utf-8')
   const kubeconfigFile = decoder.decode(await Deno.readFile(kubeconfig))
   const client = await SpdyEnabledRestClient.forKubeConfig(

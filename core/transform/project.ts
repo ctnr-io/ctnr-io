@@ -18,7 +18,7 @@ export function namespaceToProject(ns: Namespace): Project {
     id: labels[ProjectNamespaceLabels.Id] || '',
     name: labels[ProjectNamespaceLabels.Name] || '',
     ownerId: labels[ProjectNamespaceLabels.OwnerId] || '',
-    cluster: (labels[ProjectNamespaceLabels.Cluster] || 'eu-0') as ClusterName,
+    cluster: (labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
     namespace: ns.metadata?.name || '',
     createdAt: ns.metadata?.creationTimestamp?.toISOString(),
     balance: {
@@ -37,7 +37,7 @@ export function namespaceToProjectSummary(ns: Namespace): ProjectSummary {
   return {
     id: labels[ProjectNamespaceLabels.Id] || '',
     name: labels[ProjectNamespaceLabels.Name] || '',
-    cluster: (labels[ProjectNamespaceLabels.Cluster] || 'eu-0') as ClusterName,
+    cluster: (labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
 		namespace: ns.metadata?.name || '',
   }
 }

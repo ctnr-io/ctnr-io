@@ -165,6 +165,6 @@ export const CreateContainerInput = z.object({
   command: z.array(z.string()).optional(),
   args: z.array(z.string()).optional(),
   workingDir: z.string().optional(),
-  cluster: z.enum(['eu-0', 'eu-1', 'eu-2']).optional(),
+  cluster: z.enum(['eu-1']).optional(),
 })
 export type CreateContainerInput = z.infer<typeof CreateContainerInput>

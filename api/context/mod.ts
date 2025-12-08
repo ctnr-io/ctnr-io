@@ -24,7 +24,7 @@ export type StdioContext = {
   }
 }
 
-type KubeCluster = 'karmada' | 'eu-0' | 'eu-1' | 'eu-2'
+type KubeCluster = 'karmada' | 'eu-1'
 
 export type ServerKubeContext = {
   kube: {

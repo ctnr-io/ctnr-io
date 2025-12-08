@@ -112,6 +112,6 @@ export type DomainSummary = z.infer<typeof DomainSummary>
  */
 export const CreateDomainInput = z.object({
   name: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/),
-  cluster: z.enum(['eu-0', 'eu-1', 'eu-2']).optional(),
+  cluster: z.enum(['eu-1']).optional(),
 })
 export type CreateDomainInput = z.infer<typeof CreateDomainInput>

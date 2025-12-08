@@ -5,6 +5,7 @@ set -e
 # Usage: curl -fsSL https://get.ctnr.io | bash
 
 INSTALL_DIR="$HOME/.local/bin"
+API_URL="${CTNR_API_URL:-https://api.ctnr.io}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -47,9 +48,26 @@ detect_platform() {
 
 # Get latest release version
 get_latest_version() {
-    curl -s "https://api.github.com/repos/ctnr-io/ctnr-io/releases/latest" | \
+    # Prefer the CTNR API to determine which CLI version to install. Support an
+    # override with CTNR_API_URL for testing/local environments. If the API
+    # fails or returns an empty value, fall back to GitHub releases.
+    local version
+    # Fetch version from the CTNR API. The endpoint returns a JSON string like
+    # "v1.2.3" so strip surrounding quotes if present.
+    version=$(curl -s "${API_URL}/version" | sed -E 's/^"//' | sed -E 's/"$//') || true
+    if [ -n "$version" ] && [ "$version" != "latest" ]; then
+        echo "$version"
+        return
+    fi
+
+    # If the API says 'latest' or doesn't respond with a tag, resolve the actual
+    # latest tag from GitHub releases so we can build the asset file name.
+
+    # Fallback to GitHub Releases
+    version=$(curl -s "https://api.github.com/repos/ctnr-io/ctnr-io/releases/latest" | \
         grep '"tag_name":' | \
-        sed -E 's/.*"([^"]+)".*/\1/'
+        sed -E 's/.*"([^"]+)".*/\1/')
+    echo "$version"
 }
 
 # Download and install

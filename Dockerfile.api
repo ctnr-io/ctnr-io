@@ -1,0 +1,19 @@
+FROM denoland/deno:latest
+
+ARG CTNR_VERSION
+ENV CTNR_VERSION=${CTNR_VERSION}
+
+WORKDIR /workspace
+
+# Copy all source files
+COPY . .
+
+# Cache dependencies
+RUN deno cache api/drivers/trpc/server/main.ts
+
+# The kubeconfig volume should be mounted at /workspace/.kube/config
+VOLUME ["/workspace/.kube"]
+
+EXPOSE 8080
+
+CMD ["deno", "run", "-A", "--unstable-net", "api/drivers/trpc/server/main.ts"]

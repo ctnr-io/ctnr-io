@@ -5,7 +5,7 @@ import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
 import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
-import { Fragment, ReactNode, useMemo, useState } from 'react'
+import { Fragment, ReactNode, useMemo, useState, MouseEvent } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
@@ -160,6 +160,24 @@ export function DataTableScreen<T = any>({
     })
   }, [data, searchQuery, searchable, searchKeys])
 
+  const isInteractiveTarget = (el: Element | null) => {
+    if (!el) return false
+    // Any element that should not trigger row click (native or marked)
+    const interactiveSelector = 'a[href], button, input, textarea, select, label, [role="button"], [data-no-row-click]'
+    return !!el.closest(interactiveSelector)
+  }
+
+  const handleRowClickFromEvent = (e: MouseEvent<HTMLElement>, item: T) => {
+    if (!rowClickable || !onRowClick) return
+    const target = e.target as Element | null
+    // if clicking inside an interactive element (link/button/input), don't trigger row click
+    if (isInteractiveTarget(target)) return
+    // Also respect events that called e.stopPropagation() or e.defaultPrevented
+    if (e.isPropagationStopped?.()) return
+    if (e.defaultPrevented) return
+    onRowClick(item)
+  }
+
   const renderMobileCard = (item: T, index: number) => {
     const status = mobileCardStatus?.(item)
 
@@ -170,7 +188,7 @@ export function DataTableScreen<T = any>({
           'border-b last:border-b-0 p-2 flex flex-col gap-2',
           rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : '',
         )}
-        onClick={() => rowClickable && onRowClick && onRowClick(item)}
+        onClick={(e) => handleRowClickFromEvent(e, item)}
       >
         <div className='flex-1 flex flex-row justify-between mx-2 mt-2 gap-3'>
           <div className='w-56 flex items-center gap-3'>
@@ -198,7 +216,7 @@ export function DataTableScreen<T = any>({
               .filter((action) => !action.condition || action.condition(item))
               .map(({ Wrapper = ActionWrapperDefault, ...action }) => (
                 <Wrapper item={item} key={action.label}>
-                  <Button
+                    <Button
                     variant={action.variant || 'ghost'}
                     size='sm'
                     onClick={!action.onClick ? undefined : (e) => {
@@ -288,7 +306,7 @@ export function DataTableScreen<T = any>({
                   <TableRow
                     key={index}
                     className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
-                    onClick={() => rowClickable && onRowClick && onRowClick(item)}
+                    onClick={(e) => handleRowClickFromEvent(e, item)}
                   >
                     {visibleColumnsArray.map((column) => {
                       const value = item[column.key as keyof T]

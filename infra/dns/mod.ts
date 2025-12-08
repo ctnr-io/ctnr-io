@@ -113,9 +113,8 @@ export function getVerificationRecord(
   userCreatedAt: Date,
 ): { domain: string; type: string; name: string; value: string } {
   const rootDomain = domain.split('.').slice(-2).join('.')
-  const userIdShort = shortUUIDtranslator.fromUUID(userId)
-  const txtRecordName = `ctnr-io-ownership-${userIdShort}.${rootDomain}`
-  const txtRecordValue = hash('sha256', userCreatedAt.toString() + rootDomain)
+  const txtRecordName = `${userId}.${rootDomain}`
+  const txtRecordValue = hash('sha256', userCreatedAt.toString() + rootDomain).slice(0, 32)
   return {
     type: 'TXT',
     name: txtRecordName,

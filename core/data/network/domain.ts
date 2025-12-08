@@ -190,10 +190,12 @@ export async function listDomains(
     const annotations = ns.metadata?.annotations ?? {}
     
     const domains: Domain[] = []
+    console.log("Namespace annotations:", annotations)
     
     for (const [key, value] of Object.entries(annotations)) {
       // Match domain.ctnr.io/* annotations
       const match = key.match(/^domain\.ctnr\.io\/(.+)$/)
+      console.log(`Processing annotation: ${key}=${value}, match: ${match}`)
       if (!match) continue
       
       const rootDomain = match[1]
@@ -202,6 +204,7 @@ export async function listDomains(
       // Apply name filter
       if (filterName && rootDomain !== filterName) continue
       
+
       // Map annotation value to status
       const status: DomainStatus = value === 'verified' ? 'active' : 
                                    value === 'pending' ? 'pending' : 'error'
@@ -212,7 +215,7 @@ export async function listDomains(
       
       // Get verification record
       const verificationRecord = getVerificationRecord(rootDomain, userId, userCreatedAt)
-      
+
       domains.push({
         id: `${namespace}/${rootDomain}`,
         name: rootDomain,
@@ -230,6 +233,7 @@ export async function listDomains(
       })
     }
     
+    console.log(`Total domains found: ${domains.length}`)
     return domains
   } catch {
     return []

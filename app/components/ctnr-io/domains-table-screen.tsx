@@ -157,11 +157,6 @@ export default function DomainsTableScreen() {
     })
   }
 
-  const handleRowClick = (domain: DomainData) => {
-    // Could navigate to domain details page
-    console.log('Domain clicked:', domain.name)
-  }
-
   // Table columns configuration
   const columns: TableColumn<DomainData>[] = [
     {
@@ -194,15 +189,24 @@ export default function DomainsTableScreen() {
     {
       key: 'verification',
       label: 'Verification',
-      render: (value) => (
-        <span className='text-sm font-mono'>{value?.status ?? '-'}</span>
-      ),
-      className: 'text-sm',
-    },
-    {
-      key: 'routeCount',
-      label: 'Routes',
-      render: (value) => <span className='text-sm font-mono'>{value ?? 0}</span>,
+      render: (_value, item: DomainData) => {
+        const verification = item.verification
+        if (!verification || verification.status === 'verified' || verification.type !== 'TXT') {
+          return <span className='text-sm text-muted-foreground'>-</span>
+        }
+        return (
+          <div className='text-xs font-mono bg-muted p-2 rounded border overflow-x-scroll no-scrollbar'>
+            <div className='grid grid-cols-5 gap-1 text-xs'>
+              <div className='font-semibold'>Type:</div>
+              <div className='col-span-4'>TXT</div>
+              <div className='font-semibold'>Name:</div>
+              <div className='col-span-4'>{verification.name}</div>
+              <div className='font-semibold'>Value:</div>
+              <div className='col-span-4'>{verification.value}</div>
+            </div>
+          </div>
+        )
+      },
       className: 'text-sm',
     },
     {
@@ -223,12 +227,11 @@ export default function DomainsTableScreen() {
       columns={columns}
       onAdd={handleAdd}
       onDelete={handleDelete}
-      onRowClick={handleRowClick}
       addFormComponent={AddDomainForm}
       description='Manage your custom domains and SSL certificates'
       infoDescription="Add custom domains to use with your containers. Each domain will get an SSL certificate automatically provisioned via Let's Encrypt. You'll need to configure DNS records to point to your ctnr.io cluster."
       searchPlaceholder='Search domains by name, status, or provider...'
-  searchKeys={['name', 'status', 'routeCount']}
+      searchKeys={['name', 'status', 'routeCount']}
       addButtonLabel='Add Domain'
       mobileCardSubtitle={(item) => `${item.name} • ${item.status}`}
       mobileCardStatus={(item) => ({

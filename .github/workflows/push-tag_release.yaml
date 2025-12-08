@@ -17,6 +17,7 @@ permissions:
 env:
   CTNR_VERSION: ${{ github.event.inputs.version }}
   CTNR_API_URL: https://api.ctnr.io
+  CTNR_APP_URL: https://app.ctnr.io
   SUPABASE_URL: ${{ vars.SUPABASE_URL }}
   SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
 
@@ -146,6 +147,12 @@ jobs:
           fi
 
       - name: Build app
+        env:
+          CTNR_VERSION: ${{ steps.version.outputs.version }}
+          CTNR_API_URL: https://api.ctnr.io
+          CTNR_APP_URL: https://app.ctnr.io
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
         run: |
           cd app
 
@@ -224,3 +231,85 @@ jobs:
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-api-image:
+    needs: [release-all]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.api
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/api:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/api:latest
+          build-args: |
+            CTNR_VERSION=${{ steps.version.outputs.version }}
+
+  publish-app-image:
+    needs: [release-all]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push App container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.app
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/app:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/app:latest
+          build-args: |
+            CTNR_VERSION=${{ steps.version.outputs.version }}

@@ -1,6 +1,5 @@
 import type { KubeClient } from 'infra/kubernetes/mod.ts'
-import { getVerificationRecord } from '../../../infra/dns/mod.ts'
-import type { Domain, DomainStatus, DomainVerificationStatus } from 'core/schemas/network/domain.ts'
+import type { Domain, DomainStatus } from 'core/schemas/network/domain.ts'
 import { ClusterName } from '../../schemas/common.ts'
 
 export interface DomainContext {
@@ -58,7 +57,7 @@ export async function ensureDomain(
   })
 
   // Get verification record
-  const verificationRecord = getVerificationRecord(name, project.id, project.cluster)
+  const verificationRecord = getVerificationRecord(name, project.id)
 
   return {
     name,
@@ -99,6 +98,13 @@ export async function deleteDomain(
     await kubeClient.CertManagerV1(namespace).deleteCertificate(certificateName)
   } catch {
     // Certificate might not exist
+  }
+
+  // Delete associated Routes
+  const routes = await listRoutes(kubeClient, namespace, { domain: name })
+  for (const route of routes) {
+    // async delete route
+    deleteRoute(kubeClient, namespace, route.name)
   }
 }
 
@@ -161,7 +167,7 @@ export async function getDomainVerificationStatus(
   try {
     const ns = await kubeClient.CoreV1.getNamespace(namespace)
     const status = ns.metadata?.annotations?.[`domain.ctnr.io/${rootDomain}`]
-    
+
     if (status === 'verified') return 'verified'
     if (status === 'pending') return 'pending'
     return 'failed'
@@ -182,7 +188,7 @@ export async function listDomains(
   ctx: DomainContext,
   options: ListDomainsOptions = {}
 ): Promise<Domain[]> {
-  const { kubeClient, namespace, project } = ctx
+  const { kubeClient, namespace } = ctx
   const { name: filterName } = options
 
   try {
@@ -190,31 +196,33 @@ export async function listDomains(
     const annotations = ns.metadata?.annotations ?? {}
     
     const domains: Domain[] = []
-    console.log("Namespace annotations:", annotations)
-    
-    for (const [key, value] of Object.entries(annotations)) {
+
+    // Iterate asynchronously
+    await Promise.all(Object.entries(annotations).map(async ([key, value]) => {
+
       // Match domain.ctnr.io/* annotations
       const match = key.match(/^domain\.ctnr\.io\/(.+)$/)
-      console.log(`Processing annotation: ${key}=${value}, match: ${match}`)
-      if (!match) continue
+      if (!match) return Promise.resolve()
       
       const rootDomain = match[1]
-      if (!rootDomain) continue
+      if (!rootDomain) return Promise.resolve()
       
       // Apply name filter
-      if (filterName && rootDomain !== filterName) continue
-      
+      if (filterName && rootDomain !== filterName) return Promise.resolve()
 
       // Map annotation value to status
-      const status: DomainStatus = value === 'verified' ? 'active' : 
-                                   value === 'pending' ? 'pending' : 'error'
-      
-      const verificationStatus: DomainVerificationStatus = 
-        value === 'verified' ? 'verified' : 
-        value === 'pending' ? 'pending' : 'failed'
-      
+      let status: DomainStatus = value === 'verified' ? 'verified' : 'pending'
+      if (status === 'pending') {
+        // Further check if verification actually failed
+        const isVerified = await isDomainVerified(rootDomain, ctx.project.id)
+        if (isVerified) {
+          markDomainVerified(ctx, rootDomain)
+          status = 'verified'
+        }
+      }
+     
       // Get verification record
-      const verificationRecord = getVerificationRecord(rootDomain, project.id, project.cluster)
+      const verificationRecord = getVerificationRecord(rootDomain, ctx.project.id)
 
       domains.push({
         id: `${namespace}/${rootDomain}`,
@@ -225,17 +233,64 @@ export async function listDomains(
           ? new Date(ns.metadata.creationTimestamp) 
           : new Date(),
         verification: {
-          type: verificationRecord.type as 'CNAME',
+          type: verificationRecord.type as 'TXT',
           name: verificationRecord.name,
           value: verificationRecord.value,
-          status: verificationStatus,
         },
       })
-    }
+    }))
     
     console.log(`Total domains found: ${domains.length}`)
     return domains
   } catch {
     return []
+  }
+}
+
+import { resolveTxt } from 'node:dns/promises'
+import { deleteRoute, listRoutes } from './route.ts'
+
+export interface DomainVerificationOptions {
+  domain: string
+  projectId: string
+  signal?: AbortSignal
+}
+
+export interface DomainVerificationResult {
+  verified: boolean
+  recordType: 'TXT'
+  recordName: string
+  recordValue: string
+}
+
+
+/**
+ * Check if domain is already verified without waiting
+ */
+export async function isDomainVerified(
+  domain: string,
+  projectId: string,
+): Promise<boolean> {
+  const record = getVerificationRecord(domain, projectId)
+
+  const values = await resolveTxt(record.name).catch(() => [])
+  if (!values || values.length === 0) {
+    return false
+  }
+  return values.flat().includes(record.value)
+}
+
+export function getVerificationRecord(
+  domain: string,
+  projectId: string,
+): { domain: string; type: string; name: string; value: string } {
+  const rootDomain = domain.split('.').slice(-2).join('.')
+  const recordName = `${rootDomain}`
+  const recordValue = `ctnr-verification=${projectId}`
+  return {
+    type: 'TXT',
+    name: recordName,
+    value: recordValue,
+    domain: rootDomain,
   }
 }

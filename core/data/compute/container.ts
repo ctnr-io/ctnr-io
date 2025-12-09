@@ -190,3 +190,12 @@ export async function listContainers(
 		return deploymentToContainer(deployment, transformOptions)
 	})
 }
+
+export async function getContainer(
+	ctx: ContainerContext,
+	name: string,
+	options: Omit<ListContainersOptions, 'name'> = {},
+): Promise<Container | null> {
+	const containers = await listContainers(ctx, { ...options, name })
+	return containers.length > 0 ? containers[0] : null
+}

@@ -72,7 +72,7 @@ export default async function* listDomains(
 
           yield domain.name.padEnd(25) +
             domain.status.padEnd(12) +
-            (domain.verification?.status || 'unknown').padEnd(12) +
+            (`${domain.verification?.type} ${domain.verification?.name} ${domain.verification?.value}` || 'unknown').padEnd(12) +
             age
         }
         return

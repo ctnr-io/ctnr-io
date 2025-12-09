@@ -8,7 +8,7 @@ import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Label } from 'app/components/shadcn/ui/label.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
-import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
+// Checkbox import removed as not used in this form
 import { useState } from 'react'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -54,8 +54,10 @@ function AddRouteForm({
     name: '',
     path: '/',
     container: '',
-    port: '80',
-    domain: '',
+  port: '80',
+  domain: '',
+  selectedDomain: '',
+    subdomain: '',
     protocol: 'https' as 'http' | 'https',
     methods: {
       GET: true,
@@ -66,15 +68,57 @@ function AddRouteForm({
     },
   })
 
+  const trpc = useTRPC()
+
+  // Fetch domains and containers for selects
+  const { data: domainsRaw } = useQuery(
+    trpc.network.domains.list.queryOptions({ output: 'raw' }),
+  )
+
+  const { data: containersRaw } = useQuery(
+    trpc.core.listQuery.queryOptions({
+      output: 'raw',
+      fields: ['basic', 'resources', 'routes', 'replicas', 'clusters'],
+    }),
+  )
+
+  const domains = Array.isArray(domainsRaw)
+    ? domainsRaw.map((d: any) => ({ name: d.name, verification: d.verification, status: d.status }))
+    : []
+
+  const containers = Array.isArray(containersRaw)
+    ? containersRaw.map((c: any) => ({ name: c.name, ports: (c.ports || []), labels: (c.labels || {}) }))
+    : []
+
+  function getPortsForContainer(containerName: string): Array<{ name: string; number: number }> {
+    const container = containers.find((c) => c.name === containerName)
+    return container?.ports ?? []
+  }
+
+  const [formError, setFormError] = useState<string | null>(null)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
+    if (!formData.container) {
+      setFormError('Target container is required')
+      return
+    }
+    if (!formData.port) {
+      setFormError('Target port is required')
+      return
+    }
+    const fullDomain = formData.subdomain
+      ? `${formData.subdomain}.${formData.domain}`
+      : formData.domain
 
     const routeData = {
       name: formData.name,
       path: formData.path,
       container: formData.container,
       port: formData.port,
-      domain: formData.domain,
+  // If fullDomain is an empty string, pass an empty string (API accepts it as 'no domain')
+  domain: fullDomain || '',
       protocol: formData.protocol,
       status: 'pending' as const,
       createdAt: new Date(),
@@ -82,6 +126,9 @@ function AddRouteForm({
 
     await onSubmit(routeData)
   }
+
+  // Helper to determine form validity for disabling submit button
+  // const isFormInvalid = !formData.container || !formData.port
 
   return (
     <form onSubmit={handleSubmit} className='space-y-4'>
@@ -109,12 +156,51 @@ function AddRouteForm({
 
       <div className='space-y-2'>
         <Label htmlFor='domain'>Domain</Label>
-        <Input
-          id='domain'
-          value={formData.domain}
-          onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-          placeholder='e.g., app.example.com'
-        />
+        <div className='flex gap-2 items-center'>
+          <Input
+            id='subdomain'
+            value={formData.subdomain}
+            onChange={(e) => setFormData({ ...formData, subdomain: e.target.value })}
+            placeholder='Subdomain (optional) e.g., api or www'
+            className='w-1/3'
+            disabled={!formData.domain}
+            required={!!formData.domain}
+          />
+        <Select
+          value={formData.selectedDomain}
+          onValueChange={(value) => {
+            const NO_DOMAIN = '__no_domain__'
+            const domainValue = value === NO_DOMAIN ? '' : value
+            setFormData({ ...formData, selectedDomain: value, domain: domainValue, subdomain: domainValue ? formData.subdomain : '' })
+          }}
+        >
+          <SelectTrigger className='w-full'>
+            <SelectValue placeholder='Select domain...' />
+          </SelectTrigger>
+          <SelectContent className='w-full min-w-full'>
+            <SelectItem value='__no_domain__'>No domain (auto-generated)</SelectItem>
+            {domains.map((d) => {
+              const verified = d.status === 'verified'
+              return (
+                <SelectItem key={d.name} value={d.name} disabled={!verified}>
+                  {d.name}
+                  {!verified ? ' (pending verification)' : ''}
+                </SelectItem>
+              )
+            })}
+          </SelectContent>
+        </Select>
+        </div>
+
+        {formData.domain ? (
+          <div className='text-sm text-muted-foreground mt-1'>
+            Preview: {formData.subdomain ? `${formData.subdomain}.${formData.domain}` : formData.domain}
+          </div>
+        ) : (
+          <div className='text-sm text-muted-foreground mt-1'>
+            Preview: Auto-generated ctnr.io hostname
+          </div>
+        )}
       </div>
 
       <div className='space-y-2'>
@@ -123,45 +209,80 @@ function AddRouteForm({
           value={formData.protocol}
           onValueChange={(value) => setFormData({ ...formData, protocol: value as 'http' | 'https' })}
         >
-          <SelectTrigger>
+          <SelectTrigger className='w-full'>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className='w-full min-w-full'>
             <SelectItem value='https'>HTTPS</SelectItem>
             <SelectItem value='http'>HTTP</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div className='space-y-2'>
-        <Label htmlFor='target-service'>Target Service (Container)</Label>
-        <Input
-          id='target-service'
-          value={formData.container}
-          onChange={(e) => setFormData({ ...formData, container: e.target.value })}
-          placeholder='e.g., api-server'
-          required
-        />
-      </div>
+      <div className='grid grid-cols-1 md:grid-cols-[1fr,160px] gap-2'>
+        <div className='space-y-2'>
+          <Label htmlFor='target-container'>Target Container</Label>
+          <Select
+            value={formData.container}
+            onValueChange={(value) => {
+              // when container changes, reset port to first available port if present
+              const ports = getPortsForContainer(value)
+              const port = ports && ports.length > 0 ? String(ports[0].number ?? ports[0]) : formData.port
+              setFormData({ ...formData, container: value, port })
+            }}
+            required
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue placeholder='Select container...' />
+            </SelectTrigger>
+            <SelectContent className='w-full min-w-full'>
+              {containers.map((c) => (
+                <SelectItem key={c.name} value={c.name}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className='space-y-2'>
-        <Label htmlFor='target-port'>Target Port</Label>
-        <Input
-          id='target-port'
-          value={formData.port}
-          onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-          required
-        />
+        <div className='space-y-2'>
+          <Label htmlFor='target-port'>Target Port</Label>
+          <Select
+            value={formData.port}
+            onValueChange={(value) => setFormData({ ...formData, port: value })}
+            required
+            disabled={!formData.container}
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue placeholder='Select port...' />
+            </SelectTrigger>
+            <SelectContent className='w-full min-w-full'>
+              {getPortsForContainer(formData.container).length === 0 && (
+                <SelectItem value={formData.port}>{formData.port}</SelectItem>
+              )}
+              {getPortsForContainer(formData.container).map((p) => (
+                <SelectItem key={p.number} value={String(p.number)}>
+                  {p.name ? `${p.name}:` : ''}{p.number}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className='flex justify-end gap-2 pt-4'>
         <Button type='button' variant='outline' onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type='submit' disabled={isSubmitting}>
+        <Button type='submit' disabled={isSubmitting || !formData.container || !formData.port}>
           {isSubmitting ? 'Creating...' : 'Create Route'}
         </Button>
       </div>
+      {formError && (
+        <div className='text-sm text-destructive mt-2'>
+          {formError}
+        </div>
+      )}
     </form>
   )
 }
@@ -219,8 +340,9 @@ export default function RoutesTableScreen() {
       name: routeForm.name,
       container: routeForm.container,
       domain: routeForm.domain,
-      // Convert numeric port to array of strings as the API expects (names/numbers)
-      port: routeForm.port ? [String(routeForm.port)] : undefined,
+      port: routeForm.port,
+      path: routeForm.path,
+      protocol: routeForm.protocol as 'http' | 'https',
     })
   }
 
@@ -261,7 +383,7 @@ export default function RoutesTableScreen() {
     {
       key: 'domain',
       label: 'Domain',
-      render: (value, item) => (
+      render: (value, _item) => (
         <div className='flex items-center gap-1'>
           <span className='text-sm'>{value}</span>
         </div>

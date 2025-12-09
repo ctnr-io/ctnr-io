@@ -6,6 +6,16 @@ import type { Route, RouteProtocol, RouteStatus, RouteSummary, RouteType } from 
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
 
+  // Extract path from first rule match
+  function normalizePath(raw?: string | null): string {
+    const path = (raw ?? '/') || '/'
+    let normalized = path.startsWith('/') ? path : `/${path}`
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.slice(0, -1)
+    }
+    return normalized
+  }
+
 /**
  * Transform a Gateway API HTTPRoute to a Route DTO
  */
@@ -22,9 +32,9 @@ export function httpRouteToRoute(httpRoute: HTTPRoute): Route {
   const container = backendRef?.name ?? 'unknown'
   const port = backendRef?.port.toString() ?? '80'
 
-  // Extract path from first rule match
+
   const pathMatch = firstRule?.matches?.[0]?.path
-  const path = pathMatch?.value ?? '/'
+  const path = normalizePath(pathMatch?.value ?? '/')
 
   return {
     id: metadata.uid ?? metadata.name ?? '',
@@ -75,7 +85,7 @@ export function ingressRouteToRoute(ingressRoute: IngressRoute): Route {
 
   // Extract path from match rule if present
   const pathMatch = match.match(/PathPrefix\(`([^`]+)`\)/)
-  const path = pathMatch?.[1] ?? '/'
+  const path = normalizePath(pathMatch?.[1] ?? '/')
 
   // Determine protocol from entry points
   const entryPoints = spec.entryPoints ?? []

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { ensureDomain, domainExists, DomainContext } from 'core/data/network/domain.ts'
+import { DomainContext, domainExists, ensureDomain, isDomainVerified } from 'core/data/network/domain.ts'
 
 export const Meta = {
   aliases: {
@@ -9,18 +9,18 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: z.string().regex(
+  domain: z.string().regex(
     /^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/,
     'Invalid domain name format (e.g., example.com)',
-  ).min(1, 'Domain name is required'),
+  ).min(1, 'Domain name is required').meta({ positional: true }),
 })
 
 export type Input = z.infer<typeof Input>
 
-export default async function* (
+export default async function* handleCreateDomain(
   { ctx, input }: ServerRequest<Input>,
 ): ServerResponse<void> {
-  const { name } = input
+  const { domain: domainName } = input
 
   const domainCtx: DomainContext = {
     kubeClient: ctx.kube.client.karmada,
@@ -29,26 +29,30 @@ export default async function* (
   }
 
   try {
-    // Check if domain already exists
-    const exists = await domainExists(domainCtx, name)
-    if (exists) {
-      throw new Error(`Domain ${name} already exists`)
+    const domainExistsAlready = await domainExists(domainCtx, domainName)
+    if (domainExistsAlready) {
+      yield `ℹ️  Domain ${domainName} already exists in project ${ctx.project.id}.`
     }
 
-    // Create domain (registers in namespace annotations)
-    const domain = await ensureDomain(domainCtx, name)
+    // Ensure domain anyway (registers in namespace annotations)
+    const domain = await ensureDomain(domainCtx, domainName)
 
-    yield ``
-    yield `👉 Please add the following DNS TXT record to your domain ${domain.rootDomain} to verify ownership: `
-    yield ``
+    // Check if domain is verified
+    if (!await isDomainVerified(domainName, ctx.project.id)) {
+      yield `🔑 Domain ${domainName} is not yet verified.`
 
-    if (domain.verification) {
-      yield `Type: ${domain.verification.type}`
-      yield `Name: ${domain.verification.name}`
-      yield `Value: ${domain.verification.value}`
+      yield ``
+      yield `👉 Please add the following DNS TXT record to your domain ${domain.rootDomain} to verify ownership: `
+      yield ``
+
+      if (domain.verification) {
+        yield `Type: ${domain.verification.type}`
+        yield `Name: ${domain.verification.name}`
+        yield `Value: ${domain.verification.value}`
+      }
+      yield ``
+      yield `Monitor the certificate status to track SSL provisioning progress.`
     }
-    yield ``
-    yield `Monitor the certificate status to track SSL provisioning progress.`
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     yield `❌ Error creating domain: ${errorMessage}`

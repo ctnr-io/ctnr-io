@@ -1,24 +1,13 @@
 import { z } from 'zod'
 
 /**
- * Domain verification status
+ * Domain status
  */
-export const DomainVerificationStatus = z.enum([
+export const DomainStatus = z.enum([
   'verified',
   'pending',
   'failed',
   'expired',
-])
-export type DomainVerificationStatus = z.infer<typeof DomainVerificationStatus>
-
-/**
- * Domain status
- */
-export const DomainStatus = z.enum([
-  'active',
-  'pending',
-  'error',
-  'inactive',
 ])
 export type DomainStatus = z.infer<typeof DomainStatus>
 
@@ -54,9 +43,6 @@ export const DomainVerification = z.object({
   type: DNSRecordType,
   name: z.string(),
   value: z.string(),
-  status: DomainVerificationStatus,
-  verifiedAt: z.date().optional(),
-  expiresAt: z.date().optional(),
 })
 export type DomainVerification = z.infer<typeof DomainVerification>
 
@@ -101,7 +87,6 @@ export const DomainSummary = z.object({
   id: z.string(),
   name: z.string(),
   status: DomainStatus,
-  verification: DomainVerificationStatus.optional(),
   routeCount: z.number(),
   createdAt: z.date(),
 })

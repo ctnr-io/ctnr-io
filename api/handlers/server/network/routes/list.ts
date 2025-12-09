@@ -39,7 +39,6 @@ export default async function* (
 
   // Fetch routes using core/data
   const routes = await listRoutes(kubeClient, ctx.project.namespace, { name, container, domain })
-  console.log(routes)
 
   switch (output) {
     case 'raw':

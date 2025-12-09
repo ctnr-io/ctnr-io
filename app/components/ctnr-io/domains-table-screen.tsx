@@ -147,7 +147,7 @@ export default function DomainsTableScreen() {
 
   const handleAdd = async (domainForm: Omit<DomainData, 'id'>) => {
     await createDomain.mutateAsync({
-      name: domainForm.name,
+      domain: domainForm.name,
     })
   }
 
@@ -178,9 +178,8 @@ export default function DomainsTableScreen() {
       label: 'Status',
       render: (value: string) => (
         <Badge className={getStatusColor(value)}>
-          {value === 'active' && <Shield className='h-3 w-3 mr-1' />}
+          {value === 'verified' && <Shield className='h-3 w-3 mr-1' />}
           {value === 'pending' && <Clock className='h-3 w-3 mr-1' />}
-          {value === 'error' && <AlertTriangle className='h-3 w-3 mr-1' />}
           {value.charAt(0).toUpperCase() + value.slice(1)}
         </Badge>
       ),
@@ -195,7 +194,7 @@ export default function DomainsTableScreen() {
           return <span className='text-sm text-muted-foreground'>-</span>
         }
         return (
-          <div className='text-xs font-mono bg-muted p-2 rounded border overflow-x-scroll no-scrollbar'>
+          <div className='text-xs font-mono bg-muted/40 p-2 rounded border overflow-x-scroll no-scrollbar'>
             <div className='grid grid-cols-5 gap-1 text-xs'>
               <div className='font-semibold'>Type:</div>
               <div className='col-span-4'>{verification.type}</div>

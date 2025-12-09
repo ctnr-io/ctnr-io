@@ -44,10 +44,7 @@ export const Input = z.object({
   volume: z.array(VolumeMount).optional().describe(
     'Mount volumes in format name:path:size (e.g., "data:/app/data:5G")',
   ),
-  route: z.array(z.string())
-    .optional().describe(
-      "Route container's published ports. Format is <port-name> or <port-number>. If not specified, all published ports are routed.",
-    ),
+
   domain: z.string().optional().describe('Domain name for routing'),
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),

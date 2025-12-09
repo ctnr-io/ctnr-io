@@ -21,6 +21,10 @@ export const Input = CreateContinaer.Input.extend({
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
   detach: z.boolean().optional().default(false).describe('Detach from the container after starting'),
+  route: z.string()
+    .optional().describe(
+      "Route container's published ports. Format is <port-name> or <port-number>. If not specified, all published ports are routed.",
+    ),
 })
 
 export type Input = z.infer<typeof Input>
@@ -42,30 +46,6 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   // Create the container first
   yield* createContainer(request)
 
-  // Note: Service management is now handled by the route command
-  // The --publish flag only affects container port configuration
-  if (publish && publish.length > 0) {
-    yield `Containers ports are available for routing.`
-
-    if (input.route) {
-      // Route the container's published ports to a domain
-      try {
-        yield* routeContainer({
-          ctx,
-          input: {
-            name,
-            port: publish.map((p) => p.name || p.port.toString()),
-            domain: input.domain,
-          },
-          signal,
-          defer,
-        })
-      } catch (err) {
-        console.error(`Failed to route container ${name}:`, err)
-        yield `Failed to route container ${name}`
-      }
-    }
-  }
 
   // Start the deployment
   yield* startContainer(request)
@@ -109,6 +89,30 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     }
   }
 
+  // Note: Service management is now handled by the route command
+  // The --publish flag only affects container port configuration
+  if (publish && publish.length > 0) {
+    yield `Containers ports are available for routing.`
+
+    if (input.route) {
+      // Route the container's published ports to a domain
+      try {
+        yield* routeContainer({
+          ctx,
+          input: {
+            name,
+            port: input.route,
+            domain: input.domain,
+          },
+          signal,
+          defer,
+        })
+      } catch (err) {
+        console.error(`Failed to route container ${name}:`, err)
+        yield `Failed to route container ${name}`
+      }
+    }
+  }
 
 
   if (detach) {

@@ -1,17 +1,24 @@
-import { ensureIngressRoute, type KubeClient } from 'infra/kubernetes/mod.ts'
+import { ensureCertManagerCertificate, ensureIngressRoute, type KubeClient } from 'infra/kubernetes/mod.ts'
 import { ensureHTTPRoute } from 'infra/kubernetes/resources/gateway/http_route.ts'
 import { ensureService } from 'infra/kubernetes/resources/core/service.ts'
 import { httpRouteToRoute, ingressRouteToRoute } from 'core/transform/route.ts'
 import type { Route } from 'core/schemas/network/route.ts'
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
+import { getContainer } from '../compute/container.ts'
+import { isDomainVerified } from './domain.ts'
+import { ClusterName } from '../../schemas/common.ts'
+import { proto } from '@tmpl/core'
 
 export interface EnsureRouteInput {
   name: string
   container: string
-  hostnames: string[]
+  hostname: string
+  path: string
+  protocol: 'http' | 'https'
   ports: Array<{ name: string; port: number }>
   namespace: string
+  project: { id: string; cluster: ClusterName }
 }
 
 /**
@@ -20,32 +27,43 @@ export interface EnsureRouteInput {
 export async function ensureRoute(
   kubeClient: KubeClient,
   input: EnsureRouteInput,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
   const { namespace } = input
-  const { name, container, hostnames, ports } = input
+  const { name, container: containerName, hostname, ports, project, path = '/', protocol } = input
+
+  // 0. Retrieve containers published ports
+  const container = await getContainer(
+    { kubeClient, namespace },
+    input.container,
+    { signal },
+  )
+  if (!container) {
+    throw new Error(`Container ${input.container} not found in namespace ${namespace}`)
+  }
+
+  console.log(`Ensuring route ${name} for container ${containerName} on hostname ${hostname}`)
 
   // 1. Ensure Service
   await ensureService(kubeClient, namespace, {
     metadata: {
-      name,
+      name: input.container,
       namespace,
     },
     spec: {
-      ports: ports.map((p) => ({
+      ports: container.ports.map((p) => ({
         name: p.name,
-        port: p.port,
-        targetPort: p.port,
+        port: p.number,
+        targetPort: p.number,
       })),
       selector: {
-        'ctnr.io/name': container,
+        'ctnr.io/name': containerName,
       },
     },
   }, signal)
 
   // 2. Ensure HTTPRoute for ctnr.io hostnames
-  const ctnrHostnames = hostnames.filter((h) => h.endsWith('.ctnr.io'))
-  if (ctnrHostnames.length > 0) {
+  if (hostname.endsWith('.ctnr.io')) {
     await ensureHTTPRoute(kubeClient, namespace, {
       apiVersion: 'gateway.networking.k8s.io/v1',
       kind: 'HTTPRoute',
@@ -54,33 +72,46 @@ export async function ensureRoute(
         namespace,
       },
       spec: {
-        hostnames: ctnrHostnames,
+        hostnames: [hostname],
         parentRefs: [
-          {
-            name: 'public-gateway',
-            namespace: 'kube-public',
-            sectionName: 'web',
-          },
-          {
-            name: 'public-gateway',
-            namespace: 'kube-public',
-            sectionName: 'websecure',
-          },
+          protocol === 'https'
+            ? {
+              name: 'public-gateway',
+              namespace: 'kube-public',
+              sectionName: 'web',
+            }
+            : {
+              name: 'public-gateway',
+              namespace: 'kube-public',
+              sectionName: 'websecure',
+            },
         ],
         rules: [{
           backendRefs: ports.map((port) => ({
             kind: 'Service',
-            name,
+            name: input.container,
             port: port.port,
           })),
+          matches: [{
+            path: {
+              value: path,
+              type: 'PathPrefix',
+            }
+          }],
         }],
       },
     }, signal)
   }
 
   // 3. Ensure IngressRoute for custom domain hostnames
-  const customHostnames = hostnames.filter((h) => !h.endsWith('.ctnr.io'))
-  if (customHostnames.length > 0) {
+  if (!hostname.endsWith('.ctnr.io')) {
+    // get domain
+
+    // Check if domain is verified
+    if (!await isDomainVerified(hostname, project.id)) {
+      throw new Error(`Domain ${hostname} is not verified`)
+    }
+
     await ensureIngressRoute(kubeClient, namespace, {
       apiVersion: 'traefik.io/v1alpha1',
       kind: 'IngressRoute',
@@ -89,17 +120,39 @@ export async function ensureRoute(
         namespace,
       },
       spec: {
-        entryPoints: ['web', 'websecure'],
-        routes: customHostnames.map((hostname) => ({
-          match: `Host(\`${hostname}\`)`,
+        entryPoints: [protocol === 'https' ? 'websecure' : 'web'],
+        routes: [{
+          match: `Host(\`${hostname}\`) && PathPrefix(\`${path}\`)`,
           kind: 'Rule',
           services: ports.map((port) => ({
-            name,
+            name: input.container,
             port: port.port,
           })),
-        })),
+        }],
+        tls: {
+          secretName: `${name}-tls`,
+        },
       },
     }, signal)
+
+    if (protocol === 'https') {
+      await ensureCertManagerCertificate(kubeClient, namespace, {
+        apiVersion: 'cert-manager.io/v1',
+        kind: 'Certificate',
+        metadata: {
+          name: name,
+          namespace,
+        },
+        spec: {
+          dnsNames: [hostname],
+          secretName: `${name}-tls`,
+          issuerRef: {
+            name: 'letsencrypt',
+            kind: 'ClusterIssuer',
+          },
+        },
+      }, signal)
+    }
   }
 }
 
@@ -109,8 +162,13 @@ export async function ensureRoute(
 export async function deleteRoute(
   kubeClient: KubeClient,
   namespace: string,
-  name: string
+  name: string,
 ): Promise<void> {
+  const route = await listRoutes(kubeClient, namespace, { name })
+  if (route.length === 0) {
+    throw new Error(`Route ${name} not found in namespace ${namespace}`)
+  }
+
   // Try to delete as HTTPRoute first
   try {
     await kubeClient.GatewayNetworkingV1(namespace).deleteHTTPRoute(name)
@@ -121,6 +179,12 @@ export async function deleteRoute(
 
   // Try to delete as IngressRoute
   await kubeClient.TraefikV1Alpha1(namespace).deleteIngressRoute(name)
+
+  // Check if there is any route and delete the service if not
+  const routes = await listRoutes(kubeClient, namespace, { name })
+  if (routes.length === 0) {
+    await kubeClient.CoreV1.namespace(namespace).deleteService(route[0].container)
+  }
 }
 
 /**
@@ -129,7 +193,7 @@ export async function deleteRoute(
 export async function routeExists(
   kubeClient: KubeClient,
   namespace: string,
-  name: string
+  name: string,
 ): Promise<boolean> {
   try {
     await kubeClient.GatewayNetworkingV1(namespace).getHTTPRoute(name)
@@ -159,9 +223,8 @@ export interface ListRoutesOptions {
 export async function listRoutes(
   kubeClient: KubeClient,
   namespace: string,
-  options: ListRoutesOptions = {}
+  options: ListRoutesOptions = {},
 ): Promise<Route[]> {
-  console.log("Listing routes with options:", namespace, options)
   const { name, container, domain, signal } = options
 
   const routes: Route[] = []
@@ -169,18 +232,19 @@ export async function listRoutes(
   // Fetch HTTPRoutes
   try {
     // deno-lint-ignore no-explicit-any
-    const httpRoutesResponse: any = await kubeClient.GatewayNetworkingV1(namespace).listHTTPRoutes({ abortSignal: signal })
+    const httpRoutesResponse: any = await kubeClient.GatewayNetworkingV1(namespace).listHTTPRoutes({
+      abortSignal: signal,
+    })
     const httpRoutes = (httpRoutesResponse.items ?? []) as HTTPRoute[]
-    console.log("Fetched HTTPRoutes:", httpRoutes)
-    
+
     for (const httpRoute of httpRoutes) {
       const route = httpRouteToRoute(httpRoute)
-      
+
       // Apply filters
       if (name && route.name !== name) continue
       if (container && route.container !== container) continue
       if (domain && !route.domain.includes(domain)) continue
-      
+
       routes.push(route)
     }
   } catch {
@@ -191,15 +255,15 @@ export async function listRoutes(
   try {
     const ingressRoutesResponse = await kubeClient.TraefikV1Alpha1(namespace).listIngressRoutes({ abortSignal: signal })
     const ingressRoutes = (ingressRoutesResponse.items ?? []) as IngressRoute[]
-    
+
     for (const ingressRoute of ingressRoutes) {
       const route = ingressRouteToRoute(ingressRoute)
-      
+
       // Apply filters
       if (name && route.name !== name) continue
       if (container && route.container !== container) continue
       if (domain && !route.domain.includes(domain)) continue
-      
+
       routes.push(route)
     }
   } catch {

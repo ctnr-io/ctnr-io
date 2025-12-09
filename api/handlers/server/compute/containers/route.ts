@@ -16,7 +16,7 @@ export const Input = z.object({
   domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional().describe(
     'Parent domain name for the routing',
   ),
-  port: z.array(PortName).optional().describe(
+  port: PortName.describe(
     'Ports to expose, defaults to all ports of the container',
   ),
 })
@@ -30,6 +30,8 @@ export default async function* routeContainer(request: ServerRequest<Input>): Se
       ...request.input,
       name: request.input.name,
       container: request.input.name,
+      path: '/',
+      protocol: 'https',
     },
   })
 }

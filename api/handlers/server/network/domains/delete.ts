@@ -48,7 +48,7 @@ export default async function* (
     yield `You may also need to:`
     yield `1. Remove DNS records pointing to ctnr.io`
     yield `2. Cancel domain registration if no longer needed`
-    yield `3. Update any routes that were using this domain`
+    yield `3. Routes associated with this domain have also been deleted`
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     yield `Error deleting domain: ${errorMessage}`

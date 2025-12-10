@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { Project, ClusterName } from 'lib/api/schemas.ts'
 import { ServerProjectContext } from 'api/context/mod.ts'
-import { ProjectNamespaceLabels } from 'lib/api/labels.ts'
+import { ProjectNamespaceLabels } from 'core/rules/tenancy/project.ts'
 
 export const Meta = {
   aliases: {

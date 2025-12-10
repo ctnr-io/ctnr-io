@@ -4,6 +4,7 @@ import { z } from 'zod'
  * Domain status
  */
 export const DomainStatus = z.enum([
+  'active',
   'verified',
   'pending',
   'failed',
@@ -77,6 +78,11 @@ export const Domain = z.object({
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),
   annotations: z.record(z.string(), z.string()).optional(),
+  configuration: z.object({
+    type: z.enum(['CNAME']),
+    target: z.string(),
+    status: z.enum(['active', 'pending', 'failed']).optional(),
+  }).optional(),
 })
 export type Domain = z.infer<typeof Domain>
 
@@ -89,6 +95,11 @@ export const DomainSummary = z.object({
   status: DomainStatus,
   routeCount: z.number(),
   createdAt: z.date(),
+  configuration: z.object({
+    type: z.enum(['CNAME']),
+    target: z.string(),
+    status: z.enum(['active', 'pending', 'failed']).optional(),
+  }).optional(),
 })
 export type DomainSummary = z.infer<typeof DomainSummary>
 

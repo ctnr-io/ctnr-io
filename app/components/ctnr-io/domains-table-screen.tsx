@@ -2,29 +2,32 @@
 
 import { GenericResourceTableScreen, ResourceItem } from 'app/components/ctnr-io/generic-resource-table-screen.tsx'
 import { TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
-import { AlertTriangle, Clock, Globe, Shield } from 'lucide-react'
+import { Clock, Globe, Shield } from 'lucide-react'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from 'app/components/shadcn/ui/collapsible.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Label } from 'app/components/shadcn/ui/label.tsx'
 import { useState } from 'react'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CodeInline } from './code-inline.tsx'
+import { useIsMobile } from '../../hooks/shadcn/use-mobile.ts'
 
 // Domain type definition for frontend - only custom domains
 interface DomainData extends ResourceItem {
   createdAt?: string
+  status: 'active' | 'verified' | 'pending' | 'error' | 'expired'
   verification?: {
     type?: string
     name?: string
     value?: string
-    status?: string
   }
 }
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'active':
+    case 'verified':
       return 'text-chart-2 bg-chart-2/10'
     case 'pending':
       return 'text-chart-4 bg-chart-4/10'
@@ -101,14 +104,20 @@ function AddDomainForm({
 }
 
 export default function DomainsTableScreen() {
+  const isMobile = useIsMobile()
+
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
-  // Fetch domains data
-  const { data: domains, isLoading } = useQuery(
+  const { data: domains, isLoading: isDomainsLoading } = useQuery(
     trpc.network.domains.list.queryOptions({
       output: 'raw',
     }),
+  )
+
+  // Fetch project context
+  const { data: project, isLoading: isProjectLoading } = useQuery(
+    trpc.tenancy.project.get.queryOptions({}),
   )
 
   // Create domain mutation
@@ -190,24 +199,17 @@ export default function DomainsTableScreen() {
       label: 'Verification',
       render: (_value, item: DomainData) => {
         const verification = item.verification
-        if (!verification || verification.status === 'verified') {
+        if (!verification || item.status === 'verified') {
           return <span className='text-sm text-muted-foreground'>-</span>
         }
         return (
           <div className='text-xs font-mono bg-muted/40 p-2 rounded border overflow-x-scroll no-scrollbar'>
-            <div className='grid grid-cols-5 gap-1 text-xs'>
-              <div className='font-semibold'>Type:</div>
-              <div className='col-span-4'>{verification.type}</div>
-              <div className='font-semibold'>Name:</div>
-              <div className='col-span-4'>{verification.name}</div>
-              <div className='font-semibold'>Value:</div>
-              <div className='col-span-4'>{verification.value}</div>
-            </div>
+            {verification.type} {verification.name} {verification.value}
           </div>
         )
       },
-      className: 'text-sm',
     },
+
     {
       key: 'createdAt',
       label: 'Created',
@@ -222,13 +224,27 @@ export default function DomainsTableScreen() {
       resourceNamePlural='Domains'
       icon={Globe}
       data={domainData}
-      isLoading={isLoading}
+      isLoading={isDomainsLoading || isProjectLoading}
       columns={columns}
       onAdd={handleAdd}
       onDelete={handleDelete}
       addFormComponent={AddDomainForm}
       description='Manage your custom domains and SSL certificates'
-      infoDescription="Add custom domains to use with your containers. Each domain will get an SSL certificate automatically provisioned via Let's Encrypt. You'll need to configure DNS records to point to your ctnr.io cluster."
+      infoDescription={
+        <>
+          Add custom domains to use with your containers. Each domain will get an SSL certificate automatically
+          provisioned.
+        </>
+      }
+      tableDescription={isMobile || isProjectLoading? undefined : (
+        <>
+          To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record
+          {' '}
+          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} /> for root domain ) and target gateway at
+          {' '}
+          <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
+        </>
+      )}
       searchPlaceholder='Search domains by name, status, or provider...'
       searchKeys={['name', 'status', 'routeCount']}
       addButtonLabel='Add Domain'

@@ -5,7 +5,7 @@ import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
 import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
-import { Fragment, ReactNode, useMemo, useState, MouseEvent } from 'react'
+import { ReactNode, useMemo, useState, MouseEvent } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
@@ -44,7 +44,7 @@ export interface DataTableScreenProps<T = any> {
   }
 
   // Description section
-  infoDescription?: string
+  infoDescription?: ReactNode
 
   // Table props
   data: T[]
@@ -53,7 +53,7 @@ export interface DataTableScreenProps<T = any> {
 
   // Table header
   tableTitle: string
-  tableDescription?: string
+  tableDescription?: ReactNode
 
   // Mobile card customization
   mobileCardTitle: (item: T) => string
@@ -380,9 +380,13 @@ export function DataTableScreen<T = any>({
         {/* Description */}
         {infoDescription && (
           <Card className='bg-card border rounded-lg p-3 md:p-4 '>
-            <p className='text-sm sm:text-base text-card-foreground'>
-              {infoDescription}
-            </p>
+            {/* If infoDescription is a string, render inside a paragraph; otherwise render the provided ReactNode
+                directly so that block-level elements (e.g. <div>, <ul>, <pre>) can be used inside the description. */}
+            {typeof infoDescription === 'string' ? (
+              <p className='text-sm sm:text-base text-card-foreground'>{infoDescription}</p>
+            ) : (
+              <div className='text-sm sm:text-base text-card-foreground'>{infoDescription}</div>
+            )}
           </Card>
         )}
 

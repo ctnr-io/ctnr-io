@@ -47,12 +47,12 @@ export interface GenericResourceTableScreenProps<T extends ResourceItem> {
 
   // UI customization
   description?: string
-  infoDescription?: string
+  infoDescription?: ReactNode
   searchPlaceholder?: string
   searchKeys?: string[]
   emptyMessage?: string
   addButtonLabel?: string
-  tableDescription?: string
+  tableDescription?: ReactNode
   mobileCardTitle?: (item: T) => string
   mobileCardSubtitle?: (item: T) => string
   mobileCardStatus?: (item: T) => { label: string; className: string }

@@ -28,7 +28,7 @@ export default async function* routeContainer(request: ServerRequest<Input>): Se
     ...request,
     input: {
       ...request.input,
-      name: request.input.name,
+      name: request.input.port + '-' + request.input.name,
       container: request.input.name,
       path: '/',
       protocol: 'https',

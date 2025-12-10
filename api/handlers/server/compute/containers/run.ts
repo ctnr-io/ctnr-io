@@ -3,7 +3,7 @@ import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import attachContainer from './attach.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import logContainer from './logs.ts'
-import createContainer, * as CreateContinaer from './create.ts'
+import createContainer, * as CreateContainer from './create.ts'
 import startContainer from './start.ts'
 import routeContainer from './route.ts'
 
@@ -13,11 +13,12 @@ export const Meta = {
       'interactive': 'i',
       'terminal': 't',
       'publish': 'p',
+      'route': 'r',
     },
   },
 }
 
-export const Input = CreateContinaer.Input.extend({
+export const Input = CreateContainer.Input.extend({
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
   detach: z.boolean().optional().default(false).describe('Detach from the container after starting'),
@@ -35,7 +36,6 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   const clusterClient = ctx.kube.client[ctx.project.cluster]
 
   const {
-    name,
     interactive,
     terminal,
     detach,
@@ -44,11 +44,16 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   } = input
 
   // Create the container first
-  yield* createContainer(request)
-
+  const { name } = yield* createContainer(request)
 
   // Start the deployment
-  yield* startContainer(request)
+  yield* startContainer({
+    ...request,
+    input: {
+      ...input,
+      name
+    }
+  })
 
   // Parse replicas parameter
   let replicaCount: number

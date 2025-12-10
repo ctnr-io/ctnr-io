@@ -4,7 +4,7 @@ import { Project, ClusterName } from 'lib/api/schemas.ts'
 import { createServerProjectContext } from 'api/context/server/project.ts'
 import { ServerProjectContext } from 'api/context/mod.ts'
 import { ensureProject } from 'core/data/tenancy/project.ts'
-import { ProjectNamespaceLabels } from 'lib/api/labels.ts'
+import { ProjectNamespaceLabels } from 'core/rules/tenancy/project.ts'
 
 export const Meta = {
   aliases: {

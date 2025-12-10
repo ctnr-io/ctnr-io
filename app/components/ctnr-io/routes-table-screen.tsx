@@ -13,6 +13,8 @@ import { useState } from 'react'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Route } from 'core/schemas/network/route.ts'
+import { CodeInline } from './code-inline.tsx'
+import { useIsMobile } from '../../hooks/shadcn/use-mobile.ts'
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -54,9 +56,9 @@ function AddRouteForm({
     name: '',
     path: '/',
     container: '',
-  port: '80',
-  domain: '',
-  selectedDomain: '',
+    port: '80',
+    domain: '',
+    selectedDomain: '',
     subdomain: '',
     protocol: 'https' as 'http' | 'https',
     methods: {
@@ -108,17 +110,15 @@ function AddRouteForm({
       setFormError('Target port is required')
       return
     }
-    const fullDomain = formData.subdomain
-      ? `${formData.subdomain}.${formData.domain}`
-      : formData.domain
+    const fullDomain = formData.subdomain ? `${formData.subdomain}.${formData.domain}` : formData.domain
 
     const routeData = {
       name: formData.name,
       path: formData.path,
       container: formData.container,
       port: formData.port,
-  // If fullDomain is an empty string, pass an empty string (API accepts it as 'no domain')
-  domain: fullDomain || '',
+      // If fullDomain is an empty string, pass an empty string (API accepts it as 'no domain')
+      domain: fullDomain || '',
       protocol: formData.protocol,
       status: 'pending' as const,
       createdAt: new Date(),
@@ -164,43 +164,49 @@ function AddRouteForm({
             placeholder='Subdomain (optional) e.g., api or www'
             className='w-1/3'
             disabled={!formData.domain}
-            required={!!formData.domain}
           />
-        <Select
-          value={formData.selectedDomain}
-          onValueChange={(value) => {
-            const NO_DOMAIN = '__no_domain__'
-            const domainValue = value === NO_DOMAIN ? '' : value
-            setFormData({ ...formData, selectedDomain: value, domain: domainValue, subdomain: domainValue ? formData.subdomain : '' })
-          }}
-        >
-          <SelectTrigger className='w-full'>
-            <SelectValue placeholder='Select domain...' />
-          </SelectTrigger>
-          <SelectContent className='w-full min-w-full'>
-            <SelectItem value='__no_domain__'>No domain (auto-generated)</SelectItem>
-            {domains.map((d) => {
-              const verified = d.status === 'verified'
-              return (
-                <SelectItem key={d.name} value={d.name} disabled={!verified}>
-                  {d.name}
-                  {!verified ? ' (pending verification)' : ''}
-                </SelectItem>
-              )
-            })}
-          </SelectContent>
-        </Select>
+          <Select
+            value={formData.selectedDomain}
+            onValueChange={(value) => {
+              const NO_DOMAIN = '__no_domain__'
+              const domainValue = value === NO_DOMAIN ? '' : value
+              setFormData({
+                ...formData,
+                selectedDomain: value,
+                domain: domainValue,
+                subdomain: domainValue ? formData.subdomain : '',
+              })
+            }}
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue placeholder='Select domain...' />
+            </SelectTrigger>
+            <SelectContent className='w-full min-w-full'>
+              <SelectItem value='__no_domain__'>No domain (auto-generated)</SelectItem>
+              {domains.map((d) => {
+                const verified = d.status === 'verified'
+                return (
+                  <SelectItem key={d.name} value={d.name} disabled={!verified}>
+                    {d.name}
+                    {!verified ? ' (pending verification)' : ''}
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
         </div>
 
-        {formData.domain ? (
-          <div className='text-sm text-muted-foreground mt-1'>
-            Preview: {formData.subdomain ? `${formData.subdomain}.${formData.domain}` : formData.domain}
-          </div>
-        ) : (
-          <div className='text-sm text-muted-foreground mt-1'>
-            Preview: Auto-generated ctnr.io hostname
-          </div>
-        )}
+        {formData.domain
+          ? (
+            <div className='text-sm text-muted-foreground mt-1'>
+              Preview: {formData.subdomain ? `${formData.subdomain}.${formData.domain}` : formData.domain}
+            </div>
+          )
+          : (
+            <div className='text-sm text-muted-foreground mt-1'>
+              Preview: Auto-generated ctnr.io hostname
+            </div>
+          )}
       </div>
 
       <div className='space-y-2'>
@@ -262,7 +268,8 @@ function AddRouteForm({
               )}
               {getPortsForContainer(formData.container).map((p) => (
                 <SelectItem key={p.number} value={String(p.number)}>
-                  {p.name ? `${p.name}:` : ''}{p.number}
+                  {p.name ? `${p.name}:` : ''}
+                  {p.number}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -288,11 +295,18 @@ function AddRouteForm({
 }
 
 export default function RoutesTableScreen() {
+  const isMobile = useIsMobile()
+
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
+  // Fetch project context
+  const { data: project, isLoading: isProjectLoading } = useQuery(
+    trpc.tenancy.project.get.queryOptions({}),
+  )
+
   // Fetch routes data
-  const { data: routes, isLoading } = useQuery(
+  const { data: routes, isLoading: isRoutesLoading } = useQuery(
     trpc.network.routes.list.queryOptions({
       output: 'raw',
     }),
@@ -435,14 +449,27 @@ export default function RoutesTableScreen() {
       resourceNamePlural='Routes'
       icon={RouteIcon}
       data={routeData}
-      isLoading={isLoading}
+      isLoading={isRoutesLoading || isProjectLoading}
       columns={columns}
       onAdd={handleAdd}
       onDelete={handleDelete}
       onRowClick={handleRowClick}
       addFormComponent={AddRouteForm}
       description='Manage HTTP routes and traffic routing rules'
-      infoDescription='Configure HTTP routes to direct traffic from domains to your services. Set up path-based routing, method filtering, and load balancing rules.'
+      infoDescription={
+        <>
+          Configure HTTP routes to direct traffic from domains to your services. Set up path-based routing, protocol,
+          method filtering and load balancing rules.
+        </>
+      }
+      tableDescription={isMobile || isProjectLoading ? undefined : (
+        <>
+          To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record (or{' '}
+          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} /> for root domain ) and target gateway at
+          {' '}
+          <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
+        </>
+      )}
       searchPlaceholder='Search routes by name, path, domain, or service...'
       searchKeys={['name', 'path', 'domain', 'container', 'status']}
       addButtonLabel='Create Route'

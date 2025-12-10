@@ -1,46 +1,10 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@cloudydeno/kubernetes-apis@~0.5.2": "0.5.2",
-    "jsr:@cloudydeno/kubernetes-client@0.7.3": "0.7.3",
-    "jsr:@cloudydeno/kubernetes-client@~0.7.5": "0.7.5",
-    "jsr:@cloudydeno/stream-observables@1": "1.4.1",
-    "jsr:@opensrc/short-uuid@1": "1.0.0",
-    "jsr:@std/assert@^1.0.12": "1.0.14",
-    "jsr:@std/assert@^1.0.13": "1.0.14",
-    "jsr:@std/async@^1.0.13": "1.0.14",
-    "jsr:@std/bytes@^1.0.2": "1.0.6",
-    "jsr:@std/bytes@^1.0.6": "1.0.6",
-    "jsr:@std/cli@^1.0.21": "1.0.21",
-    "jsr:@std/crypto@^1.0.5": "1.0.5",
-    "jsr:@std/data-structures@^1.0.9": "1.0.9",
-    "jsr:@std/dotenv@~0.225.5": "0.225.5",
-    "jsr:@std/encoding@^1.0.10": "1.0.10",
-    "jsr:@std/fmt@^1.0.8": "1.0.8",
-    "jsr:@std/fs@^1.0.19": "1.0.19",
-    "jsr:@std/html@^1.0.4": "1.0.4",
-    "jsr:@std/http@^1.0.10": "1.0.20",
     "jsr:@std/internal@^1.0.10": "1.0.10",
-    "jsr:@std/internal@^1.0.9": "1.0.10",
-    "jsr:@std/media-types@^1.1.0": "1.1.0",
-    "jsr:@std/net@^1.0.4": "1.0.5",
-    "jsr:@std/path@1": "1.1.2",
-    "jsr:@std/path@1.0.6": "1.0.6",
     "jsr:@std/path@^1.0.9": "1.1.2",
-    "jsr:@std/path@^1.1.1": "1.1.2",
-    "jsr:@std/regexp@^1.0.1": "1.0.1",
-    "jsr:@std/streams@1": "1.0.11",
-    "jsr:@std/streams@1.0.5": "1.0.5",
-    "jsr:@std/streams@^1.0.10": "1.0.11",
-    "jsr:@std/testing@^1.0.10": "1.0.15",
-    "jsr:@std/text@^1.0.16": "1.0.16",
-    "jsr:@std/uuid@^1.0.6": "1.0.9",
-    "jsr:@std/yaml@1": "1.0.9",
-    "jsr:@std/yaml@1.0.5": "1.0.5",
     "jsr:@std/yaml@^1.0.6": "1.0.9",
-    "jsr:@std/yaml@^1.0.8": "1.0.9",
     "jsr:@tmpl/core@~0.6.3": "0.6.3",
-    "jsr:@tmpl/gen@0.6": "0.6.3",
     "npm:@mollie/api-client@^4.3.3": "4.3.3",
     "npm:@supabase/supabase-js@^2.45.4": "2.86.2",
     "npm:@tanstack/react-query@^5.85.9": "5.90.12_react@19.2.1",
@@ -49,164 +13,29 @@
     "npm:@trpc/tanstack-react-query@^11.5.0": "11.7.2_@tanstack+react-query@5.90.12__react@19.2.1_@trpc+client@11.7.2__@trpc+server@11.7.2___typescript@5.9.3__typescript@5.9.3_@trpc+server@11.7.2__typescript@5.9.3_react@19.2.1_react-dom@19.2.1__react@19.2.1_typescript@5.9.3",
     "npm:@types/ip6addr@~0.2.6": "0.2.6",
     "npm:@types/ip@^1.1.3": "1.1.3",
-    "npm:@types/node@*": "22.15.15",
     "npm:@types/ws@^8.2.0": "8.18.1",
     "npm:body-parser@^1.20.3": "1.20.4",
     "npm:date-fns@^4.1.0": "4.1.0",
     "npm:ip6addr@~0.2.5": "0.2.5",
-    "npm:itertools-ts@^2.2.0": "2.2.0",
+    "npm:itertools-ts@^2.2.0": "2.3.1",
     "npm:querystring@~0.2.1": "0.2.1",
-    "npm:superjson@^2.2.2": "2.2.2",
+    "npm:superjson@^2.2.2": "2.2.6",
     "npm:trpc-cli@~0.12.1": "0.12.1_@trpc+server@11.7.2__typescript@5.9.3_zod@4.1.13",
     "npm:trpc-to-openapi@^3.0.1": "3.1.0_@trpc+server@11.7.2__typescript@5.9.3_zod@4.1.13_zod-openapi@5.4.5__zod@4.1.13",
-    "npm:ts-pattern@^5.7.1": "5.8.0",
-    "npm:ts-to-zod@^3.15.0": "3.15.0_typescript@5.9.3_@types+node@22.15.15",
+    "npm:ts-pattern@^5.7.1": "5.9.0",
+    "npm:ts-to-zod@^3.15.0": "3.15.0_typescript@5.9.3",
     "npm:ws@8": "8.18.3",
     "npm:zod@^4.1.5": "4.1.13"
   },
   "jsr": {
-    "@cloudydeno/kubernetes-apis@0.5.2": {
-      "integrity": "f5fd9c94987f54fde72c6103fa0663ccb71cb6e328e7be44af1d59145adb31ee",
-      "dependencies": [
-        "jsr:@cloudydeno/kubernetes-client@0.7.3"
-      ]
-    },
-    "@cloudydeno/kubernetes-client@0.7.3": {
-      "integrity": "eb9fd12ac6c58e7995cc2d41a72ea9d153970900e184a5bd6fa2f2b19da5ec1a",
-      "dependencies": [
-        "jsr:@std/path@1.0.6",
-        "jsr:@std/streams@1.0.5",
-        "jsr:@std/yaml@1.0.5"
-      ]
-    },
-    "@cloudydeno/kubernetes-client@0.7.5": {
-      "integrity": "1b8b3cc2a2409db42a0fbab0d55fd42e8897335d67f24f21f207902a4582bb82",
-      "dependencies": [
-        "jsr:@cloudydeno/stream-observables",
-        "jsr:@std/path@1",
-        "jsr:@std/streams@1",
-        "jsr:@std/yaml@1"
-      ]
-    },
-    "@cloudydeno/stream-observables@1.4.1": {
-      "integrity": "555aa3d786fcfd066d096fc943ea47afc688618e95146e615705e981008f57c0"
-    },
-    "@opensrc/short-uuid@1.0.0": {
-      "integrity": "80985b40538cd1f4a7aa1f7e9e9787ff07fe6475673ae7467391b0d7fc147945"
-    },
-    "@std/assert@1.0.14": {
-      "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
-      "dependencies": [
-        "jsr:@std/internal@^1.0.10"
-      ]
-    },
-    "@std/async@1.0.14": {
-      "integrity": "62e954a418652c704d37563a3e54a37d4cf0268a9dcaeac1660cc652880b5326"
-    },
-    "@std/bytes@1.0.6": {
-      "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
-    },
-    "@std/cli@1.0.21": {
-      "integrity": "cd25b050bdf6282e321854e3822bee624f07aca7636a3a76d95f77a3a919ca2a"
-    },
-    "@std/crypto@1.0.5": {
-      "integrity": "0dcfbb319fe0bba1bd3af904ceb4f948cde1b92979ec1614528380ed308a3b40"
-    },
-    "@std/data-structures@1.0.9": {
-      "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
-    },
-    "@std/dotenv@0.225.5": {
-      "integrity": "9ce6f9d0ec3311f74a32535aa1b8c62ed88b1ab91b7f0815797d77a6f60c922f"
-    },
-    "@std/encoding@1.0.10": {
-      "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
-    },
-    "@std/fmt@1.0.8": {
-      "integrity": "71e1fc498787e4434d213647a6e43e794af4fd393ef8f52062246e06f7e372b7"
-    },
-    "@std/fs@1.0.19": {
-      "integrity": "051968c2b1eae4d2ea9f79a08a3845740ef6af10356aff43d3e2ef11ed09fb06",
-      "dependencies": [
-        "jsr:@std/internal@^1.0.9",
-        "jsr:@std/path@^1.1.1"
-      ]
-    },
-    "@std/html@1.0.4": {
-      "integrity": "eff3497c08164e6ada49b7f81a28b5108087033823153d065e3f89467dd3d50e"
-    },
-    "@std/http@1.0.20": {
-      "integrity": "b5cc33fc001bccce65ed4c51815668c9891c69ccd908295997e983d8f56070a1",
-      "dependencies": [
-        "jsr:@std/cli",
-        "jsr:@std/encoding",
-        "jsr:@std/fmt",
-        "jsr:@std/fs",
-        "jsr:@std/html",
-        "jsr:@std/media-types",
-        "jsr:@std/net",
-        "jsr:@std/path@^1.1.1",
-        "jsr:@std/streams@^1.0.10"
-      ]
-    },
     "@std/internal@1.0.10": {
       "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
-    },
-    "@std/media-types@1.1.0": {
-      "integrity": "c9d093f0c05c3512932b330e3cc1fe1d627b301db33a4c2c2185c02471d6eaa4"
-    },
-    "@std/net@1.0.5": {
-      "integrity": "b759d8c5e17d997e164af6379d57764668c6714f30109685eec0fd5e194d501a"
-    },
-    "@std/path@1.0.6": {
-      "integrity": "ab2c55f902b380cf28e0eec501b4906e4c1960d13f00e11cfbcd21de15f18fed"
     },
     "@std/path@1.1.2": {
       "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
       "dependencies": [
-        "jsr:@std/internal@^1.0.10"
+        "jsr:@std/internal"
       ]
-    },
-    "@std/regexp@1.0.1": {
-      "integrity": "5179d823465085c5480dafb44438466e83c424fadc61ba31f744050ecc0f596d"
-    },
-    "@std/streams@1.0.5": {
-      "integrity": "74e5c73d7d68eeab0d7fba3b05cbee3ba4ac5ae37c5f4e675f67e62f8f53edc4",
-      "dependencies": [
-        "jsr:@std/bytes@^1.0.2"
-      ]
-    },
-    "@std/streams@1.0.11": {
-      "integrity": "db583d27e28d133f389f1eec318cffdf4998305e5134c1d4b1c56b361cee6018",
-      "dependencies": [
-        "jsr:@std/bytes@^1.0.6"
-      ]
-    },
-    "@std/testing@1.0.15": {
-      "integrity": "a490169f5ccb0f3ae9c94fbc69d2cd43603f2cffb41713a85f99bbb0e3087cbc",
-      "dependencies": [
-        "jsr:@std/assert@^1.0.13",
-        "jsr:@std/async",
-        "jsr:@std/data-structures",
-        "jsr:@std/fs",
-        "jsr:@std/internal@^1.0.10",
-        "jsr:@std/path@^1.1.1"
-      ]
-    },
-    "@std/text@1.0.16": {
-      "integrity": "ddb9853b75119a2473857d691cf1ec02ad90793a2e8b4a4ac49d7354281a0cf8",
-      "dependencies": [
-        "jsr:@std/regexp"
-      ]
-    },
-    "@std/uuid@1.0.9": {
-      "integrity": "44b627bf2d372fe1bd099e2ad41b2be41a777fc94e62a3151006895a037f1642",
-      "dependencies": [
-        "jsr:@std/bytes@^1.0.6",
-        "jsr:@std/crypto"
-      ]
-    },
-    "@std/yaml@1.0.5": {
-      "integrity": "71ba3d334305ee2149391931508b2c293a8490f94a337eef3a09cade1a2a2742"
     },
     "@std/yaml@1.0.9": {
       "integrity": "6bad3dc766dd85b4b37eabcba81b6aa4eac7a392792ae29abcfb0f90602d55bb"
@@ -214,13 +43,13 @@
     "@tmpl/core@0.6.3": {
       "integrity": "d4b0311a4607247ab319a051d9a60085d6693bffe747cdfbcc50ffa75d7225bc",
       "dependencies": [
-        "jsr:@std/yaml@^1.0.6"
+        "jsr:@std/yaml"
       ]
     },
     "@tmpl/gen@0.6.3": {
       "integrity": "e03dd5744d76d57d7b6081449101d0b5df9f49fae13bb8ee424a8644218004f9",
       "dependencies": [
-        "jsr:@std/path@^1.0.9",
+        "jsr:@std/path",
         "jsr:@tmpl/core"
       ]
     }
@@ -234,17 +63,6 @@
       "dependencies": [
         "chardet",
         "iconv-lite@0.7.0"
-      ]
-    },
-    "@inquirer/external-editor@1.0.3_@types+node@22.15.15": {
-      "integrity": "sha512-RWbSrDiYmO4LbejWY7ttpxczuwQyZLBUyygsA9Nsv95hpzUWwnNTVQmAq3xuh7vNwCp07UTmE5i11XAEExx4RA==",
-      "dependencies": [
-        "@types/node",
-        "chardet",
-        "iconv-lite@0.7.0"
-      ],
-      "optionalPeers": [
-        "@types/node"
       ]
     },
     "@mollie/api-client@4.3.3": {
@@ -377,8 +195,8 @@
         "form-data"
       ]
     },
-    "@types/node@22.15.15": {
-      "integrity": "sha512-R5muMcZob3/Jjchn5LcO8jdKwSCbzqmPB6ruBxMcf9kbxtniZHP327s6C37iOfuw8mbKK3cAQa7sEl7afLrQ8A==",
+    "@types/node@24.10.1": {
+      "integrity": "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==",
       "dependencies": [
         "undici-types"
       ]
@@ -589,8 +407,8 @@
     "cookie-es@1.2.2": {
       "integrity": "sha512-+W7VmiVINB+ywl1HGXJXmrqkOhpKrIiVZV6tQuV54ZyQC7MMuBt81Vc336GMLoHBq5hV/F9eXgt5Mnx0Rha5Fg=="
     },
-    "copy-anything@3.0.5": {
-      "integrity": "sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==",
+    "copy-anything@4.0.5": {
+      "integrity": "sha512-7Vv6asjS4gMOuILabD3l739tsaxFQmC+a7pLZm02zyvs8p977bL3zEgq3yDk5rn9B0PbYgIv++jmHcuUab4RhA==",
       "dependencies": [
         "is-what"
       ]
@@ -856,27 +674,7 @@
     "inquirer@8.2.7": {
       "integrity": "sha512-UjOaSel/iddGZJ5xP/Eixh6dY1XghiBw4XK13rCCIJcJfyhhoul/7KhLLUGtebEj6GDYM6Vnx/mVsjx2L/mFIA==",
       "dependencies": [
-        "@inquirer/external-editor@1.0.3",
-        "ansi-escapes",
-        "chalk",
-        "cli-cursor",
-        "cli-width",
-        "figures",
-        "lodash",
-        "mute-stream",
-        "ora",
-        "run-async",
-        "rxjs",
-        "string-width",
-        "strip-ansi",
-        "through",
-        "wrap-ansi@6.2.0"
-      ]
-    },
-    "inquirer@8.2.7_@types+node@22.15.15": {
-      "integrity": "sha512-UjOaSel/iddGZJ5xP/Eixh6dY1XghiBw4XK13rCCIJcJfyhhoul/7KhLLUGtebEj6GDYM6Vnx/mVsjx2L/mFIA==",
-      "dependencies": [
-        "@inquirer/external-editor@1.0.3_@types+node@22.15.15",
+        "@inquirer/external-editor",
         "ansi-escapes",
         "chalk",
         "cli-cursor",
@@ -937,8 +735,8 @@
     "is-unicode-supported@0.1.0": {
       "integrity": "sha512-knxG2q4UC3u8stRGyAVJCOdxFmv5DZiRcdlIaAQXAbSfJya+OhopNotLQrstBhququ4ZpuKbDc/8S6mgXgPFPw=="
     },
-    "is-what@4.1.16": {
-      "integrity": "sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A=="
+    "is-what@5.5.0": {
+      "integrity": "sha512-oG7cgbmg5kLYae2N5IVd3jm2s+vldjxJzK1pcu9LfpGuQ93MQSzo0okvRna+7y5ifrD+20FE8FvjusyGaz14fw=="
     },
     "is-wsl@2.2.0": {
       "integrity": "sha512-fKzAra0rGJUUBwGBgNkHZuToZcn+TtXHpeCgmkMJMMYx1sQDYaCSyjJBSCa2nH1DGm7s3n1oBnohoVTBaN7Lww==",
@@ -946,8 +744,8 @@
         "is-docker"
       ]
     },
-    "itertools-ts@2.2.0": {
-      "integrity": "sha512-mniYtZhO2ZLFiuUjx6y/Rl1ohGVkEaapz7FGx/tT3tehd/cw09JuSTWhgDIPBTMTGn8EWFjK/2Z3HECswzx2aw=="
+    "itertools-ts@2.3.1": {
+      "integrity": "sha512-4OvgNXCusN3hnLs2MGtVZhr9d22s0eC9GHyLA4+BHPzBQRCus+MoXs1VKM8ZZIMMYRToGX5cKGUMAAAM3zDmYQ=="
     },
     "jake@10.9.4": {
       "integrity": "sha512-wpHYzhxiVQL+IV05BLE2Xn34zW1S223hvjtqk0+gsPrwd/8JNLXJgZZM/iPFsYc1xyphF+6M6EvdE5E9MBGkDA==",
@@ -1240,8 +1038,8 @@
         "ansi-regex"
       ]
     },
-    "superjson@2.2.2": {
-      "integrity": "sha512-5JRxVqC8I8NuOUjzBbvVJAKNM8qoVuH0O77h4WInc/qC2q5IreqKxYwgkga3PfA22OayK2ikceb/B26dztPl+Q==",
+    "superjson@2.2.6": {
+      "integrity": "sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA==",
       "dependencies": [
         "copy-anything"
       ]
@@ -1325,8 +1123,8 @@
         "@rollup/rollup-linux-x64-gnu"
       ]
     },
-    "ts-pattern@5.8.0": {
-      "integrity": "sha512-kIjN2qmWiHnhgr5DAkAafF9fwb0T5OhMVSWrm8XEdTFnX6+wfXwYOFjeF86UZ54vduqiR7BfqScFmXSzSaH8oA=="
+    "ts-pattern@5.9.0": {
+      "integrity": "sha512-6s5V71mX8qBUmlgbrfL33xDUwO0fq48rxAu2LBE11WBeGdpCPOsXksQbZJHvHwhrd3QjUusd3mAOM5Gg0mFBLg=="
     },
     "ts-to-zod@3.15.0_typescript@5.9.3": {
       "integrity": "sha512-Lu5ITqD8xCIo4JZp4Cg3iSK3J2x3TGwwuDtNHfAIlx1mXWKClRdzqV+x6CFEzhKtJlZzhyvJIqg7DzrWfsdVSg==",
@@ -1336,29 +1134,7 @@
         "case",
         "chokidar",
         "fs-extra",
-        "inquirer@8.2.7",
-        "lodash",
-        "ora",
-        "prettier",
-        "rxjs",
-        "slash",
-        "threads",
-        "tslib@2.8.1",
-        "tsutils",
-        "typescript",
-        "zod@3.25.76"
-      ],
-      "bin": true
-    },
-    "ts-to-zod@3.15.0_typescript@5.9.3_@types+node@22.15.15": {
-      "integrity": "sha512-Lu5ITqD8xCIo4JZp4Cg3iSK3J2x3TGwwuDtNHfAIlx1mXWKClRdzqV+x6CFEzhKtJlZzhyvJIqg7DzrWfsdVSg==",
-      "dependencies": [
-        "@oclif/core",
-        "@typescript/vfs",
-        "case",
-        "chokidar",
-        "fs-extra",
-        "inquirer@8.2.7_@types+node@22.15.15",
+        "inquirer",
         "lodash",
         "ora",
         "prettier",
@@ -1405,8 +1181,8 @@
     "uncrypto@0.1.3": {
       "integrity": "sha512-Ql87qFHB3s/De2ClA9e0gsnS6zXG27SkTiSJwjCc9MebbfapQfuPzumMIUMi38ezPZVNFcHI9sUIepeQfw8J8Q=="
     },
-    "undici-types@6.21.0": {
-      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="
+    "undici-types@7.16.0": {
+      "integrity": "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="
     },
     "universalify@2.0.1": {
       "integrity": "sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw=="
@@ -1485,50 +1261,6 @@
     "zod@4.1.13": {
       "integrity": "sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig=="
     }
-  },
-  "remote": {
-    "https://deno.land/std@0.177.0/fmt/colors.ts": "938c5d44d889fb82eff6c358bea8baa7e85950a16c9f6dae3ec3a7a729164471",
-    "https://deno.land/std@0.177.0/testing/_diff.ts": "1a3c044aedf77647d6cac86b798c6417603361b66b54c53331b312caeb447aea",
-    "https://deno.land/std@0.177.0/testing/_format.ts": "a69126e8a469009adf4cf2a50af889aca364c349797e63174884a52ff75cf4c7",
-    "https://deno.land/std@0.177.0/testing/asserts.ts": "984ab0bfb3faeed92ffaa3a6b06536c66811185328c5dd146257c702c41b01ab",
-    "https://deno.land/x/stream_observables@v1.3/combiners/merge.ts": "84cc8873f9c42b72d29ba4dbca6f7d4579276d7e8467856ae6cd22f8ffa149ff",
-    "https://deno.land/x/stream_observables@v1.3/transforms/map.ts": "40f9e305a0425d0ee48c17b3268757ce5030cc9c45ba537e0242bd95dfcedd21",
-    "https://deno.land/x/stream_observables@v1.3/types.ts": "3933df0a0e584ff35a596157834eebf0bc2844d0b96bf3e4349e6fd3c4bd27a6",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/compressor.ts": "ad8e603b71a150bbb573c19946f4b03af6eab239d6a10eed6fb4e0cae190581f",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/decoder.ts": "1e9d1e16af949620275651c007eb6289897d2a9684576b1f48b7c5a496f72333",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/decompressor.ts": "3626bb8a0f51eaf39e3c58113b1610ca02c54d0b8fff18094dea9a175cae5e62",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/encoder.ts": "85de61af30aed9ecda31880385da6eefbe59fb042df095d0af9c5eac4a37b16d",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/huffman.ts": "75c0baffdeba85e3cddaba1374452613febafaabaafb207f92b4d18adc2b052f",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/static-table.ts": "03abe3374e45ef37cdf9276e255a69f9b0bd28ab8303988019b6d4a570a26071",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/table.ts": "57ba39adfbab66a1164be710f937b047dd5b8448160294603e306e0a13fee371",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/types.ts": "79771fbac0a76cdafa15c799aa03a1657a13bf6315d464cbfd93311a612ef8b8",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/utils.ts": "f6726bd9717f0a95d7d2cd053ce76f29472e1af75f6c276a85566f726c219d25",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/mod.ts": "2e3a83f8edae9547d1f4df58098c6940a6acc081f8098567323d214ece210f3b",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/obuf.ts": "876af791cf5d353c44b091369dd7c174e1b4fe0c418c9ce04972f234365112dd",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/connection.ts": "96c0860dcbe1443a26812d2432b362329a0790382aec1792f5ed8c27fd4ae38e",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/priority.ts": "9b68b64126785ac2d6f306c54b58fafeba0655fc272a74309e546e44c768e0eb",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/constants.ts": "dcf2a0309495d3107cd0c6f385066f939bf2f9ccfb6c16eb58bd3210924bc5fe",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/framer.ts": "25a4d7ac826a17a2968f7d27c34f06d49474dd68ecec4fbccff8f094fdfb9ec6",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/index.ts": "829baa72552b19acc9e6e27a0504ecab0b0643bec3da3a62a346eb84a30a9492",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/parser.ts": "1c17702f971c70c80c3dfb7b9aba0dfddb83c79993612bb6058c362a14e7e2d9",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/scheduler.ts": "2ca4acbaadb49eaed31830d7625f6c7162fea59795c7f23d9f7d5f9e2cae274f",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/utils.ts": "f8e020654d8fe875d0e856b226c47f8bfbe1cadc98a37fdc7eecbbc0fc09cd5d",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/constants.ts": "7f811e5445143882888b0675b06f054c1c036dd38bd593e46ae8ed7f056270ae",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/framer.ts": "e560d424445d0ed7be43fb3bb6a71f09745a423c0c1d45862e607ccd7e2f13b6",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/index.ts": "9d7b74814cc122289d9d18035fb77c91b3db0653187e83b21721c8960f7584f1",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/parser.ts": "feba6f6b2ab68d917d8fcd33feda9f29134341568be9c849bcf21e6b4ea5df0f",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/index.ts": "f53c5f225599b1ef0fdbe4817e323b12110705c0f4b8c2bfcc6bbe5274390c6a",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/constants.ts": "a01145e57d328e186696dc5e73f08c804297d69d1d025b77dce2cac065f51733",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/dictionary.ts": "712fc58534f804f0f16b57c51528051c866c8e1855ac4051da42feedb4ed2a7d",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/framer.ts": "1a6169515d056463e0c940e781ab6e7f194a3269f66ebb7a987960d407742844",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/index.ts": "7119e035e6018a72ce3809a409cb4c9f5b283e77202bb8d7c4e04b2a7202d816",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/parser.ts": "1f6a9288325a0a10fe7badf0fb31208e9f9d8433c447b154389d6c4ef0846fc3",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/zlib-pool.ts": "5bf111cf42d6499d563ccdb0a6f39789bc2bfa0fe84d696de271f664f3b2bc58",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/types.ts": "c06c817ef3fabe2090cba5f5966628acf452deebbd447ae90fbca5762efc6add",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/stream.ts": "5c27f82525b40f55d914c67db69894584616b65a5b34ebb68ec309d78cb444ca",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/utils.ts": "d87132d91dedea9c9fec268ca8dd8661dcac56f61497c75b0fe9466e124df551",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/window.ts": "5ca21eea580321a464b2944426c69625194b49c1d62eae100b660baa8d8196d7",
-    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/wbuf.ts": "a7098c9fe1227de3f6bc4c0bbcaa17bfd03f54d3797d19717483941c1e14badf"
   },
   "workspace": {
     "dependencies": [

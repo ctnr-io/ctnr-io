@@ -61,7 +61,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: latest
+          deno-version: 2.6.0
 
       - name: Get Version
         id: version
@@ -84,8 +84,6 @@ jobs:
 
       - name: Compile cli binary
         run: |
-          mkdir -p dist
-
           # Set environment variables for compilation
 
           curl -sfS https://dotenvx.sh/install.sh | sh

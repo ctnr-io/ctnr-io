@@ -396,15 +396,17 @@ export default function ContainersTableScreen({
     <>
       <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
         <DialogContent className='!max-w-fit'>
-          <DialogTitle>Install &amp; Run CLI</DialogTitle>
+          <DialogTitle>Install & Run CLI</DialogTitle>
           <DialogDescription>
             <div className='space-y-4 flex flex-col'>
               <Label>Install CLI</Label>
               <TerminalLine text='curl -fsSL https://get.ctnr.io | bash' />
               <Label>Login</Label>
               <TerminalLine text='ctnr login' />
-              <Label>Run an ubuntu Container</Label>
-              <TerminalLine text='ctnr run --name ubuntu --image ubuntu:latest -i -t' />
+              <Label>Run an nginx Container</Label>
+              <TerminalLine text='ctnr run nginx:latest -p www:80 -r www' />
+              <Label>View running Containers</Label>
+              <TerminalLine text='ctnr list' />
             </div>
           </DialogDescription>
           <DialogFooter>

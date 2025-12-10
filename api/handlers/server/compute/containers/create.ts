@@ -2,10 +2,10 @@ import { z } from 'zod'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import route from './route.ts'
 import { ServerContext } from 'api/context/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
 import { ensureVolume } from 'core/data/storage/volume.ts'
+import { hash } from 'node:crypto'
 
 export const Meta = {
   aliases: {
@@ -26,14 +26,14 @@ const VolumeMount = z.string()
   .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
 
 export const Input = z.object({
-  name: ContainerName.meta({ positional: true }),
-  image: z.string()
+    image: z.string()
     .min(1, 'Containers image cannot be empty')
     // TODO: Add image tag validation when stricter security is needed
     // .regex(/^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$/, "Container image must include a tag for security")
     // .refine((img) => !img.includes(":latest"), "Using ':latest' tag is not allowed for security reasons")
     .describe('Containers image to run')
-    .optional(),
+    .meta({ positional: true }),
+  name: ContainerName.optional(),
   env: z.array(
     z.string()
       .regex(/^[A-Z_][A-Z0-9_]*=.*$/, 'Environment variables must follow format KEY=value with uppercase keys'),
@@ -44,7 +44,6 @@ export const Input = z.object({
   volume: z.array(VolumeMount).optional().describe(
     'Mount volumes in format name:path:size (e.g., "data:/app/data:5G")',
   ),
-
   domain: z.string().optional().describe('Domain name for routing'),
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
@@ -74,12 +73,12 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
-  const { ctx, input, signal, defer } = request
+export default async function* (request: ServerRequest<Input>): ServerResponse<{ name: string }> {
+  const { ctx, input, signal } = request
 
   const {
-    name,
-    image = name,
+    image,
+    name = image.split(':')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-' + hash("sha256", crypto.randomUUID()).substring(0, 6),
     env = [],
     publish,
     volume = [],
@@ -322,7 +321,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
       ])
     } else {
       yield `⚠️ Containers ${name} already exists. Use --force to recreate.`
-      return
+      return { name }
     }
   }
 
@@ -342,6 +341,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     signal,
   })
 
+  return { name }
 }
 
 async function waitForDeploymentDeletion(

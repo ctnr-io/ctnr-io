@@ -9,7 +9,7 @@ import { DEFAULT_RATES } from './rates.ts'
 export const FreeTier = {
   cpu: '1', // 1 CPU core
   memory: '2G', // 2 GB memory
-  storage: '4G', // 4 GB storage
+  storage: '5G', // 5 GB storage
 }
 
 export type TierLimits = {

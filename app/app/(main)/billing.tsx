@@ -27,6 +27,7 @@ import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { Progress } from 'app/components/shadcn/ui/progress.tsx'
 import { CreditPurchaseDialog } from 'app/components/ctnr-io/billing-purchase-credits-dialog.tsx'
 import { ResourceLimitsDialog } from 'app/components/ctnr-io/resource-limits-dialog.tsx'
+import { FreeTier } from 'core/rules/billing/utils.ts'
 
 export default function BillingScreen() {
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false)
@@ -280,7 +281,7 @@ export default function BillingScreen() {
                       {isPaidPlan ? 'Paid' : 'Free'}
                     </p>
                     <p className='text-muted-foreground font-medium'>
-                      {isPaidPlan ? 'Pay-as-you-go pricing' : '1 CPU • 2GB RAM • 10GB storage'}
+                      {isPaidPlan ? 'Pay-as-you-go pricing' : `${FreeTier.cpu} CPU • ${FreeTier.memory} RAM • ${FreeTier.storage} storage`}
                     </p>
                   </div>
                 </CardContent>

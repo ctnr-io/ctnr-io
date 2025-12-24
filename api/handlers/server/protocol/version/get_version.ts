@@ -11,7 +11,6 @@ export type Input = z.infer<typeof Input>
 
 export type Output = string
 
-// TODO: finish and test it
 export default async function* getVersion(request: WebhookRequest<Input>): WebhookResponse<Output> {
   return request.ctx.version
 }

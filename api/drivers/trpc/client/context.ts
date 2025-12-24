@@ -5,8 +5,9 @@ import { ClientContext } from 'api/context/mod.ts'
 import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { createTRPCWebSocketClient } from './mod.ts'
 import process from 'node:process'
+import * as GetServerVersion from 'api/handlers/server/protocol/version/get_version.ts'
+import { ClientAuthError, ClientVersionError } from 'api/drivers/errors.ts'
 
-export class ClientAuthError extends Error {}
 
 export type TrpcClientContext = ClientContext & {
   /**
@@ -17,6 +18,9 @@ export type TrpcClientContext = ClientContext & {
     // Default to true, set to false to skip authentication check
     authenticated?: false
   }) => Promise<R>
+
+  /** Disconnect the client and close all connections */
+  disconnect?: () => Promise<void>
 }
 
 export async function createTrpcClientContext(
@@ -28,12 +32,48 @@ export async function createTrpcClientContext(
   },
 ): Promise<TrpcClientContext> {
   const ctx = await createClientContext(opts)
+  let client: Awaited<ReturnType<typeof createTRPCWebSocketClient>> | null = null
+
+  async function disconnect() {
+      if (client) {
+        console.log('Disconnecting client connection')
+        client.websocket.connection?.ws.close()
+        await client.websocket.close()
+        client = null
+      }
+  }
+
   return {
     ...ctx,
+    disconnect,
     connect: async (callback, connectOpts) => {
       try {
-        const { data: { session } } = await ctx.auth.client.getSession()
+        // Disconnect previous client if any
+        if (client) {
+          await disconnect()
+        }
 
+        // Check version compatibility before connecting
+        // Call server to know its current version
+        {
+          const url = new URL(GetServerVersion.Meta.openapi.path, process.env.CTNR_API_URL!)
+          const response = await fetch(url, {
+            method: GetServerVersion.Meta.openapi.method,
+          })
+          if (!response.ok) {
+            throw new Error('Failed to fetch server version')
+          }
+          const serverVersion: GetServerVersion.Output = await response.json()
+          const clientVersion = process.env.CTNR_VERSION || 'unknown'
+
+          // If cli version != remote version, re-install cli
+          if (serverVersion !== clientVersion) {
+            throw new ClientVersionError()
+          }
+        }
+
+        // Check authentication if required
+        const { data: { session } } = await ctx.auth.client.getSession()
         if (!session && connectOpts?.authenticated !== false) {
           throw new ClientAuthError('No active session found')
         }
@@ -41,7 +81,7 @@ export async function createTrpcClientContext(
         console.warn('Connect to server at', process.env.CTNR_API_URL)
         const accessToken = session?.access_token
         const refreshToken = session?.refresh_token
-        const client = await createTRPCWebSocketClient({
+        client = await createTRPCWebSocketClient({
           url: process.env.CTNR_API_URL!,
           accessToken: accessToken,
           refreshToken: refreshToken,
@@ -53,7 +93,7 @@ export async function createTrpcClientContext(
             new WritableStream({
               write(chunk) {
                 // Forward stdin data to the WebSocket as a JSON object
-                client.websocket.connection?.ws.send(JSON.stringify({
+                client?.websocket.connection?.ws.send(JSON.stringify({
                   type: 'stdin',
                   data: decoder.decode(new Uint8Array(chunk)),
                 }))
@@ -61,7 +101,7 @@ export async function createTrpcClientContext(
               close() {
                 // Send a message to the WebSocket to indicate that stdin has reached EOF (Ctrl+D)
                 // Instead of closing the connection, we send a special message
-                client.websocket.connection?.ws.send(JSON.stringify({
+                client?.websocket.connection?.ws.send(JSON.stringify({
                   type: 'stdin-eof',
                 }))
               },
@@ -130,6 +170,7 @@ export async function createTrpcClientContext(
 
         return await callback(client.trpc)
       } catch (error) {
+        disconnect().catch(() => {})
         if (error instanceof ClientAuthError) {
           throw error
         }

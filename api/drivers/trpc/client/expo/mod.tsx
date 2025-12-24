@@ -1,16 +1,18 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Platform } from 'react-native'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as SplashScreen from 'expo-splash-screen'
 import { createTRPCContext } from '@trpc/tanstack-react-query'
-import { ClientAuthError, createTrpcClientContext, TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
+import {
+  ClientAuthError,
+  ClientVersionError,
+  createTrpcClientContext,
+  TrpcClientContext,
+} from 'api/drivers/trpc/client/context.ts'
 import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
-import { ClientVersionError } from 'api/context/client/version.ts'
-import process from 'node:process'
-import loginFromApp from '../../../../handlers/client/auth/login_from_app.ts'
 
 // Display env variables on startup
 SplashScreen.preventAutoHideAsync()
@@ -63,88 +65,96 @@ export function useExpoTrpcClientContext(): TrpcClientContext {
 }
 
 export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithChildren<{ fallback: React.ReactNode }>) {
-  const [state, setState] = useState<
-    | { ctx: TrpcClientContext; server: TRPCClient<TRPCServerRouter> | null }
-    | null
-  >(
-    null,
-  )
   const queryClient = getQueryClient()
-  
-  const updateState = async () => {
-    try {
-      const ctx = await createTrpcClientContext({
-        auth: {
-          storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
-        },
-        // stdio: {
-        //   stdin: new ReadableStream(),
-        //   stdout: new WritableStream(),
-        //   stderr: new WritableStream(),
-        //   exit: () => {},
-        //   setRaw: () => {},
-        //   signalChan: function* () {
-        //     // TODO: Implement signal handling when needed
-        //   } as any,
-        //   terminalSizeChan: async function* () {
-        //     // TODO: Implement terminal size handling when needed
-        //   },
-        // },
-      })
-      // TODO: Improve handling when server is not reachable
-      const server = await (ctx.connect(async (server) => server).catch(() => null))
-      setState({
-        ctx,
-        server,
-      })
-    } catch (error) {
-      switch (true) {
-        case error instanceof ClientVersionError: {
-          console.error('Client version is outdated:', error.message)
-          // If web, reload the page
-          if (Platform.OS === 'web') {
-            globalThis.location.reload()
-          } else {
-            // TODO: implement upgrade flow for mobile
-            console.error('Please update the app to the latest version.')
-          }
-          return null
-        }
-        case error instanceof ClientAuthError: {
-          console.error('Authentication error:', error.message)
-          return null
-        }
-        case error instanceof Error: {
-          console.error('Failed to connect to server:', error.message)
-          return null
-        }
-        default:
-          return null
-      }
-    }
-  }
 
-  useEffect(() => {
-    updateState()
+  const [{ ctx, server}, setState] = useState<{ ctx: TrpcClientContext | null; server: TRPCClient<TRPCServerRouter> | null }>({ ctx: null, server: null })
+
+  const setCtx = useCallback((ctx: TrpcClientContext | null) => {
+    setState((prev) => ({ ...prev, ctx }))
   }, [])
 
+  const setServer = useCallback((server: TRPCClient<TRPCServerRouter> | null) => {
+    setState((prev) => ({ ...prev, server }))
+  }, [])
+
+  const updateCtx = () => {
+    createTrpcClientContext({
+      auth: {
+        storage: Platform.OS === 'web' ? localStorage : AsyncStorage as unknown as Storage,
+      },
+    }).then(setCtx)
+  }
+
+  // Initialize the TrpcClientContext
   useEffect(() => {
-    if (!state) return
+    updateCtx()
+  }, [])
+
+  // Subscribe to auth changes to update the context
+  useEffect(() => {
+    if (!ctx) return
     const {
       data: { subscription },
-    } = state.ctx.auth.client.onAuthStateChange((_event: Event, _session: unknown) => {
-      updateState()
+    } = ctx.auth.client.onAuthStateChange((_event: Event, _session: unknown) => {
+      updateCtx()
     })
-    return () => subscription.unsubscribe()
-  }, [!!state])
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [!!ctx])
 
+  // When ctx changes, update the server client
+  useEffect(() => {
+    if (!ctx) return
+    ;(async () => {
+      try {
+        const server = await ctx.connect((server) => server)
+        setServer(server)
+      } catch (error: unknown) {
+        setServer(null)
+        switch (true) {
+          case error instanceof ClientVersionError: {
+            console.error('Client version is outdated:', error.message)
+            // If web, reload the page
+            if (Platform.OS === 'web') {
+              globalThis.location.reload()
+            } else {
+              // TODO: implement upgrade flow for mobile
+              console.error('Please update the app to the latest version.')
+            }
+            break
+          }
+          case error instanceof ClientAuthError: {
+            console.error('Authentication error:', error.message)
+            break
+          }
+          case error instanceof Error: {
+            console.error('Failed to connect to server:', error.message)
+            break
+          }
+          default:
+            break
+        }
+      }
+    })()
+    return () => {
+      ctx?.disconnect?.()
+    }
+  }, [ctx])
+
+  console.log({
+    ctx,
+    server,
+  })
   return (
     <QueryClientProvider client={queryClient}>
-      {!state ? fallback : (
-        <ExpoTrpcClientContext.Provider value={state.ctx}>
-          <TRPCProvider queryClient={queryClient} trpcClient={state.server}>
-            {children}
-          </TRPCProvider>
+      {!ctx ? fallback : (
+        <ExpoTrpcClientContext.Provider value={ctx}>
+          {!server ? fallback : (
+            <TRPCProvider queryClient={queryClient} trpcClient={server}>
+              {children}
+            </TRPCProvider>
+          )}
         </ExpoTrpcClientContext.Provider>
       )}
     </QueryClientProvider>

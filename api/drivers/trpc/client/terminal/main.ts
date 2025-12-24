@@ -1,14 +1,14 @@
 import 'lib/log/mod.ts'
 import { createCli } from 'trpc-cli'
-import { ClientAuthError, createTrpcClientContext } from '../context.ts'
+import { createTrpcClientContext } from '../context.ts'
 import { TRPCCLientTerminalRouter } from './router.ts'
 import { createAsyncGeneratorListener } from 'lib/ts/async-generator.ts'
 import { authStorage } from './storage.ts'
 import process from 'node:process'
-import { ClientVersionError } from 'api/context/client/version.ts'
 import installCli from 'api/handlers/client/version/install_cli.ts'
 import { createClientAuthContext } from 'api/context/client/auth.ts'
 import loginFromTerminal from 'api/handlers/client/auth/login_from_terminal.ts'
+import { ClientAuthError, ClientVersionError } from '../../../errors.ts'
 
 try {
   const clientCli = createCli({

@@ -14,7 +14,7 @@ export default function AuthLoginScreen() {
     setIsLoading(true)
     try {
       // Use the new auth system
-      const authGenerator = loginFromApp({ ctx })
+      const authGenerator = loginFromApp({ ctx, input: {} })
 
       // Process the auth flow
       for await (const message of authGenerator) {

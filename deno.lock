@@ -1,9 +1,21 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@cloudydeno/kubernetes-apis@~0.5.2": "0.5.2",
+    "jsr:@cloudydeno/kubernetes-client@0.7.3": "0.7.3",
+    "jsr:@cloudydeno/kubernetes-client@~0.7.5": "0.7.5",
+    "jsr:@opensrc/short-uuid@1": "1.0.0",
+    "jsr:@std/bytes@^1.0.2": "1.0.6",
     "jsr:@std/internal@^1.0.10": "1.0.10",
+    "jsr:@std/path@1": "1.1.2",
+    "jsr:@std/path@1.0.6": "1.0.6",
     "jsr:@std/path@^1.0.9": "1.1.2",
+    "jsr:@std/streams@1": "1.0.12",
+    "jsr:@std/streams@1.0.5": "1.0.5",
+    "jsr:@std/yaml@1": "1.0.9",
+    "jsr:@std/yaml@1.0.5": "1.0.5",
     "jsr:@std/yaml@^1.0.6": "1.0.9",
+    "jsr:@std/yaml@^1.0.8": "1.0.9",
     "jsr:@tmpl/core@~0.6.3": "0.6.3",
     "npm:@mollie/api-client@^4.3.3": "4.3.3",
     "npm:@supabase/supabase-js@^2.45.4": "2.86.2",
@@ -28,8 +40,39 @@
     "npm:zod@^4.1.5": "4.1.13"
   },
   "jsr": {
+    "@cloudydeno/kubernetes-apis@0.5.2": {
+      "integrity": "f5fd9c94987f54fde72c6103fa0663ccb71cb6e328e7be44af1d59145adb31ee",
+      "dependencies": [
+        "jsr:@cloudydeno/kubernetes-client@0.7.3"
+      ]
+    },
+    "@cloudydeno/kubernetes-client@0.7.3": {
+      "integrity": "eb9fd12ac6c58e7995cc2d41a72ea9d153970900e184a5bd6fa2f2b19da5ec1a",
+      "dependencies": [
+        "jsr:@std/path@1.0.6",
+        "jsr:@std/streams@1.0.5",
+        "jsr:@std/yaml@1.0.5"
+      ]
+    },
+    "@cloudydeno/kubernetes-client@0.7.5": {
+      "integrity": "1b8b3cc2a2409db42a0fbab0d55fd42e8897335d67f24f21f207902a4582bb82",
+      "dependencies": [
+        "jsr:@std/path@1",
+        "jsr:@std/streams@1",
+        "jsr:@std/yaml@1"
+      ]
+    },
+    "@opensrc/short-uuid@1.0.0": {
+      "integrity": "80985b40538cd1f4a7aa1f7e9e9787ff07fe6475673ae7467391b0d7fc147945"
+    },
+    "@std/bytes@1.0.6": {
+      "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
+    },
     "@std/internal@1.0.10": {
       "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
+    },
+    "@std/path@1.0.6": {
+      "integrity": "ab2c55f902b380cf28e0eec501b4906e4c1960d13f00e11cfbcd21de15f18fed"
     },
     "@std/path@1.1.2": {
       "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
@@ -37,19 +80,31 @@
         "jsr:@std/internal"
       ]
     },
+    "@std/streams@1.0.5": {
+      "integrity": "74e5c73d7d68eeab0d7fba3b05cbee3ba4ac5ae37c5f4e675f67e62f8f53edc4",
+      "dependencies": [
+        "jsr:@std/bytes"
+      ]
+    },
+    "@std/streams@1.0.12": {
+      "integrity": "ae925fa1dc459b1abf5cbaa28cc5c7b0485853af3b2a384b0dc22d86e59dfbf4"
+    },
+    "@std/yaml@1.0.5": {
+      "integrity": "71ba3d334305ee2149391931508b2c293a8490f94a337eef3a09cade1a2a2742"
+    },
     "@std/yaml@1.0.9": {
       "integrity": "6bad3dc766dd85b4b37eabcba81b6aa4eac7a392792ae29abcfb0f90602d55bb"
     },
     "@tmpl/core@0.6.3": {
       "integrity": "d4b0311a4607247ab319a051d9a60085d6693bffe747cdfbcc50ffa75d7225bc",
       "dependencies": [
-        "jsr:@std/yaml"
+        "jsr:@std/yaml@^1.0.6"
       ]
     },
     "@tmpl/gen@0.6.3": {
       "integrity": "e03dd5744d76d57d7b6081449101d0b5df9f49fae13bb8ee424a8644218004f9",
       "dependencies": [
-        "jsr:@std/path",
+        "jsr:@std/path@^1.0.9",
         "jsr:@tmpl/core"
       ]
     }
@@ -1261,6 +1316,50 @@
     "zod@4.1.13": {
       "integrity": "sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig=="
     }
+  },
+  "remote": {
+    "https://deno.land/std@0.177.0/fmt/colors.ts": "938c5d44d889fb82eff6c358bea8baa7e85950a16c9f6dae3ec3a7a729164471",
+    "https://deno.land/std@0.177.0/testing/_diff.ts": "1a3c044aedf77647d6cac86b798c6417603361b66b54c53331b312caeb447aea",
+    "https://deno.land/std@0.177.0/testing/_format.ts": "a69126e8a469009adf4cf2a50af889aca364c349797e63174884a52ff75cf4c7",
+    "https://deno.land/std@0.177.0/testing/asserts.ts": "984ab0bfb3faeed92ffaa3a6b06536c66811185328c5dd146257c702c41b01ab",
+    "https://deno.land/x/stream_observables@v1.3/combiners/merge.ts": "84cc8873f9c42b72d29ba4dbca6f7d4579276d7e8467856ae6cd22f8ffa149ff",
+    "https://deno.land/x/stream_observables@v1.3/transforms/map.ts": "40f9e305a0425d0ee48c17b3268757ce5030cc9c45ba537e0242bd95dfcedd21",
+    "https://deno.land/x/stream_observables@v1.3/types.ts": "3933df0a0e584ff35a596157834eebf0bc2844d0b96bf3e4349e6fd3c4bd27a6",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/compressor.ts": "ad8e603b71a150bbb573c19946f4b03af6eab239d6a10eed6fb4e0cae190581f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/decoder.ts": "1e9d1e16af949620275651c007eb6289897d2a9684576b1f48b7c5a496f72333",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/decompressor.ts": "3626bb8a0f51eaf39e3c58113b1610ca02c54d0b8fff18094dea9a175cae5e62",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/encoder.ts": "85de61af30aed9ecda31880385da6eefbe59fb042df095d0af9c5eac4a37b16d",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/huffman.ts": "75c0baffdeba85e3cddaba1374452613febafaabaafb207f92b4d18adc2b052f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/static-table.ts": "03abe3374e45ef37cdf9276e255a69f9b0bd28ab8303988019b6d4a570a26071",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/table.ts": "57ba39adfbab66a1164be710f937b047dd5b8448160294603e306e0a13fee371",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/types.ts": "79771fbac0a76cdafa15c799aa03a1657a13bf6315d464cbfd93311a612ef8b8",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/hpack/utils.ts": "f6726bd9717f0a95d7d2cd053ce76f29472e1af75f6c276a85566f726c219d25",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/mod.ts": "2e3a83f8edae9547d1f4df58098c6940a6acc081f8098567323d214ece210f3b",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/obuf.ts": "876af791cf5d353c44b091369dd7c174e1b4fe0c418c9ce04972f234365112dd",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/connection.ts": "96c0860dcbe1443a26812d2432b362329a0790382aec1792f5ed8c27fd4ae38e",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/priority.ts": "9b68b64126785ac2d6f306c54b58fafeba0655fc272a74309e546e44c768e0eb",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/constants.ts": "dcf2a0309495d3107cd0c6f385066f939bf2f9ccfb6c16eb58bd3210924bc5fe",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/framer.ts": "25a4d7ac826a17a2968f7d27c34f06d49474dd68ecec4fbccff8f094fdfb9ec6",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/index.ts": "829baa72552b19acc9e6e27a0504ecab0b0643bec3da3a62a346eb84a30a9492",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/parser.ts": "1c17702f971c70c80c3dfb7b9aba0dfddb83c79993612bb6058c362a14e7e2d9",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/scheduler.ts": "2ca4acbaadb49eaed31830d7625f6c7162fea59795c7f23d9f7d5f9e2cae274f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/base/utils.ts": "f8e020654d8fe875d0e856b226c47f8bfbe1cadc98a37fdc7eecbbc0fc09cd5d",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/constants.ts": "7f811e5445143882888b0675b06f054c1c036dd38bd593e46ae8ed7f056270ae",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/framer.ts": "e560d424445d0ed7be43fb3bb6a71f09745a423c0c1d45862e607ccd7e2f13b6",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/index.ts": "9d7b74814cc122289d9d18035fb77c91b3db0653187e83b21721c8960f7584f1",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/http2/parser.ts": "feba6f6b2ab68d917d8fcd33feda9f29134341568be9c849bcf21e6b4ea5df0f",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/index.ts": "f53c5f225599b1ef0fdbe4817e323b12110705c0f4b8c2bfcc6bbe5274390c6a",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/constants.ts": "a01145e57d328e186696dc5e73f08c804297d69d1d025b77dce2cac065f51733",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/dictionary.ts": "712fc58534f804f0f16b57c51528051c866c8e1855ac4051da42feedb4ed2a7d",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/framer.ts": "1a6169515d056463e0c940e781ab6e7f194a3269f66ebb7a987960d407742844",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/index.ts": "7119e035e6018a72ce3809a409cb4c9f5b283e77202bb8d7c4e04b2a7202d816",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/parser.ts": "1f6a9288325a0a10fe7badf0fb31208e9f9d8433c447b154389d6c4ef0846fc3",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/spdy/zlib-pool.ts": "5bf111cf42d6499d563ccdb0a6f39789bc2bfa0fe84d696de271f664f3b2bc58",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/protocol/types.ts": "c06c817ef3fabe2090cba5f5966628acf452deebbd447ae90fbca5762efc6add",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/stream.ts": "5c27f82525b40f55d914c67db69894584616b65a5b34ebb68ec309d78cb444ca",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/utils.ts": "d87132d91dedea9c9fec268ca8dd8661dcac56f61497c75b0fe9466e124df551",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/spdy-transport/window.ts": "5ca21eea580321a464b2944426c69625194b49c1d62eae100b660baa8d8196d7",
+    "https://raw.githubusercontent.com/cloudydeno/deno-spdy_transport/refs/tags/v0.1/lib/wbuf.ts": "a7098c9fe1227de3f6bc4c0bbcaa17bfd03f54d3797d19717483941c1e14badf"
   },
   "workspace": {
     "dependencies": [

@@ -7,7 +7,7 @@ import { AppSidebarLayout } from 'app/components/ctnr-io/app-sidebar-layout.tsx'
 export default function MainLayout() {
   const ctx = useExpoTrpcClientContext()
   const handleLogout = async () => {
-    await logout({ ctx })
+    await logout({ ctx, input: {} })
   }
   if (!ctx.auth.session) {
     return <Redirect href='/login' />

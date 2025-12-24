@@ -1,5 +1,4 @@
 import {
-  Code2,
   Container,
   Database,
   FunctionSquare,
@@ -7,7 +6,6 @@ import {
   HardDrive,
   LucideIcon,
   RouteIcon,
-  Terminal,
   Zap,
 } from 'lucide-react'
 import * as React from 'react'

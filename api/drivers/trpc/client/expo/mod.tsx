@@ -10,6 +10,7 @@ import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
 import { ClientVersionError } from 'api/context/client/version.ts'
 import process from 'node:process'
+import loginFromApp from '../../../../handlers/client/auth/login_from_app.ts'
 
 // Display env variables on startup
 SplashScreen.preventAutoHideAsync()
@@ -61,7 +62,7 @@ export function useExpoTrpcClientContext(): TrpcClientContext {
   return context
 }
 
-export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
+export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithChildren<{ fallback: React.ReactNode }>) {
   const [state, setState] = useState<
     | { ctx: TrpcClientContext; server: TRPCClient<TRPCServerRouter> | null }
     | null
@@ -69,7 +70,7 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
     null,
   )
   const queryClient = getQueryClient()
-
+  
   const updateState = async () => {
     try {
       const ctx = await createTrpcClientContext({
@@ -139,7 +140,7 @@ export function ExpoTrpcClientProvider({ children }: React.PropsWithChildren) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {state && (
+      {!state ? fallback : (
         <ExpoTrpcClientContext.Provider value={state.ctx}>
           <TRPCProvider queryClient={queryClient} trpcClient={state.server}>
             {children}

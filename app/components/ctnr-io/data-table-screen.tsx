@@ -186,7 +186,7 @@ export function DataTableScreen<T = any>({
         key={index}
         className={cn(
           'border-b last:border-b-0 p-2 flex flex-col gap-2',
-          rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : '',
+          rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/20 transition-all duration-200' : '',
         )}
         onClick={(e) => handleRowClickFromEvent(e, item)}
       >
@@ -305,7 +305,7 @@ export function DataTableScreen<T = any>({
                 filteredData.map((item, index) => (
                   <TableRow
                     key={index}
-                    className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                    className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/20' : ''}
                     onClick={(e) => handleRowClickFromEvent(e, item)}
                   >
                     {visibleColumnsArray.map((column) => {
@@ -354,9 +354,9 @@ export function DataTableScreen<T = any>({
 
   return (
     <div className='flex flex-col justify-between h-full md:h-auto'>
-      <div className='flex flex-col gap-4 p-4 md:gap-6 md:p-6'>
+      <div className='flex flex-col gap-4 px-0 xs:px-4 md:gap-6 md:p-6'>
         {/* Header Section */}
-        <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex flex-col pt-4 px-4 gap-4 sm:flex-row sm:items-center sm:justify-between'>
           <div className='flex items-center gap-3'>
             <Icon className='h-6 w-6 sm:h-8 sm:w-8 text-primary' />
             <div>
@@ -368,7 +368,7 @@ export function DataTableScreen<T = any>({
           </div>
           {primaryAction && (
             <Button
-              className='bg-primary hover:bg-primary/90 w-full sm:w-auto'
+              className='w-full sm:w-auto'
               onClick={primaryAction.onClick}
             >
               <primaryAction.icon className='h-4 w-4 mr-2' />
@@ -379,7 +379,7 @@ export function DataTableScreen<T = any>({
 
         {/* Description */}
         {infoDescription && (
-          <Card className='bg-card border rounded-lg p-3 md:p-4 '>
+          <Card className='bg-card border rounded-none xs:rounded-lg p-3 md:p-4 '>
             {/* If infoDescription is a string, render inside a paragraph; otherwise render the provided ReactNode
                 directly so that block-level elements (e.g. <div>, <ul>, <pre>) can be used inside the description. */}
             {typeof infoDescription === 'string' ? (
@@ -391,7 +391,7 @@ export function DataTableScreen<T = any>({
         )}
 
         {/* Data Table */}
-        <Card className='overflow-hidden gap-0 pb-0'>
+        <Card className='overflow-hidden rounded-none xs:rounded-lg gap-0 pb-0'>
           <CardHeader className='border-b'>
             <h2 className='text-lg sm:text-xl font-semibold'>{tableTitle}</h2>
             {tableDescription && (

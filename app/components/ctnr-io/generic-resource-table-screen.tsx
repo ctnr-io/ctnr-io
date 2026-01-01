@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from '../shadcn/ui/dialog.tsx'
 import { Button } from '../shadcn/ui/button.tsx'
+import ResponsiveDialog from './responsive-dialog.tsx'
 
 export interface ResourceItem {
   id: string
@@ -217,16 +218,19 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
 
       {/* Add dialog */}
       {onAdd && AddFormComponent && (
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogContent>
-            <DialogTitle>Add {resourceName}</DialogTitle>
-            <AddFormComponent
-              onSubmit={handleAddItem}
-              onCancel={() => setAddDialogOpen(false)}
-              isSubmitting={isAddingItem}
-            />
-          </DialogContent>
-        </Dialog>
+        <ResponsiveDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          title={`Add ${resourceName}`}
+          description={`Fill out the form below to add a new ${resourceName.toLowerCase()}.`}
+          showCloseButton
+        >
+          <AddFormComponent
+            onSubmit={handleAddItem}
+            onCancel={() => setAddDialogOpen(false)}
+            isSubmitting={isAddingItem}
+          />
+        </ResponsiveDialog>
       )}
     </>
   )

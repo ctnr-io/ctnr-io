@@ -11,4 +11,6 @@ export class ClientVersionError extends Error {
  * Error thrown when there is an authentication error on the client side
  * Can be catch by the client's driver to prompt for re-authentication
  */
-export class ClientAuthError extends Error {}
+export class ClientAuthError extends Error {
+	override message: string = 'Authentication error. Please login again.'
+}

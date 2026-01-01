@@ -47,7 +47,7 @@ export function CreditsDisplay() {
           <Button variant='ghost' className='cursor-pointer'>
             <Coins className='h-4 w-4 text-muted-foreground' />
             <span className='text-sm font-semibold text-foreground'>
-              {credits.toLocaleString()}
+              {Number(credits.toFixed()).toLocaleString()}
             </span>
           </Button>
         </Link>
@@ -73,8 +73,8 @@ export function CreditsDisplay() {
         <Button variant='outline' className='cursor-pointer' onClick={() => setIsPurchaseDialogOpen(true)}>
           <Plus className='h-4 w-4 text-muted-foreground' />
           <Coins className='h-4 w-4 text-muted-foreground' />
-          <span className='hidden sm:inline text-sm font-semibold text-foreground text-ellipsis'>
-            {credits.toLocaleString()}
+          <span className='hidden xs:inline text-sm font-semibold text-foreground text-ellipsis'>
+            {Number(credits.toFixed()).toLocaleString()}
           </span>
         </Button>
       </div>

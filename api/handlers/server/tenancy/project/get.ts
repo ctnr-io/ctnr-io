@@ -28,7 +28,6 @@ export default async function* getProjectHandler(
     userId: ctx.auth.user.id,
     projectId: ctx.project.id,
   }, signal)
-	console.log({ project })
 
   if (!project) throw new Error('Project not found')
 

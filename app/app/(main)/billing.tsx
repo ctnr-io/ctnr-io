@@ -147,7 +147,7 @@ export default function BillingScreen() {
   ]
 
   // Use actual data from the updated API
-  const currentBalance = usageData?.balance.credits ?? 0
+  const currentBalance = Number(usageData?.balance.credits.toFixed(0)) ?? 0
   const tier = usageData?.tier ?? 'free'
   const isPaidPlan = usageData?.tier !== 'free'
   // Map backend invoices to Invoice type expected by DataTableScreen
@@ -222,11 +222,11 @@ export default function BillingScreen() {
         )}
 
         <Tabs defaultValue='overview' className='space-y-6'>
-          <TabsList className='grid w-full grid-cols-2'>
-            <TabsTrigger value='overview' className='text-sm font-medium'>
+          <TabsList className='w-full flex justify-evenly'>
+            <TabsTrigger value='overview' className='text-sm font-medium flex-1'>
               Overview
             </TabsTrigger>
-            <TabsTrigger value='invoices' className='text-sm font-medium'>
+            <TabsTrigger value='invoices' className='text-sm font-medium flex-1'>
               Invoices
             </TabsTrigger>
           </TabsList>

@@ -1,7 +1,23 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
 
+/**
+  * Custom breakpoints
+  */
+@theme {
+  --breakpoint-xs: 30rem;
+  --breakpoint-2xl: 100rem;
+  --breakpoint-3xl: 120rem;
+}
+
+/**
+ * Dark mode variant
+ */
 @custom-variant dark (&:is(.dark *));
 
+/**
+ * Theme variables
+ */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -42,30 +58,37 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.95 0.005 264.695);
+  /* --font-sans: Outfit, sans-serif; */
+  /* slightly greyer page background for subtle depth */
+  --background: #f4f6f8;
   --foreground: oklch(0.208 0.042 265.755);
-  --card: oklch(0.98 0.002 264.695);
+
+  /* subtle disparity in light mode (card/sidebar slightly off-white) */
+  --card: #ffffff;
   --card-foreground: oklch(0.208 0.042 265.755);
-  --popover: oklch(0.98 0.002 264.695);
+  --popover: #ffffff;
   --popover-foreground: oklch(0.208 0.042 265.755);
-  --primary: oklch(0.279 0.041 260.031);
-  --primary-foreground: oklch(0.984 0.003 247.858);
+  /* neutral primary (black) to keep palette muted like landing page) */
+  --primary: #111827;
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.90 0.012 264.695);
   --secondary-foreground: oklch(0.279 0.041 260.031);
-  --muted: oklch(0.90 0.012 264.695);
-  --muted-foreground: oklch(0.55 0.025 264.695);
+
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
   --accent: oklch(0.85 0.020 264.695);
   --accent-foreground: oklch(0.279 0.041 260.031);
   --destructive: oklch(52.942% 0.21622 28.264);
-  --border: oklch(0.82 0.025 264.695);
-  --input: oklch(0.82 0.025 264.695);
+
+  --border: #e6e9ee;
+  --input: #d1d5db;
   --ring: oklch(0.704 0.04 256.788);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.92 0.008 264.695);
+  --sidebar: #f8fafc;
   --sidebar-foreground: oklch(0.208 0.042 265.755);
   --sidebar-primary: oklch(0.279 0.041 260.031);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
@@ -82,8 +105,8 @@
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
+  --primary: #ffffff;
+  --primary-foreground: #111827;
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 260.031);
@@ -115,6 +138,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* font-family: var(--font-sans); */
   }
 }
 

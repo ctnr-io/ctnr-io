@@ -73,7 +73,7 @@ export function CreditsDisplay() {
         <Button variant='outline' className='cursor-pointer' onClick={() => setIsPurchaseDialogOpen(true)}>
           <Plus className='h-4 w-4 text-muted-foreground' />
           <Coins className='h-4 w-4 text-muted-foreground' />
-          <span className='hidden sm:inline text-sm font-semibold text-foreground text-ellipsis'>
+          <span className=' text-sm font-semibold text-foreground text-ellipsis'>
             {credits.toLocaleString()}
           </span>
         </Button>

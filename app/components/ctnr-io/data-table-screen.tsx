@@ -186,7 +186,7 @@ export function DataTableScreen<T = any>({
         key={index}
         className={cn(
           'border-b last:border-b-0 p-2 flex flex-col gap-2',
-          rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-all duration-200' : '',
+          rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/20 transition-all duration-200' : '',
         )}
         onClick={(e) => handleRowClickFromEvent(e, item)}
       >
@@ -305,7 +305,7 @@ export function DataTableScreen<T = any>({
                 filteredData.map((item, index) => (
                   <TableRow
                     key={index}
-                    className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                    className={rowClickable && onRowClick ? 'cursor-pointer hover:bg-muted/20' : ''}
                     onClick={(e) => handleRowClickFromEvent(e, item)}
                   >
                     {visibleColumnsArray.map((column) => {
@@ -368,7 +368,7 @@ export function DataTableScreen<T = any>({
           </div>
           {primaryAction && (
             <Button
-              className='bg-primary hover:bg-primary/90 w-full sm:w-auto'
+              className='bg-primary hover:bg-primary/10 w-full sm:w-auto'
               onClick={primaryAction.onClick}
             >
               <primaryAction.icon className='h-4 w-4 mr-2' />

@@ -36,7 +36,6 @@ export async function createTrpcClientContext(
 
   async function disconnect() {
       if (client) {
-        console.log('Disconnecting client connection')
         client.websocket.connection?.ws.close()
         await client.websocket.close()
         client = null

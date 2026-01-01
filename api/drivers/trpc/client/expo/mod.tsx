@@ -5,14 +5,12 @@ import { Platform } from 'react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as SplashScreen from 'expo-splash-screen'
 import { createTRPCContext } from '@trpc/tanstack-react-query'
-import {
-  ClientAuthError,
-  ClientVersionError,
-  createTrpcClientContext,
-  TrpcClientContext,
-} from 'api/drivers/trpc/client/context.ts'
+import { ClientAuthError, ClientVersionError } from 'api/drivers/errors.ts'
+import { createTrpcClientContext, TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
 import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
+import loginFromApp from '../../../../handlers/client/auth/login_from_app.ts'
+import { createClientAuthContext } from '../../../../context/client/auth.ts'
 
 // Display env variables on startup
 SplashScreen.preventAutoHideAsync()
@@ -67,7 +65,9 @@ export function useExpoTrpcClientContext(): TrpcClientContext {
 export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithChildren<{ fallback: React.ReactNode }>) {
   const queryClient = getQueryClient()
 
-  const [{ ctx, server}, setState] = useState<{ ctx: TrpcClientContext | null; server: TRPCClient<TRPCServerRouter> | null }>({ ctx: null, server: null })
+  const [{ ctx, server }, setState] = useState<
+    { ctx: TrpcClientContext | null; server: TRPCClient<TRPCServerRouter> | null }
+  >({ ctx: null, server: null })
 
   const setCtx = useCallback((ctx: TrpcClientContext | null) => {
     setState((prev) => ({ ...prev, ctx }))
@@ -125,6 +125,14 @@ export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithCh
             break
           }
           case error instanceof ClientAuthError: {
+            for await (
+              const msg of loginFromApp({
+                ctx: await createClientAuthContext({ storage: localStorage }),
+                input: {},
+              })
+            ) {
+              console.info(msg)
+            }
             console.error('Authentication error:', error.message)
             break
           }
@@ -142,10 +150,6 @@ export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithCh
     }
   }, [ctx])
 
-  console.log({
-    ctx,
-    server,
-  })
   return (
     <QueryClientProvider client={queryClient}>
       {!ctx ? fallback : (

@@ -191,7 +191,7 @@ export function ContainersDetailScreen(props: {
               variant={data.status !== 'running' ? 'outline' : 'secondary'}
               size='sm'
               onClick={() => startMutation.mutate({ name: data.name })}
-              disabled={isPending}
+              disabled={isPending || data.status === 'running'}
             >
               <Play className='h-4 w-4' />
               <span className={cn('hidden', sidebar.open ? 'lg:inline' : 'sm:inline')}>
@@ -202,7 +202,7 @@ export function ContainersDetailScreen(props: {
               variant={data.status !== 'stopped' ? 'outline' : 'secondary'}
               size='sm'
               onClick={() => stopMutation.mutate({ name: data.name })}
-              disabled={isPending}
+              disabled={isPending || data.status === 'stopped'}
             >
               <Square className='h-4 w-4' />
               <span className={cn('hidden', sidebar.open ? 'lg:inline' : 'sm:inline')}>
@@ -213,7 +213,7 @@ export function ContainersDetailScreen(props: {
               variant='outline'
               size='sm'
               onClick={() => restartMutation.mutate({ name: data.name })}
-              disabled={isPending}
+              disabled={isPending || data.status !== 'running'}
             >
               <RotateCcw className='h-4 w-4' />
               <span className={cn('hidden', sidebar.open ? 'lg:inline' : 'sm:inline')}>

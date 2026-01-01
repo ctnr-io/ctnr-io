@@ -3,13 +3,7 @@
 import React, { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from 'app/components/shadcn/ui/dialog.tsx'
+import ResponsiveDialog from './responsive-dialog.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'app/components/shadcn/ui/select.tsx'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from 'app/components/shadcn/ui/form.tsx'
@@ -278,7 +272,7 @@ function CreditPurchaseForm({
   clientData: any
   clientLoading: boolean
 }) {
-  const [step, setStep] = useState<'amount' | 'client'>('amount')
+  const [step, setStep] = useState<'amount' | 'client' | 'address'>('amount')
   const [isCustomAmount, setIsCustomAmount] = useState(false)
 
   // Initialize form with default values
@@ -343,9 +337,13 @@ function CreditPurchaseForm({
 
   const handleNext = async () => {
     try {
-      const result = await validateStep1()
-      if (result) {
-        setStep('client')
+      if (step === 'amount') {
+        const result = await validateStep1()
+        if (result) {
+          setStep('client')
+        }
+      } else if (step === 'client') {
+        setStep('address')
       }
     } catch (error) {
       console.error('Step 1 validation error:', error)
@@ -353,11 +351,18 @@ function CreditPurchaseForm({
   }
 
   const handleBack = () => {
-    setStep('amount')
+    switch (step) {
+      case 'client':
+        setStep('amount')
+        break
+      case 'address':
+        setStep('client')
+        break
+    }
   }
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
-    console.log("Submitting credit purchase data:", data)
+    console.log('Submitting credit purchase data:', data)
     try {
       await onSubmit(data)
     } catch (error) {
@@ -473,12 +478,22 @@ function CreditPurchaseForm({
                   </div>
                 </div>
               )
-              : (
-                <>
-                  <ClientInfoForm form={form} watchedType={watchedType} />
-                  <BillingAddressForm form={form} />
-                </>
-              )}
+              : <ClientInfoForm form={form} watchedType={watchedType} />}
+          </div>
+        )}
+
+        {step === 'address' && (
+          <div className='space-y-4'>
+            {clientLoading
+              ? (
+                <div className='flex items-center justify-center py-8'>
+                  <div className='flex items-center gap-3'>
+                    <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-primary'></div>
+                    <span className='text-sm text-muted-foreground'>Loading billing information...</span>
+                  </div>
+                </div>
+              )
+              : <BillingAddressForm form={form} />}
           </div>
         )}
 
@@ -486,7 +501,14 @@ function CreditPurchaseForm({
           <Button variant='outline' type='button' onClick={handleCancel}>
             Cancel
           </Button>
-          {step === 'amount'
+          {step === 'address' || step === 'client'
+            ? (
+              <Button type='button' variant='outline' onClick={handleBack}>
+                Back
+              </Button>
+            )
+            : null}
+          {step === 'amount' || step === 'client'
             ? (
               <Button type='button' onClick={handleNext}>
                 Next
@@ -494,9 +516,6 @@ function CreditPurchaseForm({
             )
             : (
               <>
-                <Button type='button' variant='outline' onClick={handleBack}>
-                  Back
-                </Button>
                 <Button
                   type='submit'
                   disabled={isSubmitting}
@@ -525,7 +544,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
   })
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
-    console.log("Dialog handleSubmit called with data:", data)
+    console.log('Dialog handleSubmit called with data:', data)
     setGeneralError('')
 
     const amount = parseInt(data.amount)
@@ -569,32 +588,31 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl max-h-[90vh] overflow-y-auto'>
-        <DialogHeader>
-          <DialogTitle>Add Credits</DialogTitle>
-          <DialogDescription>
-            Select the amount of credits you'd like to purchase and provide your billing information.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title='Add Credits'
+      description={<>Select the amount of credits you'd like to purchase and provide your billing information.</>}
+      contentClassName='sm:max-w-2xl max-h-[90vh] overflow-y-auto'
+      showCloseButton
+      fullscreenOnMobile
+    >
+      {generalError && (
+        <Alert variant='destructive'>
+          <AlertTriangle className='h-4 w-4' />
+          <AlertDescription>
+            {generalError}
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {generalError && (
-          <Alert variant='destructive'>
-            <AlertTriangle className='h-4 w-4' />
-            <AlertDescription>
-              {generalError}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <CreditPurchaseForm
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          isSubmitting={purchaseCredits.isPending}
-          clientData={clientData}
-          clientLoading={clientLoading}
-        />
-      </DialogContent>
-    </Dialog>
+      <CreditPurchaseForm
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        isSubmitting={purchaseCredits.isPending}
+        clientData={clientData}
+        clientLoading={clientLoading}
+      />
+    </ResponsiveDialog>
   )
 }

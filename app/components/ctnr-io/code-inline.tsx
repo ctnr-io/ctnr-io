@@ -34,7 +34,7 @@ export function CodeInline({
               'inline-flex items-center gap-2 font-mono',
               'px-1 mx-1 rounded border',
               'cursor-pointer',
-              'bg-muted/50 border-transparent my-0.5 hover:border-muted hover:bg-muted',
+               'bg-muted/50 border-transparent my-0.5 hover:border-muted hover:bg-muted/10',
               className,
               copied ? '' : '',
             )}

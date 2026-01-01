@@ -15,20 +15,21 @@ interface ResourceIndicatorProps {
   label: string
   used: string
   limit: string
+  unit?: string
   percentage: number
 }
 
-function ResourceIndicator({ icon: Icon, label, used, limit, percentage }: ResourceIndicatorProps) {
-  const sidebar = useSidebar()
+function ResourceIndicator({ icon: Icon, label, used, limit, unit, percentage }: ResourceIndicatorProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className='flex gap-2 *:text-xs justify-center'>
           <Icon className={percentage >= 100 && used !== '0.0' ? 'text-destructive animate-pulse' : ''} />
-          <span className={cn('items-baseline', 'gap-1', 'hidden', sidebar.open ? 'lg:flex' : 'sm:flex')}>
+          <span className='items-baseline gap-1 hidden sm:flex'>
             <span className={percentage >= 100 && used !== '0.0' ? 'text-destructive' : ''}>{used}</span>
             <span>/</span>
             <span>{limit}</span>
+            {unit && <span className="hidden lg:inline">{unit}</span>}
           </span>
         </div>
       </TooltipTrigger>
@@ -87,11 +88,11 @@ export function ResourceLimitsDisplay() {
 
   // Format display values
   const cpuUsed = (cpuUsedNum / 1000).toFixed(1) // millicores to cores
-  const cpuLimit = cpuLimitNum === Infinity ? '∞' : (cpuLimitNum / 1000).toFixed(1) // millicores to cores
+  const cpuLimit = cpuLimitNum === Infinity ? '∞' : (cpuLimitNum / 1000).toFixed() // millicores to cores
   const memoryUsed = (memoryUsedNum / 1024).toFixed(1) // MB to GB
-  const memoryLimit = memoryLimitNum === Infinity ? '∞' : (memoryLimitNum / 1024).toFixed(1) // MB to GB
+  const memoryLimit = memoryLimitNum === Infinity ? '∞' : (memoryLimitNum / 1024).toFixed() // MB to GB
   const storageUsed = storageUsedNum.toFixed(1) // Already in GB
-  const storageLimit = storageLimitNum === Infinity ? '∞' : storageLimitNum.toFixed(1) // Already in GB
+  const storageLimit = storageLimitNum === Infinity ? '∞' : storageLimitNum.toFixed() // Already in GB
 
   return (
     <div className='flex flex-1 justify-between items-center gap-4'>
@@ -114,12 +115,13 @@ export function ResourceLimitsDisplay() {
       }
       <Button
         className='flex items-center gap-4 cursor-pointer'
-        variant='secondary'
+        variant='outline'
         onClick={() => setIsResourceLimitsDialogOpen(true)}
       >
         <ResourceIndicator
           icon={Cpu}
           label='Processor (vCPU)'
+          unit='vCPU'
           used={cpuUsed}
           limit={cpuLimit}
           percentage={resources.cpu.percentage}
@@ -127,6 +129,7 @@ export function ResourceLimitsDisplay() {
         <ResourceIndicator
           icon={MemoryStick}
           label='Memory (GB)'
+          unit='GB'
           used={memoryUsed}
           limit={memoryLimit}
           percentage={resources.memory.percentage}
@@ -134,6 +137,7 @@ export function ResourceLimitsDisplay() {
         <ResourceIndicator
           icon={HardDrive}
           label='Storage (GB)'
+          unit='GB'
           used={storageUsed}
           limit={storageLimit}
           percentage={resources.storage.percentage}

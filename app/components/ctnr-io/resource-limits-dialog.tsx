@@ -3,13 +3,7 @@
 import React, { useState, useTransition } from 'react'
 import { AlertTriangle, Lock } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from 'app/components/shadcn/ui/dialog.tsx'
+import ResponsiveDialog from './responsive-dialog.tsx'
 import { Slider } from 'app/components/shadcn/ui/slider.tsx'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -124,15 +118,8 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl max-h-[90vh] overflow-y-auto'>
-        <DialogHeader>
-          <DialogTitle>Adjust Resource Limits</DialogTitle>
-          <DialogDescription>
-            Use the sliders to adjust your resource limits. Changes take effect immediately.
-          </DialogDescription>
-        </DialogHeader>
-
+    <>
+      <ResponsiveDialog open={open} onOpenChange={onOpenChange} title='Adjust Resource Limits' contentClassName='overflow-y-auto sm:min-w-2xl' breakpoint='sm'>
         {generalError && (
           <Alert variant='destructive'>
             <AlertTriangle className='h-4 w-4' />
@@ -254,7 +241,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
           {/* Cost Limit Estimation Card */}
           <Card>
             <CardHeader>
-              <CardTitle className='text-lg'>Cost Limit Estimation</CardTitle>
+              <CardTitle className='text-lg'>Maximum Cost Estimation</CardTitle>
               <CardDescription>
                 Maximum estimated costs based on your current resource limit configuration. FYI - you only pay for what
                 you use.
@@ -270,7 +257,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                   </div>
                   <div>
                     Memory: {ResourceLimits.memory.display(memoryValue)}{' '}
-                    × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(2)}/GB/hour
+                    × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(3)}/GB/hour
                   </div>
                   <div>
                     Storage: {ResourceLimits.storage.display(storageValue)}{' '}
@@ -327,12 +314,12 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
               </Button>
             )}
         </div>
-      </DialogContent>
+      </ResponsiveDialog>
 
       <CreditPurchaseDialog
         open={creditPurchaseOpen}
         onOpenChange={setCreditPurchaseOpen}
       />
-    </Dialog>
+    </>
   )
 }

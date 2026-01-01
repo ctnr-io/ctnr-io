@@ -278,10 +278,10 @@ http {
                   type='button'
                   key={replica.name}
                   onClick={() => setSelectedReplica(replica.name)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     selectedReplica === replica.name
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80'
+                      : 'bg-muted hover:bg-muted/30'
                   }`}
                 >
                   <div

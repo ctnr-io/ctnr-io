@@ -100,7 +100,6 @@ try {
       ) {
         console.info(msg)
       }
-      console.log([...process.argv])
       const p = new Deno.Command(process.argv[0], {
         args: process.argv.slice(1),
         stdin: 'inherit',

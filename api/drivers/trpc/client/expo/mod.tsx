@@ -5,12 +5,8 @@ import { Platform } from 'react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as SplashScreen from 'expo-splash-screen'
 import { createTRPCContext } from '@trpc/tanstack-react-query'
-import {
-  ClientAuthError,
-  ClientVersionError,
-  createTrpcClientContext,
-  TrpcClientContext,
-} from 'api/drivers/trpc/client/context.ts'
+import { ClientAuthError, ClientVersionError } from 'api/drivers/errors.ts'
+import { createTrpcClientContext, TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
 import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
 
@@ -64,18 +60,36 @@ export function useExpoTrpcClientContext(): TrpcClientContext {
   return context
 }
 
-export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithChildren<{ fallback: React.ReactNode }>) {
+export function ExpoTrpcClientProvider(
+  { children, fallback }: React.PropsWithChildren<
+    { fallback: (props: { error: ClientVersionError | ClientAuthError | Error }) => React.ReactNode }
+  >,
+) {
   const queryClient = getQueryClient()
 
-  const [{ ctx, server}, setState] = useState<{ ctx: TrpcClientContext | null; server: TRPCClient<TRPCServerRouter> | null }>({ ctx: null, server: null })
+  type State = {
+    ctx: TrpcClientContext | null
+    server: TRPCClient<TRPCServerRouter> | null
+    error: ClientVersionError | ClientAuthError | Error | null
+  }
+  const [{ ctx, server, error }, setState] = useState<
+    State
+  >({ ctx: null, server: null, error: null })
 
-  const setCtx = useCallback((ctx: TrpcClientContext | null) => {
-    setState((prev) => ({ ...prev, ctx }))
-  }, [])
+  const setCtx = useCallback(
+    (ctx: State['ctx']) => setState((prev: State) => ({ ...prev, ctx, error: null })),
+    [],
+  )
 
-  const setServer = useCallback((server: TRPCClient<TRPCServerRouter> | null) => {
-    setState((prev) => ({ ...prev, server }))
-  }, [])
+  const setServer = useCallback(
+    (server: State['server']) => setState((prev: State) => ({ ...prev, server, error: null })),
+    [],
+  )
+
+  const setError = useCallback(
+    (error: State['error']) => setState((prev: State) => ({ ...prev, error })),
+    [],
+  )
 
   const updateCtx = () => {
     createTrpcClientContext({
@@ -122,14 +136,25 @@ export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithCh
               // TODO: implement upgrade flow for mobile
               console.error('Please update the app to the latest version.')
             }
+            setError(error)
             break
           }
           case error instanceof ClientAuthError: {
+            // for await (
+            //   const msg of loginFromApp({
+            //     ctx: await createClientAuthContext({ storage: localStorage }),
+            //     input: {},
+            //   })
+            // ) {
+            //   console.info(msg)
+            // }
             console.error('Authentication error:', error.message)
+            setError(error)
             break
           }
           case error instanceof Error: {
             console.error('Failed to connect to server:', error.message)
+            setError(error)
             break
           }
           default:
@@ -142,15 +167,11 @@ export function ExpoTrpcClientProvider({ children, fallback }: React.PropsWithCh
     }
   }, [ctx])
 
-  console.log({
-    ctx,
-    server,
-  })
   return (
     <QueryClientProvider client={queryClient}>
-      {!ctx ? fallback : (
+      {!ctx ? fallback({ error }) : (
         <ExpoTrpcClientContext.Provider value={ctx}>
-          {!server ? fallback : (
+          {!server ? fallback({ error }) : (
             <TRPCProvider queryClient={queryClient} trpcClient={server}>
               {children}
             </TRPCProvider>

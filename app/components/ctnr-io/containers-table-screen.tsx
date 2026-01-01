@@ -19,6 +19,7 @@ import {
 import { Button } from '../shadcn/ui/button.tsx'
 import { Label } from '../shadcn/ui/label.tsx'
 import { TerminalLine } from './terminal-line.tsx'
+import ResponsiveDialog from './responsive-dialog.tsx'
 
 // Container type definition
 interface ContainerData {
@@ -305,42 +306,31 @@ export default function ContainersTableScreen({
       Wrapper: useCallback(({ item, children }: { item: ContainerData; children: ReactNode }) => {
         const [open, setOpen] = useState(false)
         return (
-          <>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger
-                onClick={(e) => {
-                  // Prevent triggering the row onClick when opening the dialog
-                  e.stopPropagation()
-                  setOpen(true)
-                }}
-                asChild
-              >
-                {children}
-              </DialogTrigger>
-              <DialogContent>
-                <DialogTitle>Remove Containers</DialogTitle>
-                <DialogDescription>
-                  <p className='text-sm text-muted-foreground'>
-                    Are you sure you want to remove the containers{' '}
-                    <span className='font-mono'>{item.name}</span>? This action cannot be undone.
-                  </p>
-                </DialogDescription>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant='outline'>Cancel</Button>
-                  </DialogClose>
-                  <Button
-                    variant='destructive'
-                    className='cursor-pointer'
-                    onClick={() => removeMutation.mutate({ name: item.name, force: true })}
-                  >
-                    <Trash2 className='h-4 w-4' />
-                    Remove
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </>
+          <ResponsiveDialog
+            open={open}
+            onOpenChange={setOpen}
+            title='Remove Container'
+            description={`Are you sure you want to remove the container "${item.name}"? This action cannot be undone.`}
+            trigger={children}
+            footer={(close) => (
+              <>
+                <Button variant='outline' onClick={() => close()}>
+                  Cancel
+                </Button>
+                <Button
+                  variant='destructive'
+                  className='cursor-pointer'
+                  onClick={() => {
+                    removeMutation.mutate({ name: item.name, force: true })
+                    close()
+                  }}
+                >
+                  <Trash2 className='h-4 w-4' />
+                  Remove
+                </Button>
+              </>
+            )}
+          />
         )
       }, []),
     },
@@ -348,31 +338,33 @@ export default function ContainersTableScreen({
 
   const [runDialogOpen, setRunDialogOpen] = useState(false)
 
-
   return (
     <>
-      <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
-        <DialogContent className='!max-w-fit'>
-          <DialogTitle>Install & Run CLI</DialogTitle>
-          <DialogDescription>
-            <div className='space-y-4 flex flex-col'>
-              <Label>Install CLI</Label>
-              <TerminalLine text='curl -fsSL https://get.ctnr.io | bash' />
-              <Label>Login</Label>
-              <TerminalLine text='ctnr login' />
-              <Label>Run an nginx Container</Label>
-              <TerminalLine text='ctnr run nginx:latest -p www:80 -r www' />
-              <Label>View running Containers</Label>
-              <TerminalLine text='ctnr list' />
-            </div>
-          </DialogDescription>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant='outline'>Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog
+        open={runDialogOpen}
+        onOpenChange={setRunDialogOpen}
+        title='Install & Run CLI'
+        description={
+          <div className='space-y-4 flex flex-col'>
+            <Label>Install CLI</Label>
+            <TerminalLine text='curl -fsSL https://get.ctnr.io | bash' />
+            <Label>Login</Label>
+            <TerminalLine text='ctnr login' />
+            <Label>Run an nginx Container</Label>
+            <TerminalLine text='ctnr run nginx:latest -p www:80 -r www' />
+            <Label>View running Containers</Label>
+            <TerminalLine text='ctnr list' />
+          </div>
+        }
+        showCloseButton
+        contentClassName='!max-w-fit'
+      >
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant='outline'>Close</Button>
+          </DialogClose>
+        </DialogFooter>
+      </ResponsiveDialog>
       <DataTableScreen<ContainerData>
         title='Containers'
         description='Manage and monitor your application containers'

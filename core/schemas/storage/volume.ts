@@ -18,6 +18,7 @@ export const VolumeStatus = z.enum([
   'mounted',
   'available',
   'pending',
+  'lost',
   'error',
   'bound',
   'released',

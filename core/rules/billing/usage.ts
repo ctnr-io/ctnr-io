@@ -89,13 +89,12 @@ export async function getUsage(opts: {
     // For free tier users, always use free tier limits
     parsedLimits = { ...freeTierLimits }
     // Ensure resource quota is set to free tier limits
-    await ensureFederatedResourceQuota(kubeClient, namespace, {
+    await ensureFederatedResourceQuota(kubeClient, {
       apiVersion: 'policy.karmada.io/v1alpha1',
       kind: 'FederatedResourceQuota',
       metadata: {
         name: 'ctnr-resource-quota',
         namespace: namespace,
-        labels: {},
       },
       spec: {
         overall: {

@@ -85,6 +85,8 @@ console.log('Ensuring project:', projectId, 'for user:', userId)
 
   // 1. Create namespace representing the project in a specific Kubernetes cluster.
   await ensureNamespace(kubeClient, {
+    apiVersion: 'v1',
+    kind: 'Namespace',
     metadata: {
       name: namespaceName,
       labels,
@@ -92,7 +94,7 @@ console.log('Ensuring project:', projectId, 'for user:', userId)
   }, signal)
 
   // 2. Ensure propagation policy to the cluster.
-  await ensureClusterPropagationPolicy(kubeClient, namespaceName, {
+  await ensureClusterPropagationPolicy(kubeClient, {
     apiVersion: 'policy.karmada.io/v1alpha1',
     kind: 'ClusterPropagationPolicy',
     metadata: {
@@ -112,7 +114,7 @@ console.log('Ensuring project:', projectId, 'for user:', userId)
       },
     },
   }, signal)
-  await ensurePropagationPolicy(kubeClient, namespaceName, {
+  await ensurePropagationPolicy(kubeClient, {
     apiVersion: 'policy.karmada.io/v1alpha1',
     kind: 'PropagationPolicy',
     metadata: {
@@ -166,7 +168,7 @@ console.log('Ensuring project:', projectId, 'for user:', userId)
   // Est-West traffic only within namespace, allow from ctnr-api and traefik, allow to world.
   await ensureCiliumNetworkPolicy(
     kubeClient,
-    namespaceName,
+    // Using template literals could be insecure, move to object
     yaml`
       apiVersion: cilium.io/v2
       kind: CiliumNetworkPolicy
@@ -227,13 +229,12 @@ console.log('Ensuring project:', projectId, 'for user:', userId)
   namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal })
   const balance = getNamespaceBalance(namespaceObj)
   if (balance.credits === 0) {
-    await ensureFederatedResourceQuota(kubeClient, namespaceName, {
+    await ensureFederatedResourceQuota(kubeClient, {
       apiVersion: 'policy.karmada.io/v1alpha1',
       kind: 'FederatedResourceQuota',
       metadata: {
         name: resourceQuotaName,
         namespace: namespaceName,
-        labels
       },
       spec: {
         overall: {

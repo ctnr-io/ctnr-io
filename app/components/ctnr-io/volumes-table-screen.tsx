@@ -313,7 +313,7 @@ export default function VolumesTableScreen() {
       description='Manage your persistent storage volumes'
       infoDescription='Create and manage storage volumes for your containers. Volumes use ReadWriteMany access mode, allowing them to be attached to multiple containers simultaneously for shared data access.'
       searchPlaceholder='Search volumes by name, status, or mount path...'
-  searchKeys={['name', 'status', 'attachedTo', 'attachments']}
+      searchKeys={['name', 'status', 'attachedTo', 'attachments']}
       addButtonLabel='Create Volume'
       mobileCardSubtitle={(item) => `${item.size} • ${item.status}`}
       mobileCardStatus={(item) => ({

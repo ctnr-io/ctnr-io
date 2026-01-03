@@ -9,6 +9,8 @@ import { ClientAuthError, ClientVersionError } from 'api/drivers/errors.ts'
 import { createTrpcClientContext, TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
 import type { TRPCServerRouter } from 'api/drivers/trpc/server/router.ts'
 import { TRPCClient } from '@trpc/client'
+import loginFromApp from 'api/handlers/client/auth/login_from_app.ts'
+import { createClientAuthContext } from 'api/context/client/auth.ts'
 
 // Display env variables on startup
 SplashScreen.preventAutoHideAsync()
@@ -62,7 +64,7 @@ export function useExpoTrpcClientContext(): TrpcClientContext {
 
 export function ExpoTrpcClientProvider(
   { children, fallback }: React.PropsWithChildren<
-    { fallback: (props: { error: ClientVersionError | ClientAuthError | Error }) => React.ReactNode }
+    { fallback: (props: { error: ClientVersionError | ClientAuthError | Error | null }) => React.ReactNode }
   >,
 ) {
   const queryClient = getQueryClient()
@@ -129,13 +131,7 @@ export function ExpoTrpcClientProvider(
         switch (true) {
           case error instanceof ClientVersionError: {
             console.error('Client version is outdated:', error.message)
-            // If web, reload the page
-            if (Platform.OS === 'web') {
-              globalThis.location.reload()
-            } else {
-              // TODO: implement upgrade flow for mobile
-              console.error('Please update the app to the latest version.')
-            }
+
             setError(error)
             break
           }

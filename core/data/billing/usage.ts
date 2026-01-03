@@ -40,13 +40,12 @@ export async function setLimits(
 ): Promise<void> {
 	const { kubeClient, namespace } = ctx
 
-	await ensureFederatedResourceQuota(kubeClient, namespace, {
+	await ensureFederatedResourceQuota(kubeClient, {
 		apiVersion: 'policy.karmada.io/v1alpha1',
 		kind: 'FederatedResourceQuota',
 		metadata: {
 			name: 'ctnr-resource-quota',
 			namespace: namespace,
-			labels: {},
 		},
 		spec: {
 			overall: {

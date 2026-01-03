@@ -27,6 +27,8 @@ import {
 
 export type KubeClient = Awaited<ReturnType<typeof createKubeClient>>
 
+export * from './resource.ts'
+
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
 export async function createKubeClient(context: 'karmada' | 'eu-1') {

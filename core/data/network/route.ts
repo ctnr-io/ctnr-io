@@ -1,14 +1,19 @@
-import { ensureCertManagerCertificate, ensureIngressRoute, type KubeClient } from 'infra/kubernetes/mod.ts'
-import { ensureHTTPRoute } from 'infra/kubernetes/resources/gateway/http_route.ts'
-import { ensureService } from 'infra/kubernetes/resources/core/service.ts'
+
 import { httpRouteToRoute, ingressRouteToRoute } from 'core/transform/route.ts'
 import type { Route } from 'core/schemas/network/route.ts'
-import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
-import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
 import { getContainer } from '../compute/container.ts'
 import { isDomainVerified } from './domain.ts'
 import { ClusterName } from '../../schemas/common.ts'
 import { normalizePath } from 'trpc-to-openapi'
+import {
+  KubeClient,
+  ensureService,
+  ensureHTTPRoute,
+  ensureIngressRoute,
+  ensureCertificate,
+  HTTPRoute,
+  IngressRoute,
+} from 'infra/kubernetes/mod.ts'
 
 export interface EnsureRouteInput {
   name: string
@@ -45,7 +50,9 @@ export async function ensureRoute(
   console.log(`Ensuring route ${name} for container ${containerName} on hostname ${hostname}`)
 
   // 1. Ensure Service
-  await ensureService(kubeClient, namespace, {
+  await ensureService(kubeClient, {
+    apiVersion: 'v1',
+    kind: 'Service',
     metadata: {
       name: input.container,
       namespace,
@@ -66,7 +73,7 @@ export async function ensureRoute(
 
   // 2. Ensure HTTPRoute for ctnr.io hostnames
   if (hostname.endsWith('.ctnr.io')) {
-    await ensureHTTPRoute(kubeClient, namespace, {
+    await ensureHTTPRoute(kubeClient, {
       apiVersion: 'gateway.networking.k8s.io/v1',
       kind: 'HTTPRoute',
       metadata: {
@@ -116,7 +123,7 @@ export async function ensureRoute(
       throw new Error(`Domain ${hostname} is not verified`)
     }
 
-  await ensureIngressRoute(kubeClient, namespace, {
+  await ensureIngressRoute(kubeClient, {
       apiVersion: 'traefik.io/v1alpha1',
       kind: 'IngressRoute',
       metadata: {
@@ -140,7 +147,7 @@ export async function ensureRoute(
     }, signal)
 
     if (protocol === 'https') {
-      await ensureCertManagerCertificate(kubeClient, namespace, {
+      await ensureCertificate(kubeClient, {
         apiVersion: 'cert-manager.io/v1',
         kind: 'Certificate',
         metadata: {

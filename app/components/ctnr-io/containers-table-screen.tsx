@@ -288,13 +288,13 @@ export default function ContainersTableScreen({
     {
       icon: Eye,
       label: 'View Logs',
-      onClick: (container) => router.push(`/containers/${container.name}/logs`),
+      onClick: (container) => router.push(`/containers/${container.name}?tab=logs`),
       disabled: isPending,
     },
     {
       icon: Settings,
       label: 'Container Settings',
-      onClick: (container) => router.push(`/containers/${container.name}/settings`),
+      onClick: (container) => router.push(`/containers/${container.name}?tab=config`),
       disabled: isPending,
     },
     {

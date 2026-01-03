@@ -5,6 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { Copy, LoaderCircle } from 'lucide-react'
 import { ReactNode } from 'react'
+import { useLocalSearchParams } from 'expo-router'
+import { useNavigation } from 'expo-router'
+import { router } from 'expo-router'
+import { useRoute } from '@react-navigation/native'
+import { useRouter } from 'expo-router'
 
 // Generic data item that can be a single value or an array of values
 export type DataItem = {
@@ -38,6 +43,7 @@ export type DataTab = {
   content?: ReactNode
   className?: string
   hideLabel?: boolean
+  onClick?: () => void
 }
 
 // Main component props
@@ -213,10 +219,13 @@ export function DataDetailsScreen(props: DataDetailsScreenProps) {
     badge,
     headerActions,
     tabs,
-    defaultTab,
+    defaultTab = tabs[0]?.id,
     isLoading = false,
     loadingText = 'Loading details...',
   } = props
+
+  const { tab: currentTab = defaultTab } = useLocalSearchParams<{ tab: string }>()
+  const router = useRouter()
 
   if (isLoading) {
     return (
@@ -262,10 +271,10 @@ export function DataDetailsScreen(props: DataDetailsScreenProps) {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue={defaultTab || tabs[0]?.id} className='space-y-6'>
+        <Tabs defaultValue={currentTab} className='space-y-6'>
           <TabsList className='w-full flex justify-evenly'>
             {tabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className={`text-sm font-medium flex-1 ${tab.className || ''}`}>
+              <TabsTrigger key={tab.id} value={tab.id} className={`text-sm font-medium flex-1 ${tab.className || ''}`} onClick={() => router.setParams({ tab: tab.id })}>
                 {tab.icon && <span className='h-4 w-4 sm:mr-2'>{tab.icon}</span>}
                 {!tab.hideLabel && <span className='hidden sm:inline'>{tab.label}</span>}
               </TabsTrigger>

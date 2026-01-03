@@ -19,7 +19,7 @@ import {
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'app/components/shadcn/ui/tabs.tsx'
-import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
+import { DataTable, TableAction, TableColumn } from 'app/components/ctnr-io/data-table.tsx'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
@@ -301,7 +301,7 @@ export default function BillingScreen() {
                   <p className='text-2xl font-bold text-foreground mb-1'>
                     {monthlyUsage ? monthlyUsage.toLocaleString() : '0'}
                   </p>
-                  <p className='text-muted-foreground text-sm'>credits this month</p>
+                  <p className='text-muted-foreground text-sm'>credits per month</p>
                 </CardContent>
               </Card>
 
@@ -476,10 +476,7 @@ export default function BillingScreen() {
 
           {/* Invoices Tab */}
           <TabsContent value='invoices'>
-            <Card>
-              <DataTableScreen
-                title='Billing History'
-                description='View and download your invoices'
+              <DataTable
                 icon={Receipt}
                 data={invoices}
                 columns={columns}
@@ -512,7 +509,6 @@ export default function BillingScreen() {
                 hasNextPage={(!isFetchingNextPage && hasNextPage) || page < (invoicePages?.pages.length || 0) - 1}
                 hasPrevPage={page > 0}
               />
-            </Card>
           </TabsContent>
         </Tabs>
 

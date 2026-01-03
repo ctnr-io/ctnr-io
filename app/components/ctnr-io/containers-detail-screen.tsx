@@ -14,6 +14,8 @@ import { useEffect } from 'react'
 import ResponsiveDialog from './responsive-dialog.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
+import { useNavigation } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 
 function getStatusColor(status: string) {
   switch (status) {

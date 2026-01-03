@@ -4,7 +4,7 @@ import { Redirect } from 'expo-router'
 import { useLocalSearchParams } from 'expo-router'
 import { ContainersDetailScreen } from 'app/components/ctnr-io/containers-detail-screen.tsx'
 
-export default function () {
+export default function() {
   const { name } = useLocalSearchParams<{ name: string }>()
   const trpc = useTRPC()
 

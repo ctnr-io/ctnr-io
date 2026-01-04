@@ -301,7 +301,12 @@ export function extractRoutesForContainer(
       for (const backend of rule.backendRefs ?? []) {
         if (backend.name === containerName) {
           for (const hostname of route.spec.hostnames ?? []) {
-            routes.push(hostname)
+            // Add scheme to route
+            if (route.spec.parentRefs?.some((pr) => pr.sectionName === 'websecure')) {
+              routes.push(`https://${hostname}`)
+            } else {
+              routes.push(`http://${hostname}`)
+            }
           }
         }
       }
@@ -316,7 +321,11 @@ export function extractRoutesForContainer(
           // Extract hostname from match rule
           const hostMatch = r.match?.match(/Host\(`([^`]+)`\)/)
           if (hostMatch?.[1]) {
-            routes.push(hostMatch[1])
+            if (route.spec.entryPoints?.includes('websecure')) {
+              routes.push(`https://${hostMatch[1]}`)
+            } else {
+              routes.push(`http://${hostMatch[1]}`)
+            }
           }
         }
       }

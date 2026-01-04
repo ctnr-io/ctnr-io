@@ -204,7 +204,6 @@ export async function listVolumes(
       const spec = pvc.spec ?? {}
       const status = pvc.status ?? {}
 
-      console.log(pvc)
       // Map PVC phase to VolumeStatus
       const phaseToStatus: Record<string, VolumeStatus> = {
         'Bound': 'bound',

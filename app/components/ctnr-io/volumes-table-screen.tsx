@@ -161,7 +161,6 @@ export default function VolumesTableScreen() {
   )
 
   const handleAdd = async (volumeForm: Omit<Volume, 'id'>) => {
-    console.log('Creating volume with data:', volumeForm)
     await createVolume.mutateAsync({
       name: volumeForm.name,
       size: volumeForm.size,
@@ -177,7 +176,6 @@ export default function VolumesTableScreen() {
 
   const handleRowClick = (volume: Volume) => {
     // TODO: Navigate to volume details or edit page
-    console.log('Volume clicked:', volume)
   }
   // Define table columns
   const columns: TableColumn<Volume>[] = [

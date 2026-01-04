@@ -362,7 +362,6 @@ function CreditPurchaseForm({
   }
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
-    console.log('Submitting credit purchase data:', data)
     try {
       await onSubmit(data)
     } catch (error) {
@@ -544,7 +543,6 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
   })
 
   const handleSubmit = async (data: CreditPurchaseFormData) => {
-    console.log('Dialog handleSubmit called with data:', data)
     setGeneralError('')
 
     const amount = parseInt(data.amount)

@@ -8,7 +8,6 @@ export const VolumeSize = z.string()
   .regex(VolumeSizeRegexp, 'Size must be in format like 10G, 10Gi')
   .refine((value) => {
     const match = value.match(VolumeSizeRegexp)
-    console.log('VolumeSize match:', match)
     if (!match) return false
     const size = parseInt(match[1], 10)
     return size >= 1 && size <= 20

@@ -240,7 +240,6 @@ export async function listDomains(
       })
     }))
     
-    console.log(`Total domains found: ${domains.length}`)
     return domains
   } catch {
     return []

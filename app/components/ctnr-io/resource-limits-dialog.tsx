@@ -60,14 +60,10 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
   const [memorySlider, setMemorySlider] = useState([getInitialMemorySlider()])
   const [storageSlider, setStorageSlider] = useState([getInitialStorageSlider()])
 
-  console.log('memorySlider', memorySlider)
-
   // Convert slider values back to actual resource values
   const cpuValue = ResourceLimits.cpu.fromSlider(cpuSlider[0])
   const memoryValue = ResourceLimits.memory.fromSlider(memorySlider[0])
   const storageValue = ResourceLimits.storage.fromSlider(storageSlider[0])
-
-  console.log('memoryValue', memoryValue)
 
   // Update slider values when dialog opens or currentLimits change
   React.useEffect(() => {

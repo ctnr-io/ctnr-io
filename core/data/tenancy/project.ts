@@ -54,7 +54,6 @@ export async function ensureProject(kubeClient: KubeClient, input: {
 	projectName?: string,
 }, signal: AbortSignal): Promise<Project> {
 const { userId, projectId } = input
-console.log('Ensuring project:', projectId, 'for user:', userId)
 
   // 0. Determine resources names like namespace, propagation policy, network policies, etc.
   // Determine namespace name

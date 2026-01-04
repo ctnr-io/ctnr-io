@@ -47,8 +47,6 @@ export async function ensureRoute(
     throw new Error(`Container ${input.container} not found in namespace ${namespace}`)
   }
 
-  console.log(`Ensuring route ${name} for container ${containerName} on hostname ${hostname}`)
-
   // 1. Ensure Service
   await ensureService(kubeClient, {
     apiVersion: 'v1',

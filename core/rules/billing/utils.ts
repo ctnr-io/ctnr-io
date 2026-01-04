@@ -120,7 +120,6 @@ const expScale = (sliderValue: number, min: number, max: number): number => {
   const logMin = Math.log(min)
   const logMax = Math.log(max)
   const logValue = logMin + (sliderValue / 100) * (logMax - logMin)
-  console.log('logValue', logValue)
   return Math.round(Math.exp(logValue))
 }
 
@@ -150,11 +149,7 @@ export const ResourceLimits = {
     display: (value: number) => `${value} Gi`,
     toSlider: (value: number) => logScale(value, ResourceLimits.memory.min, ResourceLimits.memory.max),
     fromSlider: (sliderValue: number) => {
-      console.log('sliderValue', sliderValue)
-      console.log('min', ResourceLimits.memory.min)
-      console.log('max', ResourceLimits.memory.max)
       const rawValue = expScale(sliderValue, ResourceLimits.memory.min, ResourceLimits.memory.max)
-      console.log('rawValue', rawValue)
       // Round to nearest 1 for cleaner values
       return Math.round(rawValue)
     },

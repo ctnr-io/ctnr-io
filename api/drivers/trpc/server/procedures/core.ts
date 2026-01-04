@@ -6,6 +6,7 @@ import * as Exec from 'api/handlers/server/compute/containers/exec.ts'
 import * as Logs from 'api/handlers/server/compute/containers/logs.ts'
 import * as Remove from 'api/handlers/server/compute/containers/remove.ts'
 import * as Restart from 'api/handlers/server/compute/containers/restart.ts'
+import * as Rollout from 'api/handlers/server/compute/containers/rollout.ts'
 import * as Route from 'api/handlers/server/compute/containers/route.ts'
 import * as Run from 'api/handlers/server/compute/containers/run.ts'
 import * as Start from 'api/handlers/server/compute/containers/start.ts'
@@ -65,6 +66,18 @@ export const restartMutation = trpc.procedure
   .meta(Restart.Meta)
   .input(Restart.Input)
   .mutation(transformQueryProcedure(Restart.default))
+
+export const rollout = trpc.procedure
+  .use(withServerContext)
+  .meta(Rollout.Meta)
+  .input(Rollout.Input)
+  .subscription(transformSubscribeProcedure(Rollout.default))
+
+export const rolloutMutation = trpc.procedure
+  .use(withServerContext)
+  .meta(Rollout.Meta)
+  .input(Rollout.Input)
+  .mutation(transformQueryProcedure(Rollout.default))
 
 export const route = trpc.procedure
   .use(withServerContext)

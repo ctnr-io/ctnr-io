@@ -20,8 +20,8 @@ export const Meta = {
 // Volume mount specification
 const VolumeMount = z.string()
   .regex(
-    /^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(?::\d+[G]?)?$/,
-    'Volume format must be name:path or name:path:size (e.g., "data:/app/data" or "data:/app/data:5G")',
+    /^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(?::\d+(?:[Gg][Bb]?|GiB)?)?$/,
+    'Volume format must be name:path or name:path:size (e.g., "data:/app/data", "data:/app/data:5G", "data:/app/data:5GB", or "data:/app/data:5GiB")',
   )
   .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
 
@@ -197,9 +197,9 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
                 containerPort: Number(p.port),
                 protocol: p.protocol?.toUpperCase() as 'TCP' | 'UDP',
               })),
-              volumeDevices: volumeDevices.map((vol) => ({
+              volumeMounts: volumeDevices.map((vol) => ({
                 name: vol.name,
-                devicePath: vol.mountPath,
+                mountPath: vol.mountPath,
               })),
               readinessProbe: {
                 exec: {

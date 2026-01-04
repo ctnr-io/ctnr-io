@@ -35,17 +35,26 @@ const PublishSchema = z.object({
   protocol: PortProtocol.optional().default('tcp'),
 })
 
-export const Publish = z.string().transform((value) => {
-  const [portAndProtocol, name] = value.split(':').toReversed()
-  const [port, protocol] = portAndProtocol.split('/')
-  return {
-    name: name || undefined,
-    port: PortNumber.parse(parseInt(port)),
-    protocol: PortProtocol.optional().parse(protocol),
+class PublishString extends String {
+  name: string | undefined
+  port: number
+  protocol: 'tcp' | 'udp' | undefined
+
+  constructor(value: string) {
+    super(value)
+    const [portAndProtocol, name] = value.split(':').toReversed()
+    const [port, protocol] = portAndProtocol.split('/')
+    this.name = name
+    this.port = PortNumber.parse(parseInt(port))
+    this.protocol = PortProtocol.optional().parse(protocol)
   }
-}).refine(PublishSchema.parse).describe(
-  `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
-)
+}
+export const Publish = z.string()
+  .transform((value) => new PublishString(value) as string & PublishString)
+  .refine(PublishSchema.parse)
+  .describe(
+    `[<name>:]<number>[/<protocol>], where <name> is optional and <protocol> is either 'tcp' or 'udp'. Example: "my-tcp-port:8080/tcp" or "my-udp-port:8080/udp"`,
+  )
 
 export const ClusterNames = ['eu-1'] as const
 export const ClusterName = z.enum(ClusterNames).transform(

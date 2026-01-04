@@ -48,6 +48,14 @@ export const PaymentMetadataV1 = z.object({
 })
 export type PaymentMetadataV1 = z.infer<typeof PaymentMetadataV1>
 
+export const PaymentMetadataV2 = PaymentMetadataV1.omit({ version: true }).extend({
+  version: z.literal(2),
+  token: z.string(),
+})
+
+export const PaymentMetadata = z.union([PaymentMetadataV1, PaymentMetadataV2])
+export type PaymentMetadata = z.infer<typeof PaymentMetadata>
+
 const BillingAddressBase = z.object({
   streetAddress: z.string().min(1, 'Street address is required').max(200, 'Street address too long'),
   city: z.string().min(1, 'City is required').max(100, 'City name too long'),

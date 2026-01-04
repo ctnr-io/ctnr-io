@@ -4,10 +4,31 @@ import * as Attach from 'api/handlers/server//compute/containers/attach.ts'
 import * as Exec from 'api/handlers/server//compute/containers/exec.ts'
 import * as Remove from 'api/handlers/server//compute/containers/remove.ts'
 import * as Restart from 'api/handlers/server//compute/containers/restart.ts'
+import * as Rollout from 'api/handlers/server//compute/containers/rollout.ts'
 import * as Route from 'api/handlers/server//compute/containers/route.ts'
 import * as Logs from 'api/handlers/server//compute/containers/logs.ts'
 import * as Start from 'api/handlers/server/compute/containers/start.ts'
 import * as Stop from 'api/handlers/server/compute/containers/stop.ts'
+import * as Get from 'api/handlers/server/compute/containers/get.ts'
+import * as Create from 'api/handlers/server/compute/containers/create.ts'
+
+// Storage handlers
+import * as ListVolumes from 'api/handlers/server/storage/volumes/list.ts'
+import * as CreateVolume from 'api/handlers/server/storage/volumes/create.ts'
+import * as DeleteVolume from 'api/handlers/server/storage/volumes/delete.ts'
+
+// Network handlers
+import * as ListDomains from 'api/handlers/server/network/domains/list.ts'
+import * as CreateDomain from 'api/handlers/server/network/domains/create.ts'
+import * as DeleteDomain from 'api/handlers/server/network/domains/delete.ts'
+import * as ListRoutes from 'api/handlers/server/network/routes/list.ts'
+import * as CreateRoute from 'api/handlers/server/network/routes/create.ts'
+import * as DeleteRoute from 'api/handlers/server/network/routes/delete.ts'
+
+// Tenancy handlers
+import * as ListProject from 'api/handlers/server/tenancy/project/list.ts'
+import * as GetProject from 'api/handlers/server/tenancy/project/get.ts'
+
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from '../context.ts'
 import login from 'api/handlers/client/auth/login_from_terminal.ts'
@@ -91,23 +112,25 @@ export const TRPCCLientTerminalRouter = trpc.router({
   login: trpc.procedure.mutation(transformQueryProcedure(login)),
   logout: trpc.procedure.mutation(logout),
 
-  // Core procedures
+  // Core container procedures
   run: trpc.procedure.meta(Run.Meta).input(Run.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
-      (server) =>
-        transformSubscribeResolver(server.core.run.subscribe, {
-          ctx,
-          input: {
-            ...input,
-            publish: input.publish?.map((p) =>
-              [p.name, [p.port, p.protocol].filter(Boolean).join('/')].filter(Boolean).join(':')
-            ),
-          },
-          signal,
-        }),
+      (server) => transformSubscribeResolver(server.core.run.subscribe, { input, signal, ctx }),
+    )
+  ),
+  create: trpc.procedure.meta(Create.Meta).input(Create.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.run.subscribe, { input, signal, ctx }),
     )
   ),
   list: trpc.procedure.meta(List.Meta).input(List.Input.extend({
+    output: List.Input.shape.output.unwrap().default('wide').optional(),
+  })).query(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.list.subscribe, { input, signal, ctx }),
+    )
+  ),
+  get: trpc.procedure.meta(Get.Meta).input(Get.Input.extend({
     output: List.Input.shape.output.unwrap().default('wide').optional(),
   })).query(({ input, signal, ctx }) =>
     ctx.connect(
@@ -139,6 +162,11 @@ export const TRPCCLientTerminalRouter = trpc.router({
       (server) => transformSubscribeResolver(server.core.restart.subscribe, { ctx, input, signal }),
     )
   ),
+  rollout: trpc.procedure.meta(Rollout.Meta).input(Rollout.Input).mutation(({ input, signal, ctx }) =>
+    ctx.connect(
+      (server) => transformSubscribeResolver(server.core.rollout.subscribe, { ctx, input, signal }),
+    )
+  ),
   route: trpc.procedure.meta(Route.Meta).input(Route.Input).mutation(({ input, signal, ctx }) =>
     ctx.connect(
       (server) => transformSubscribeResolver(server.core.route.subscribe, { input, signal, ctx }),
@@ -154,6 +182,77 @@ export const TRPCCLientTerminalRouter = trpc.router({
       (server) => transformSubscribeResolver(server.core.stop.subscribe, { ctx, input, signal }),
     )
   ),
+
+  // Storage volumes procedures
+  volumes: trpc.router({
+    list: trpc.procedure.meta(ListVolumes.Meta).input(ListVolumes.Input).query(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.storage.volumes.list.query(input),
+      )
+    ),
+    create: trpc.procedure.meta(CreateVolume.Meta).input(CreateVolume.Input).mutation(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.storage.volumes.create.mutate(input),
+      )
+    ),
+    delete: trpc.procedure.meta(DeleteVolume.Meta).input(DeleteVolume.Input).mutation(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.storage.volumes.delete.mutate(input),
+      )
+    ),
+  }),
+
+  // Network domains procedures
+  domains: trpc.router({
+    list: trpc.procedure.meta(ListDomains.Meta).input(ListDomains.Input).query(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.network.domains.list.query(input),
+      )
+    ),
+    create: trpc.procedure.meta(CreateDomain.Meta).input(CreateDomain.Input).mutation(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.network.domains.create.mutate(input),
+      )
+    ),
+    delete: trpc.procedure.meta(DeleteDomain.Meta).input(DeleteDomain.Input).mutation(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.network.domains.delete.mutate(input),
+      )
+    ),
+  }),
+
+  // Network routes procedures
+  routes: trpc.router({
+    list: trpc.procedure.meta(ListRoutes.Meta).input(ListRoutes.Input).query(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.network.routes.list.query(input),
+      )
+    ),
+    create: trpc.procedure.meta(CreateRoute.Meta).input(CreateRoute.Input).mutation(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.network.routes.create.mutate(input),
+      )
+    ),
+    delete: trpc.procedure.meta(DeleteRoute.Meta).input(DeleteRoute.Input).mutation(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.network.routes.delete.mutate(input),
+      )
+    ),
+  }),
+
+  // Tenancy project procedures
+  project: trpc.router({
+    list: trpc.procedure.meta(ListProject.Meta).input(ListProject.Input).query(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.tenancy.project.list.query(input),
+      )
+    ),
+    get: trpc.procedure.meta(GetProject.Meta).input(GetProject.Input).query(({ input, ctx }) =>
+      ctx.connect(
+        async (server) => await server.tenancy.project.get.query(input),
+      )
+    ),
+  }),
 })
 
 export type TRPCCLientTerminalRouter = typeof TRPCCLientTerminalRouter

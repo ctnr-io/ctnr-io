@@ -5,6 +5,7 @@ import { getDeployment } from 'core/data/compute/container.ts'
 import { containerInputToDeployment } from 'core/transform/container.ts'
 import { ensureVolume } from 'core/data/storage/volume.ts'
 import { VolumeMount } from 'core/schemas/mod.ts'
+import { normalizeQuantity } from 'core/transform/resources.ts'
 
 export const Meta = {
   aliases: {
@@ -17,11 +18,11 @@ export const Meta = {
 }
 
 export const Input = z.object({
+  name: ContainerName.meta({ positional: true }),
   image: z.string()
     .min(1, 'Container image cannot be empty')
     .describe('Container image to run')
-    .meta({ positional: true }),
-  name: ContainerName.optional(),
+    .optional(),
   env: z.array(
     z.string()
       .regex(/^[A-Z_][A-Z0-9_]*=.*$/, 'Environment variables must follow format KEY=value with uppercase keys'),
@@ -63,8 +64,8 @@ export type Input = z.infer<typeof Input>
 export default async function* rolloutContainer(request: ServerRequest<Input>): ServerResponse<void> {
   const { ctx, input, signal } = request
   const {
+    name: containerName,
     image: inputImage,
-    name,
     env: inputEnv,
     publish: inputPublish,
     volume: inputVolume,
@@ -75,9 +76,6 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
     cpu: inputCpu,
     memory: inputMemory,
   } = input
-
-  // Name is required for rollout - if not provided, extract from image
-  const containerName = name || inputImage.split(':')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase()
 
   const containerCtx = {
     kubeClient: ctx.kube.client.karmada,
@@ -100,28 +98,34 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
   // Extract current configuration from existing deployment
   const existingContainer = existingDeployment.spec?.template?.spec?.containers?.[0]
   const existingAnnotations = existingDeployment.metadata?.annotations ?? {}
-  
+
   // Merge configuration: use input if provided, otherwise use existing
-  const image = inputImage // Image is required, always use input
-  const cpu = inputCpu ?? (existingContainer?.resources?.limits?.cpu?.toString() || '250m')
-  const memory = inputMemory ?? (existingContainer?.resources?.limits?.memory?.toString() || '256M')
-  const ephemeralStorage = existingContainer?.resources?.limits?.['ephemeral-storage']?.toString() || '1G'
+  const image = inputImage || existingContainer?.image || '' 
+
+  // Use normalizeQuantity to safely extract resource values from Kubernetes objects
+  const cpu = inputCpu ?? (normalizeQuantity(existingContainer?.resources?.limits?.cpu) || '250m')
+  const memory = inputMemory ?? (normalizeQuantity(existingContainer?.resources?.limits?.memory) || '256M')
+
+  // Safely extract ephemeral-storage, handling invalid values
+  const ephemeralStorage = normalizeQuantity(existingContainer?.resources?.limits?.['ephemeral-storage']) || '1G'
+
   const interactive = inputInteractive ?? (existingContainer?.stdin || false)
   const terminal = inputTerminal ?? (existingContainer?.tty || false)
-  const command = inputCommand ?? (existingContainer?.command?.[1] === '-c' ? existingContainer?.command?.[2] : undefined)
-  
+  const command = inputCommand ??
+    (existingContainer?.command?.[1] === '-c' ? existingContainer?.command?.[2] : undefined)
+
   // Merge environment variables
   const existingEnv = existingContainer?.env?.map((e) => `${e.name}=${e.value}`) ?? []
   const env = inputEnv && inputEnv.length > 0 ? inputEnv : existingEnv
-  
+
   // Merge replicas
   const existingMinReplicas = parseInt(existingAnnotations['ctnr.io/min-replicas'] ?? '1', 10)
   const existingMaxReplicas = parseInt(existingAnnotations['ctnr.io/max-replicas'] ?? '1', 10)
-  const existingReplicasRange = existingMinReplicas === existingMaxReplicas 
-    ? existingMinReplicas 
+  const existingReplicasRange = existingMinReplicas === existingMaxReplicas
+    ? existingMinReplicas
     : `${existingMinReplicas}-${existingMaxReplicas}`
   const replicas = inputReplicas ?? existingReplicasRange
-  
+
   // Merge ports
   const existingPorts = existingContainer?.ports?.map((p) => ({
     name: p.name || `port-${p.containerPort}`,
@@ -133,7 +137,7 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
     port: Number(p.port),
     protocol: p.protocol,
   })) ?? existingPorts
-  
+
   // Merge volumes
   const existingVolumes = existingContainer?.volumeMounts?.map((vm) => {
     const volumeName = vm.name
@@ -143,7 +147,7 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
       size: '1G', // Size is not stored in deployment, use default
     }
   }) ?? []
-  
+
   // Parse input volume mounts
   const inputVolumeDevices: Array<{ name: string; mountPath: string; size: string }> = []
   for (const vol of (inputVolume ?? [])) {
@@ -159,7 +163,7 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
       size,
     })
   }
-  
+
   const volumeDevices = inputVolumeDevices.length > 0 ? inputVolumeDevices : existingVolumes
 
   // Create PersistentVolumeClaims for volumes that don't exist
@@ -206,11 +210,19 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
     }
   }
 
-  // Patch the deployment with the full spec
+  // Create a minimal patch object with only the spec and metadata annotations we want to update
+  const patchObject = {
+    metadata: {
+      annotations: deploymentSpec.metadata?.annotations || {},
+    },
+    spec: deploymentSpec.spec,
+  }
+
+  // Patch the deployment with only the necessary fields
   await containerCtx.kubeClient.AppsV1.namespace(containerCtx.namespace).patchDeployment(
     containerName,
-    'json-merge',
-    deploymentSpec,
+    'strategic-merge',
+    patchObject,
     {
       abortSignal: signal,
     },

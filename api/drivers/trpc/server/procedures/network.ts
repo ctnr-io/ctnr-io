@@ -1,5 +1,5 @@
-import { trpc } from './trpc.ts'
-import { transformQueryProcedure, transformSubscribeProcedure, withServerContext } from './procedures/_utils.ts'
+import { trpc } from '../trpc.ts'
+import { transformQueryProcedure, transformSubscribeProcedure, withServerContext } from './_utils.ts'
 
 import * as ListDomains from 'api/handlers/server/network/domains/list.ts'
 import * as CreateDomain from 'api/handlers/server/network/domains/create.ts'

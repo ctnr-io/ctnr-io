@@ -11,18 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'a
 import { useState } from 'react'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-
-// Volume type definition
-export interface VolumeData extends ResourceItem {
-  id: string
-  name: string
-  size: string
-  // attachments hold mountPath and readOnly info, prefer using attachments for mountPath
-  attachments?: Array<{ containerName: string; mountPath: string; readOnly?: boolean }>
-  status: 'mounted' | 'available' | 'error' | 'pending' | 'bound' | 'released'
-  createdAt?: string
-  attachedTo: string[] // list of container names attached to
-}
+import { Volume } from 'core/schemas/mod.ts'
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -54,20 +43,20 @@ function AddVolumeForm({
   onCancel,
   isSubmitting,
 }: {
-  onSubmit: (data: Omit<VolumeData, 'id'>) => Promise<void>
+  onSubmit: (data: Omit<Volume, 'id'>) => Promise<void>
   onCancel: () => void
   isSubmitting: boolean
 }) {
   const [formData, setFormData] = useState({
     name: '',
     size: '10',
-    sizeUnit: 'GB',
+    sizeUnit: 'GiB',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const volumeData = {
+    const volume = {
       name: formData.name,
       size: `${formData.size}${formData.sizeUnit}`,
       status: 'available' as const,
@@ -75,7 +64,7 @@ function AddVolumeForm({
       attachedTo: [] as string[], // Empty array for new volumes
     }
 
-    await onSubmit(volumeData)
+    await onSubmit(volume)
   }
 
   return (
@@ -93,13 +82,14 @@ function AddVolumeForm({
 
       <div className='grid grid-cols-2 gap-2'>
         <div className='space-y-2'>
-          <Label htmlFor='volume-size'>Size</Label>
+          <Label htmlFor='volume-size'>Size <i className="text-xs text-muted-foreground font-normal">20 GiB max currently</i></Label>
           <Input
             id='volume-size'
             type='number'
             min='1'
+            max='20'
             value={formData.size}
-            onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, size: Number(e.target.value) > 20 ? '20' : Number(e.target.value) < 1 ? '1' : e.target.value })}
             required
           />
         </div>
@@ -113,8 +103,7 @@ function AddVolumeForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='GB'>GB</SelectItem>
-              <SelectItem value='TB'>TB</SelectItem>
+              <SelectItem value='GiB'>GiB</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -143,7 +132,7 @@ export default function VolumesTableScreen() {
   const queryClient = useQueryClient()
 
   // Fetch volumes data
-  const { data: volumes, isLoading } = useQuery(
+  const { data: volumes = [], isLoading } = useQuery(
     trpc.storage.volumes.listQuery.queryOptions({
       output: 'raw',
     }),
@@ -171,41 +160,27 @@ export default function VolumesTableScreen() {
     }),
   )
 
-  // Transform API data to component format
-  const volumeData: VolumeData[] = Array.isArray(volumes)
-    ? volumes.map((volume: any) => ({
-      id: volume.id,
-      name: volume.name,
-      size: volume.size,
-      attachments: volume.attachments ?? volume.attachment ? [volume.attachment] : undefined,
-      status: volume.status as 'mounted' | 'available' | 'error' | 'pending' | 'bound' | 'released',
-      createdAt: volume.createdAt ?? volume.created,
-      attachedTo: volume.attachedTo ?? [],
-      accessMode: volume.accessMode,
-      storageClass: volume.storageClass,
-    }))
-    : []
-
-  const handleAdd = async (volumeForm: Omit<VolumeData, 'id'>) => {
+  const handleAdd = async (volumeForm: Omit<Volume, 'id'>) => {
+    console.log('Creating volume with data:', volumeForm)
     await createVolume.mutateAsync({
       name: volumeForm.name,
       size: volumeForm.size,
     })
   }
 
-  const handleDelete = async (volume: VolumeData) => {
+  const handleDelete = async (volume: Volume) => {
     await deleteVolume.mutateAsync({
       name: volume.name,
       force: false,
     })
   }
 
-  const handleRowClick = (volume: VolumeData) => {
+  const handleRowClick = (volume: Volume) => {
     // TODO: Navigate to volume details or edit page
     console.log('Volume clicked:', volume)
   }
   // Define table columns
-  const columns: TableColumn<VolumeData>[] = [
+  const columns: TableColumn<Volume>[] = [
     {
       key: 'name',
       label: 'Name',
@@ -235,61 +210,48 @@ export default function VolumesTableScreen() {
       className: 'text-sm',
       visibleOnMobile: true,
     },
-    {
-      key: 'accessMode',
-      label: 'Access Mode',
-      render: (value) => <span className='text-xs font-mono'>{value}</span>,
-      className: 'text-sm',
-    },
-    {
-      key: 'storageClass',
-      label: 'Storage Class',
-      render: (value) => <span className='text-xs font-mono'>{value}</span>,
-      className: 'text-sm',
-    },
-    {
-      key: 'mountPath',
-      label: 'Mount Path',
-      render: (_value, item) => {
-        const firstMount = item.attachments?.[0]?.mountPath
-        return (
-          <code className='text-xs bg-muted px-2 py-1 rounded font-mono'>
-            {firstMount ?? '—'}
-          </code>
-        )
-      },
-      className: 'text-sm',
-    },
-    {
-      key: 'attachedTo',
-      label: 'Attached To',
-      render: (value: string[]) => {
-        if (!value || value.length === 0) {
-          return <span className='text-muted-foreground text-sm'>None</span>
-        }
+    // {
+    //   key: 'accessMode',
+    //   label: 'Access Mode',
+    //   render: (value) => <span className='text-xs font-mono'>{value}</span>,
+    //   className: 'text-sm',
+    // },
+    // {
+    //   key: 'storageClass',
+    //   label: 'Storage Class',
+    //   render: (value) => <span className='text-xs font-mono'>{value}</span>,
+    //   className: 'text-sm',
+    // },
+    // {
+    //   key: 'attachedTo',
+    //   label: 'Attached To',
+    //   render: (value: string[]) => {
+    //     if (!value || value.length === 0) {
+    //       return <span className='text-muted-foreground text-sm'>None</span>
+    //     }
 
-        if (value.length === 1) {
-          return (
-            <div className='flex items-center gap-1'>
-              <Container className='h-3 w-3 text-muted-foreground' />
-              <span className='text-sm'>{value[0]}</span>
-            </div>
-          )
-        }
+    //     if (value.length === 1) {
+    //       return (
+    //         <div className='flex items-center gap-1'>
+    //           <Container className='h-3 w-3 text-muted-foreground' />
+    //           <span className='text-sm'>{value[0]}</span>
+    //         </div>
+    //       )
+    //     }
 
-        // Multiple containers
-        return (
-          <div className='flex items-center gap-1'>
-            <Container className='h-3 w-3 text-muted-foreground' />
-            <span className='text-sm'>{value.length} containers</span>
-            <div className='hidden lg:inline text-xs text-muted-foreground'>
-              ({value.join(', ')})
-            </div>
-          </div>
-        )
-      },
-      className: 'text-sm',
-    },
+    //     // Multiple containers
+    //     return (
+    //       <div className='flex items-center gap-1'>
+    //         <Container className='h-3 w-3 text-muted-foreground' />
+    //         <span className='text-sm'>{value.length} containers</span>
+    //         <div className='hidden lg:inline text-xs text-muted-foreground'>
+    //           ({value.join(', ')})
+    //         </div>
+    //       </div>
+    //     )
+    //   },
+    //   className: 'text-sm',
+    // },
     {
       key: 'createdAt',
       label: 'Created',
@@ -303,7 +265,7 @@ export default function VolumesTableScreen() {
       resourceName='Volume'
       resourceNamePlural='Volumes'
       icon={HardDrive}
-      data={volumeData}
+      data={volumes}
       isLoading={isLoading}
       columns={columns}
       onAdd={handleAdd}

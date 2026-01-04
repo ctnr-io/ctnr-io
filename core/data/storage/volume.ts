@@ -112,7 +112,7 @@ export async function isVolumeExists(
     await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaim(name)
     return true
   } catch (error: any) {
-    if (error.status === 404) {
+    if (error.httpCode === 404) {
       return false
     }
     throw error
@@ -131,7 +131,7 @@ export async function* deleteVolume(
     // Check if volume exists
     await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaim(name)
   } catch (error: any) {
-    if (error.status === 404) {
+    if (error.httpCode === 404) {
       yield `Volume ${name} not found`
       return false
     }
@@ -222,7 +222,6 @@ export async function listVolumes(
         createdAt: metadata.creationTimestamp
           ? new Date(metadata.creationTimestamp)
           : new Date(),
-        attachedTo: [], // TODO: Get attached containers from pod volumeMounts
         storageClass: spec.storageClassName ?? 'default',
         accessMode: (spec.accessModes?.[0] as 'ReadWriteOnce' | 'ReadOnlyMany' | 'ReadWriteMany' | 'ReadWriteOncePod') ?? 'ReadWriteOnce',
         labels: metadata.labels ?? {},

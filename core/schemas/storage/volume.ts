@@ -1,6 +1,38 @@
 import { z } from 'zod'
 
 /**
+ * Volume size schema
+ */
+const VolumeSizeRegexp = /^(\d+)(?:G|Gi|GB|GiB)?$/
+export const VolumeSize = z.string()
+  .regex(VolumeSizeRegexp, 'Size must be in format like 10GB, 10G, 10GiB')
+  .refine((value) => {
+    const match = value.match(VolumeSizeRegexp)
+    console.log('VolumeSize match:', match)
+    if (!match) return false
+    const size = parseInt(match[1], 10)
+    return size >= 1 && size <= 20
+  }, 'Currently volume size cannot exceed 20 GiB or be less than 1 GiB')
+  .describe('Volume size')
+
+/**
+ * Volume mount schema
+ */
+const VolumeMountRegexp = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(:(\d+)(?:G|Gi|GB|GiB)?)?$/
+export const VolumeMount = z.string()
+  .regex(
+    VolumeMountRegexp,
+    'Volume format must be name:path or name:path:size (e.g., "data:/app/data", "data:/app/data:5G", "data:/app/data:5GB", or "data:/app/data:5GiB")',
+  )
+  .refine((value) => {
+    const match = value.match(VolumeMountRegexp)
+    if (!match || !match[3]) return true // Size is optional, so valid if not present
+    const size = parseInt(match[3], 10)
+    return size >= 1 && size <= 20
+  }, 'Currently volume size cannot exceed 20 GiB or be less than 1 GiB')
+  .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
+
+/**
  * Volume access modes
  */
 export const VolumeAccessMode = z.enum([
@@ -45,15 +77,10 @@ export const Volume = z.object({
   
   // Capacity
   size: z.string(),
-  usedSize: z.string().optional(),
   
   // Status
   status: VolumeStatus,
   createdAt: z.date(),
-  
-  // Attachments
-  attachedTo: z.array(z.string()),
-  attachments: z.array(VolumeAttachment).optional(),
   
   // Storage configuration
   accessMode: VolumeAccessMode,

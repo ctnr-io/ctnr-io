@@ -19,30 +19,14 @@ export function pvcToVolume(pvc: PersistentVolumeClaim): Volume {
   // Extract size from resources request
   const sizeRequest = normalizeQuantity(spec.resources?.requests?.storage) || '0Gi'
 
-  // Get mount path from annotations if available
-  const mountPath = annotations['ctnr.io/mount-path'] || '/mnt/volume'
-
-  // Get attached containers from labels (support comma-separated list)
-  const attachedToLabel = labels['ctnr.io/attached-to'] || ''
-  const attachedTo = attachedToLabel ? attachedToLabel.split(',').map((s) => s.trim()).filter(Boolean) : []
-
   return {
     id: metadata.uid || metadata.name || '',
     name: metadata.name || '',
     size: sizeRequest,
-    usedSize: undefined, // Would need to query actual usage
-    mountPath,
     status: mapPvcStatus(status.phase),
     createdAt: new Date(metadata.creationTimestamp || Date.now()),
-    attachedTo,
-    attachments: attachedTo.map((containerName) => ({
-      containerName,
-      mountPath,
-      readOnly: false,
-    })),
     accessMode: mapAccessMode(spec.accessModes?.[0]),
     storageClass: spec.storageClassName || 'default',
-    cluster: labels['ctnr.io/cluster'],
     labels,
     annotations,
   }

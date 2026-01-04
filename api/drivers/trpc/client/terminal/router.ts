@@ -117,8 +117,8 @@ export function createSubscribeQuery<Input, Output>(
   return trpc.procedure
     .meta(Meta)
     .input(Input)
-    .query(({ input, signal, ctx }) =>
-      ctx.connect((server) =>
+    .query(({ input, signal, ctx }: any) =>
+      ctx.connect((server: any) =>
         transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
       )
     )
@@ -133,8 +133,8 @@ export function createSubscribeMutation<Input, Output>(
   return trpc.procedure
     .meta(Meta)
     .input(Input)
-    .mutation(({ input, signal, ctx }) =>
-      ctx.connect((server) =>
+    .mutation(({ input, signal, ctx }: any) =>
+      ctx.connect((server: any) =>
         transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
       )
     )

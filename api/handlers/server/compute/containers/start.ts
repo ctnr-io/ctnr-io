@@ -59,7 +59,7 @@ export default async function* startContainer(request: ServerRequest<Input>): Se
 
   // If minReplicas != maxReplicas, create or update HPA
   if (minReplicas !== maxReplicas) {
-    await ensureHorizontalPodAutoscaler(ctx.kube.client['karmada'], ctx.project.namespace, {
+    await ensureHorizontalPodAutoscaler(ctx.kube.client['karmada'], {
       apiVersion: 'autoscaling/v2',
       kind: 'HorizontalPodAutoscaler',
       metadata: {

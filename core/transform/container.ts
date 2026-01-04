@@ -153,7 +153,7 @@ export function deploymentToContainer(
     volumeMounts: container?.volumeMounts?.map((vm) => ({
       name: vm.name ?? '',
       mountPath: vm.mountPath ?? '',
-      readOnly: vm.readOnly ?? undefined,
+      readOnly: vm.readOnly ?? false,
     })),
     labels,
     annotations,

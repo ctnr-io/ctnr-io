@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { ResourceQuantities } from '../common.ts'
-import { VolumeMount } from '../storage/volume.ts'
 
 /**
  * Container port configuration
@@ -113,7 +112,11 @@ export const Container = z.object({
   args: z.array(z.string()).optional(),
   workingDir: z.string(),
   environment: z.record(z.string(), z.string()),
-  volumeMounts: z.array(VolumeMount).optional(),
+  volumeMounts: z.array(z.object({
+    name: z.string(),
+    mountPath: z.string(),
+    readOnly: z.boolean().optional(),
+  })).optional(),
   
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),

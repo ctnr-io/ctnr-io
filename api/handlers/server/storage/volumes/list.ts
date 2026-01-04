@@ -68,11 +68,9 @@ export default async function* (
       // Volume rows
       for (const volume of volumes) {
         const age = formatAge(volume.createdAt)
-        const attachedToStr = volume.attachedTo?.join(', ') || 'none'
         yield volume.name.padEnd(20) +
           volume.size.padEnd(10) +
           volume.status.padEnd(12) +
-          attachedToStr.padEnd(15) +
           age
       }
       return

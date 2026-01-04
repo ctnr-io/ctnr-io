@@ -110,22 +110,22 @@ export default function DomainsTableScreen() {
   const queryClient = useQueryClient()
 
   const { data: domains, isLoading: isDomainsLoading } = useQuery(
-    trpc.network.domains.list.queryOptions({
+    trpc.network.domains.listQuery.queryOptions({
       output: 'raw',
     }),
   )
 
   // Fetch project context
   const { data: project, isLoading: isProjectLoading } = useQuery(
-    trpc.tenancy.project.get.queryOptions({}),
+    trpc.tenancy.project.getQuery.queryOptions({}),
   )
 
   // Create domain mutation
   const createDomain = useMutation(
-    trpc.network.domains.create.mutationOptions({
+    trpc.network.domains.createMutation.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: trpc.network.domains.list.queryKey(),
+          queryKey: trpc.network.domains.listQuery.queryKey(),
         })
       },
     }),
@@ -133,10 +133,10 @@ export default function DomainsTableScreen() {
 
   // Delete domain mutation
   const deleteDomain = useMutation(
-    trpc.network.domains.delete.mutationOptions({
+    trpc.network.domains.deleteMutation.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: trpc.network.domains.list.queryKey(),
+          queryKey: trpc.network.domains.listQuery.queryKey(),
         })
       },
     }),

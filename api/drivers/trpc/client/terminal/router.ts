@@ -38,6 +38,7 @@ import { ClientContext } from 'api/context/mod.ts'
 import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
 import { createDeferer } from 'lib/api/defer.ts'
 import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
+import z from 'zod'
 
 export const trpc = initTRPC.context<TrpcClientContext>().create()
 
@@ -107,150 +108,130 @@ export function transformQueryProcedure<Input, Output>(
   }
 }
 
+// Generic helper to create subscribe-based query procedures
+export function createSubscribeQuery<Input, Output>(
+  Meta: any,
+  Input: z.ZodType<Input>,
+  subscribePath: (server: any) => { subscribe: (input: Input, opts: any) => Unsubscribable },
+) {
+  return trpc.procedure
+    .meta(Meta)
+    .input(Input)
+    .query(({ input, signal, ctx }) =>
+      ctx.connect((server) =>
+        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
+      )
+    )
+}
+
+// Generic helper to create subscribe-based mutation procedures
+export function createSubscribeMutation<Input, Output>(
+  Meta: any,
+  Input: z.ZodType<Input>,
+  subscribePath: (server: any) => { subscribe: (input: Input, opts: any) => Unsubscribable },
+) {
+  return trpc.procedure
+    .meta(Meta)
+    .input(Input)
+    .mutation(({ input, signal, ctx }) =>
+      ctx.connect((server) =>
+        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
+      )
+    )
+}
+
+const WithWideOutputDefault = {
+  output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).default('wide').optional(),
+}
+
 export const TRPCCLientTerminalRouter = trpc.router({
   // Client authentication procedures
   login: trpc.procedure.mutation(transformQueryProcedure(login)),
   logout: trpc.procedure.mutation(logout),
 
   // Core container procedures
-  run: trpc.procedure.meta(Run.Meta).input(Run.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.run.subscribe, { input, signal, ctx }),
-    )
-  ),
-  create: trpc.procedure.meta(Create.Meta).input(Create.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.run.subscribe, { input, signal, ctx }),
-    )
-  ),
-  list: trpc.procedure.meta(List.Meta).input(List.Input.extend({
-    output: List.Input.shape.output.unwrap().default('wide').optional(),
-  })).query(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.list.subscribe, { input, signal, ctx }),
-    )
-  ),
-  get: trpc.procedure.meta(Get.Meta).input(Get.Input.extend({
-    output: List.Input.shape.output.unwrap().default('wide').optional(),
-  })).query(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.list.subscribe, { input, signal, ctx }),
-    )
-  ),
-  attach: trpc.procedure.meta(Attach.Meta).input(Attach.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.attach.subscribe, { input, signal, ctx }),
-    )
-  ),
-  exec: trpc.procedure.meta(Exec.Meta).input(Exec.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.exec.subscribe, { input, signal, ctx }),
-    )
-  ),
-  logs: trpc.procedure.meta(Logs.Meta).input(Logs.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.logs.subscribe, { ctx, input, signal }),
-    )
-  ),
-  remove: trpc.procedure.meta(Remove.Meta).input(Remove.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.remove.subscribe, { ctx, input, signal }),
-    )
-  ),
-  restart: trpc.procedure.meta(Restart.Meta).input(Restart.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.restart.subscribe, { ctx, input, signal }),
-    )
-  ),
-  rollout: trpc.procedure.meta(Rollout.Meta).input(Rollout.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.rollout.subscribe, { ctx, input, signal }),
-    )
-  ),
-  route: trpc.procedure.meta(Route.Meta).input(Route.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.route.subscribe, { input, signal, ctx }),
-    )
-  ),
-  start: trpc.procedure.meta(Start.Meta).input(Start.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.start.subscribe, { ctx, input, signal }),
-    )
-  ),
-  stop: trpc.procedure.meta(Stop.Meta).input(Stop.Input).mutation(({ input, signal, ctx }) =>
-    ctx.connect(
-      (server) => transformSubscribeResolver(server.core.stop.subscribe, { ctx, input, signal }),
-    )
-  ),
+  run: createSubscribeMutation(Run.Meta, Run.Input, (server) => server.core.run),
+  create: createSubscribeMutation(Create.Meta, Create.Input, (server) => server.core.run),
+  list: createSubscribeQuery(List.Meta, List.Input.extend(WithWideOutputDefault), (server) => server.core.list),
+  get: createSubscribeQuery(Get.Meta, Get.Input.extend(WithWideOutputDefault), (server) => server.core.list),
+  attach: createSubscribeMutation(Attach.Meta, Attach.Input, (server) => server.core.attach),
+  exec: createSubscribeMutation(Exec.Meta, Exec.Input, (server) => server.core.exec),
+  logs: createSubscribeMutation(Logs.Meta, Logs.Input, (server) => server.core.logs),
+  remove: createSubscribeMutation(Remove.Meta, Remove.Input, (server) => server.core.remove),
+  restart: createSubscribeMutation(Restart.Meta, Restart.Input, (server) => server.core.restart),
+  rollout: createSubscribeMutation(Rollout.Meta, Rollout.Input, (server) => server.core.rollout),
+  route: createSubscribeMutation(Route.Meta, Route.Input, (server) => server.core.route),
+  start: createSubscribeMutation(Start.Meta, Start.Input, (server) => server.core.start),
+  stop: createSubscribeMutation(Stop.Meta, Stop.Input, (server) => server.core.stop),
 
   // Storage volumes procedures
   volumes: trpc.router({
-    list: trpc.procedure.meta(ListVolumes.Meta).input(ListVolumes.Input).query(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.storage.volumes.list.query(input),
-      )
+    list: createSubscribeQuery(
+      ListVolumes.Meta,
+      ListVolumes.Input,
+      (server) => server.storage.volumes.list
     ),
-    create: trpc.procedure.meta(CreateVolume.Meta).input(CreateVolume.Input).mutation(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.storage.volumes.create.mutate(input),
-      )
+    create: createSubscribeMutation(
+      CreateVolume.Meta,
+      CreateVolume.Input,
+      (server) => server.storage.volumes.create
     ),
-    delete: trpc.procedure.meta(DeleteVolume.Meta).input(DeleteVolume.Input).mutation(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.storage.volumes.delete.mutate(input),
-      )
+    delete: createSubscribeMutation(
+      DeleteVolume.Meta,
+      DeleteVolume.Input,
+      (server) => server.storage.volumes.delete
     ),
   }),
 
   // Network domains procedures
   domains: trpc.router({
-    list: trpc.procedure.meta(ListDomains.Meta).input(ListDomains.Input).query(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.network.domains.list.query(input),
-      )
+    list: createSubscribeQuery(
+      ListDomains.Meta,
+      ListDomains.Input,
+      (server) => server.network.domains.list
     ),
-    create: trpc.procedure.meta(CreateDomain.Meta).input(CreateDomain.Input).mutation(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.network.domains.create.mutate(input),
-      )
+    create: createSubscribeMutation(
+      CreateDomain.Meta,
+      CreateDomain.Input,
+      (server) => server.network.domains.create
     ),
-    delete: trpc.procedure.meta(DeleteDomain.Meta).input(DeleteDomain.Input).mutation(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.network.domains.delete.mutate(input),
-      )
+    delete: createSubscribeMutation(
+      DeleteDomain.Meta,
+      DeleteDomain.Input,
+      (server) => server.network.domains.delete
     ),
   }),
 
   // Network routes procedures
   routes: trpc.router({
-    list: trpc.procedure.meta(ListRoutes.Meta).input(ListRoutes.Input).query(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.network.routes.list.query(input),
-      )
+    list: createSubscribeQuery(
+      ListRoutes.Meta,
+      ListRoutes.Input,
+      (server) => server.network.routes.list
     ),
-    create: trpc.procedure.meta(CreateRoute.Meta).input(CreateRoute.Input).mutation(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.network.routes.create.mutate(input),
-      )
+    create: createSubscribeMutation(
+      CreateRoute.Meta,
+      CreateRoute.Input,
+      (server) => server.network.routes.create
     ),
-    delete: trpc.procedure.meta(DeleteRoute.Meta).input(DeleteRoute.Input).mutation(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.network.routes.delete.mutate(input),
-      )
+    delete: createSubscribeMutation(
+      DeleteRoute.Meta,
+      DeleteRoute.Input,
+      (server) => server.network.routes.delete
     ),
   }),
 
   // Tenancy project procedures
   project: trpc.router({
-    list: trpc.procedure.meta(ListProject.Meta).input(ListProject.Input).query(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.tenancy.project.list.query(input),
-      )
+    list: createSubscribeQuery(
+      ListProject.Meta,
+      ListProject.Input,
+      (server) => server.tenancy.project.list
     ),
-    get: trpc.procedure.meta(GetProject.Meta).input(GetProject.Input).query(({ input, ctx }) =>
-      ctx.connect(
-        async (server) => await server.tenancy.project.get.query(input),
-      )
+    get: createSubscribeQuery(
+      GetProject.Meta,
+      GetProject.Input,
+      (server) => server.tenancy.project.get
     ),
   }),
 })

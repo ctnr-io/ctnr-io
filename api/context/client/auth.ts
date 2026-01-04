@@ -10,8 +10,8 @@ export async function createClientAuthContext(
   const supabase = getSupabaseClient({
     storage,
   })
-  const { data: { session } } = await supabase.auth.getSession()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession().catch((error) => ({ error, data: { session: null } }))
+  const { data: { user } } = await supabase.auth.getUser().catch((error) => ({ error, data: { user: null } }))
   if (!session || !user) {
     return {
       auth: {

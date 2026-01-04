@@ -5,13 +5,27 @@ import * as ListProject from 'api/handlers/server/tenancy/project/list.ts'
 import * as GetProject from 'api/handlers/server/tenancy/project/get.ts'
 
 export const project = {
+  // Subscription variants (for streaming/CLI)
   list: trpc.procedure
+    .use(withServerContext)
+    .meta(ListProject.Meta)
+    .input(ListProject.Input)
+    .subscription(transformSubscribeProcedure(ListProject.default)),
+
+  get: trpc.procedure
+    .use(withServerContext)
+    .meta(GetProject.Meta)
+    .input(GetProject.Input)
+    .subscription(transformSubscribeProcedure(GetProject.default)),
+
+  // Query variants (for frontend/direct calls)
+  listQuery: trpc.procedure
     .use(withServerContext)
     .meta(ListProject.Meta)
     .input(ListProject.Input)
     .query(transformQueryProcedure(ListProject.default)),
 
-  get: trpc.procedure
+  getQuery: trpc.procedure
     .use(withServerContext)
     .meta(GetProject.Meta)
     .input(GetProject.Input)

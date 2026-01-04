@@ -144,17 +144,17 @@ export default function VolumesTableScreen() {
 
   // Fetch volumes data
   const { data: volumes, isLoading } = useQuery(
-    trpc.storage.volumes.list.queryOptions({
+    trpc.storage.volumes.listQuery.queryOptions({
       output: 'raw',
     }),
   )
 
   // Create volume mutation
   const createVolume = useMutation(
-    trpc.storage.volumes.create.mutationOptions({
+    trpc.storage.volumes.createMutation.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: trpc.storage.volumes.list.queryKey(),
+          queryKey: trpc.storage.volumes.listQuery.queryKey(),
         })
       },
     }),
@@ -162,10 +162,10 @@ export default function VolumesTableScreen() {
 
   // Delete volume mutation
   const deleteVolume = useMutation(
-    trpc.storage.volumes.delete.mutationOptions({
+    trpc.storage.volumes.deleteMutation.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: trpc.storage.volumes.list.queryKey(),
+          queryKey: trpc.storage.volumes.listQuery.queryKey(),
         })
       },
     }),

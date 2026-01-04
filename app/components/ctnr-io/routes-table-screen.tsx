@@ -74,7 +74,7 @@ function AddRouteForm({
 
   // Fetch domains and containers for selects
   const { data: domainsRaw } = useQuery(
-    trpc.network.domains.list.queryOptions({ output: 'raw' }),
+    trpc.network.domains.listQuery.queryOptions({ output: 'raw' }),
   )
 
   const { data: containersRaw } = useQuery(
@@ -302,22 +302,22 @@ export default function RoutesTableScreen() {
 
   // Fetch project context
   const { data: project, isLoading: isProjectLoading } = useQuery(
-    trpc.tenancy.project.get.queryOptions({}),
+    trpc.tenancy.project.getQuery.queryOptions({}),
   )
 
   // Fetch routes data
   const { data: routes, isLoading: isRoutesLoading } = useQuery(
-    trpc.network.routes.list.queryOptions({
+    trpc.network.routes.listQuery.queryOptions({
       output: 'raw',
     }),
   )
 
   // Create route mutation
   const createRoute = useMutation(
-    trpc.network.routes.create.mutationOptions({
+    trpc.network.routes.createMutation.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: trpc.network.routes.list.queryKey(),
+          queryKey: trpc.network.routes.listQuery.queryKey(),
         })
       },
     }),
@@ -325,10 +325,10 @@ export default function RoutesTableScreen() {
 
   // Delete route mutation
   const deleteRoute = useMutation(
-    trpc.network.routes.delete.mutationOptions({
+    trpc.network.routes.deleteMutation.mutationOptions({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: trpc.network.routes.list.queryKey(),
+          queryKey: trpc.network.routes.listQuery.queryKey(),
         })
       },
     }),

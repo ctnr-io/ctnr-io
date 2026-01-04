@@ -9,8 +9,8 @@ export type ResourceUsage = {
 
 export interface ResourceParsed {
   cpu: number // in millicores
-  memory: number // in MB
-  storage: number // in GB
+  memory: number // in MiB
+  storage: number // in Gi
 }
 
 export function extractDeploymentMinimumResourceUsage(deployment: Deployment): ResourceUsage {
@@ -25,7 +25,8 @@ export function extractDeploymentMinimumResourceUsage(deployment: Deployment): R
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * minReplicas
   const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * minReplicas
   const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * minReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'M', storage: totalStorage + 'G', replicas: minReplicas }
+  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: minReplicas }
+  
 }
 
 export function extractDeploymentMaximumResourceUsage(deployment: Deployment): ResourceUsage {
@@ -40,7 +41,7 @@ export function extractDeploymentMaximumResourceUsage(deployment: Deployment): R
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * maxReplicas
   const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * maxReplicas
   const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * maxReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'M', storage: totalStorage + 'G', replicas: maxReplicas }
+  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: maxReplicas }
 }
 
 export function extractDeploymentCurrentResourceUsage(deployment: Deployment): ResourceUsage {
@@ -54,7 +55,7 @@ export function extractDeploymentCurrentResourceUsage(deployment: Deployment): R
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * currentReplicas
   const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * currentReplicas
   const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * currentReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'M', storage: totalStorage + 'G', replicas: currentReplicas }
+  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: currentReplicas }
 }
 
 export function extractDeploymentResourceUsage(
@@ -70,8 +71,8 @@ export function extractDeploymentResourceUsage(
 /**
  * Parse resource usage
  * - CPU: millicores (m)
- * - Memory: megabytes (MB)
- * - Storage: gigabytes (GB)
+ * - Memory: megabytes (MiB)
+ * - Storage: gigabytes (Gi)
  */
 export function parseResourceUsageToPrimitiveValues(usage: {
   cpu: string
@@ -88,8 +89,8 @@ export function parseResourceUsageToPrimitiveValues(usage: {
 /**
  * Parse Kubernetes resource values to standardized units
  * - CPU: millicores (m)
- * - Memory: megabytes (MB)
- * - Storage: gigabytes (GB)
+ * - Memory: megabytes (MiB)
+ * - Storage: gigabytes (Gi)
  */
 export function parseResourceToPrimitiveValue(value: string, type: 'cpu' | 'memory' | 'storage'): number {
   if (!value) return 0

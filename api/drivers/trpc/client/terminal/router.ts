@@ -164,76 +164,76 @@ export const TRPCCLientTerminalRouter = trpc.router({
   start: createSubscribeMutation(Start.Meta, Start.Input, (server) => server.core.start),
   stop: createSubscribeMutation(Stop.Meta, Stop.Input, (server) => server.core.stop),
 
-  // Storage volumes procedures
-  volumes: trpc.router({
-    list: createSubscribeQuery(
-      ListVolumes.Meta,
-      ListVolumes.Input,
-      (server) => server.storage.volumes.list
-    ),
-    create: createSubscribeMutation(
-      CreateVolume.Meta,
-      CreateVolume.Input,
-      (server) => server.storage.volumes.create
-    ),
-    delete: createSubscribeMutation(
-      DeleteVolume.Meta,
-      DeleteVolume.Input,
-      (server) => server.storage.volumes.delete
-    ),
-  }),
+  // // Storage volumes procedures
+  // volumes: trpc.router({
+  //   list: createSubscribeQuery(
+  //     ListVolumes.Meta,
+  //     ListVolumes.Input,
+  //     (server) => server.storage.volumes.list
+  //   ),
+  //   create: createSubscribeMutation(
+  //     CreateVolume.Meta,
+  //     CreateVolume.Input,
+  //     (server) => server.storage.volumes.create
+  //   ),
+  //   delete: createSubscribeMutation(
+  //     DeleteVolume.Meta,
+  //     DeleteVolume.Input,
+  //     (server) => server.storage.volumes.delete
+  //   ),
+  // }),
 
-  // Network domains procedures
-  domains: trpc.router({
-    list: createSubscribeQuery(
-      ListDomains.Meta,
-      ListDomains.Input,
-      (server) => server.network.domains.list
-    ),
-    create: createSubscribeMutation(
-      CreateDomain.Meta,
-      CreateDomain.Input,
-      (server) => server.network.domains.create
-    ),
-    delete: createSubscribeMutation(
-      DeleteDomain.Meta,
-      DeleteDomain.Input,
-      (server) => server.network.domains.delete
-    ),
-  }),
+  // // Network domains procedures
+  // domains: trpc.router({
+  //   list: createSubscribeQuery(
+  //     ListDomains.Meta,
+  //     ListDomains.Input,
+  //     (server) => server.network.domains.list
+  //   ),
+  //   create: createSubscribeMutation(
+  //     CreateDomain.Meta,
+  //     CreateDomain.Input,
+  //     (server) => server.network.domains.create
+  //   ),
+  //   delete: createSubscribeMutation(
+  //     DeleteDomain.Meta,
+  //     DeleteDomain.Input,
+  //     (server) => server.network.domains.delete
+  //   ),
+  // }),
 
-  // Network routes procedures
-  routes: trpc.router({
-    list: createSubscribeQuery(
-      ListRoutes.Meta,
-      ListRoutes.Input,
-      (server) => server.network.routes.list
-    ),
-    create: createSubscribeMutation(
-      CreateRoute.Meta,
-      CreateRoute.Input,
-      (server) => server.network.routes.create
-    ),
-    delete: createSubscribeMutation(
-      DeleteRoute.Meta,
-      DeleteRoute.Input,
-      (server) => server.network.routes.delete
-    ),
-  }),
+  // // Network routes procedures
+  // routes: trpc.router({
+  //   list: createSubscribeQuery(
+  //     ListRoutes.Meta,
+  //     ListRoutes.Input,
+  //     (server) => server.network.routes.list
+  //   ),
+  //   create: createSubscribeMutation(
+  //     CreateRoute.Meta,
+  //     CreateRoute.Input,
+  //     (server) => server.network.routes.create
+  //   ),
+  //   delete: createSubscribeMutation(
+  //     DeleteRoute.Meta,
+  //     DeleteRoute.Input,
+  //     (server) => server.network.routes.delete
+  //   ),
+  // }),
 
-  // Tenancy project procedures
-  project: trpc.router({
-    list: createSubscribeQuery(
-      ListProject.Meta,
-      ListProject.Input,
-      (server) => server.tenancy.project.list
-    ),
-    get: createSubscribeQuery(
-      GetProject.Meta,
-      GetProject.Input,
-      (server) => server.tenancy.project.get
-    ),
-  }),
+  // // Tenancy project procedures
+  // project: trpc.router({
+  //   list: createSubscribeQuery(
+  //     ListProject.Meta,
+  //     ListProject.Input,
+  //     (server) => server.tenancy.project.list
+  //   ),
+  //   get: createSubscribeQuery(
+  //     GetProject.Meta,
+  //     GetProject.Input,
+  //     (server) => server.tenancy.project.get
+  //   ),
+  // }),
 })
 
 export type TRPCCLientTerminalRouter = typeof TRPCCLientTerminalRouter

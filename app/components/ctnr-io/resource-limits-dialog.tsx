@@ -60,10 +60,14 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
   const [memorySlider, setMemorySlider] = useState([getInitialMemorySlider()])
   const [storageSlider, setStorageSlider] = useState([getInitialStorageSlider()])
 
+  console.log('memorySlider', memorySlider)
+
   // Convert slider values back to actual resource values
   const cpuValue = ResourceLimits.cpu.fromSlider(cpuSlider[0])
   const memoryValue = ResourceLimits.memory.fromSlider(memorySlider[0])
   const storageValue = ResourceLimits.storage.fromSlider(storageSlider[0])
+
+  console.log('memoryValue', memoryValue)
 
   // Update slider values when dialog opens or currentLimits change
   React.useEffect(() => {
@@ -78,8 +82,8 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
   const calculateEstimatedCost = () => {
     return calculateTotalCost(
       String(cpuValue), // CPU in cores
-      memoryValue + 'G', // Memory in GB
-      storageValue + 'G', // Storage in GB
+      memoryValue + 'Gi', // Memory in Gi
+      storageValue + 'Gi', // Storage in Gi
     )
   }
 
@@ -134,7 +138,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
             <Lock className='h-4 w-4' />
             <AlertDescription>
               Resource limit adjustments are only available for paid tier users. You're currently on the free tier with
-              fixed limits: 1 CPU core, 2 GB memory, and 1 GB storage.
+              fixed limits: 1 CPU core, 2 Gi memory, and 1 Gi storage.
             </AlertDescription>
           </Alert>
         )}
@@ -200,7 +204,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                 />
                 <p className='text-xs text-muted-foreground'>
                   {tier === 'free'
-                    ? 'Fixed at 2 GB memory for free tier users'
+                    ? 'Fixed at 2 Gi memory for free tier users'
                     : `Range: ${ResourceLimits.memory.display(ResourceLimits.memory.min)} - ${
                       ResourceLimits.memory.display(ResourceLimits.memory.max)
                     }`}
@@ -229,7 +233,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                 />
                 <p className='text-xs text-muted-foreground'>
                   {tier === 'free'
-                    ? 'Fixed at 1 GB storage for free tier users'
+                    ? 'Fixed at 1 Gi storage for free tier users'
                     : `Range: ${ResourceLimits.storage.display(ResourceLimits.storage.min)} - ${
                       ResourceLimits.storage.display(ResourceLimits.storage.max)
                     }`}
@@ -250,18 +254,18 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
             <CardContent className='space-y-4'>
               <div className='p-3 bg-muted/50 rounded-lg'>
                 <div className='text-xs text-muted-foreground space-y-1'>
-                  <div className='font-medium text-foreground mb-2'>Free tier: 1 CPU, 2 GB memory, 1 GB storage</div>
+                  <div className='font-medium text-foreground mb-2'>Free tier: 1 CPU, 2 Gi memory, 1 Gi storage</div>
                   <div>
                     CPU: {ResourceLimits.cpu.display(cpuValue)}{' '}
                     × €{(DEFAULT_RATES.cpuPerHour * 0.01).toFixed(3)}/core/hour
                   </div>
                   <div>
                     Memory: {ResourceLimits.memory.display(memoryValue)}{' '}
-                    × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(3)}/GB/hour
+                    × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(3)}/Gi/hour
                   </div>
                   <div>
                     Storage: {ResourceLimits.storage.display(storageValue)}{' '}
-                    × €{(DEFAULT_RATES.storagePerHour * 0.01).toFixed(3)}/GB/hour
+                    × €{(DEFAULT_RATES.storagePerHour * 0.01).toFixed(3)}/Gi/hour
                   </div>
                 </div>
               </div>

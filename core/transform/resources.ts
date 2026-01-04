@@ -92,7 +92,7 @@ export function parseMemoryToMB(value: string | unknown): number {
 }
 
 /**
- * Parse storage quantity to gigabytes (GB)
+ * Parse storage quantity to gigabytes (Gi)
  * Examples: "10Gi" -> 10, "500Mi" -> 0.49, "1Ti" -> 1024
  */
 export function parseStorageToGB(value: string | unknown): number {
@@ -148,7 +148,7 @@ export function formatMemoryMB(mb: number): string {
   if (mb >= 1024 && mb % 1024 === 0) {
     return `${mb / 1024}Gi`
   }
-  return `${mb}Mi`
+  return `${mb}MiB`
 }
 
 /**
@@ -166,8 +166,8 @@ export function formatStorageGB(gb: number): string {
  */
 export interface ParsedResources {
   cpu: number // millicores
-  memory: number // MB
-  storage: number // GB
+  memory: number // MiB
+  storage: number // Gi
 }
 
 /**

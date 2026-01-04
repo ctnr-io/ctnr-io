@@ -8,14 +8,14 @@ import { DEFAULT_RATES } from './rates.ts'
 
 export const FreeTier = {
   cpu: '1', // 1 CPU core
-  memory: '2G', // 2 GB memory
-  storage: '5G', // 5 GB storage
+  memory: '2Gi', // 2 Gi memory
+  storage: '5Gi', // 5 Gi storage
 }
 
 export type TierLimits = {
   cpu: string // in millicores
-  memory: string // in MB
-  storage: string // in MB
+  memory: string // in Gi
+  storage: string // in Gi
   monthlyCreditCost: number // in credits
 }
 
@@ -120,6 +120,7 @@ const expScale = (sliderValue: number, min: number, max: number): number => {
   const logMin = Math.log(min)
   const logMax = Math.log(max)
   const logValue = logMin + (sliderValue / 100) * (logMax - logMin)
+  console.log('logValue', logValue)
   return Math.round(Math.exp(logValue))
 }
 
@@ -141,27 +142,31 @@ export const ResourceLimits = {
     fromString: (value: string) => parseResourceToPrimitiveValue(value, 'cpu') / 1000,
   },
   memory: {
-    min: parseResourceToPrimitiveValue(FreeTier.memory, 'memory') / 1000,
-    max: 128, // 128 GB
+    min: parseResourceToPrimitiveValue(FreeTier.memory, 'memory') / 1024,
+    max: 128, // 128 Gi
     step: 0.01,
     price: DEFAULT_RATES.memoryPerHour,
-    format: (value: number) => `${value}G`,
-    display: (value: number) => `${value} GB`,
+    format: (value: number) => `${value}Gi`,
+    display: (value: number) => `${value} Gi`,
     toSlider: (value: number) => logScale(value, ResourceLimits.memory.min, ResourceLimits.memory.max),
     fromSlider: (sliderValue: number) => {
+      console.log('sliderValue', sliderValue)
+      console.log('min', ResourceLimits.memory.min)
+      console.log('max', ResourceLimits.memory.max)
       const rawValue = expScale(sliderValue, ResourceLimits.memory.min, ResourceLimits.memory.max)
+      console.log('rawValue', rawValue)
       // Round to nearest 1 for cleaner values
       return Math.round(rawValue)
     },
     fromString: (value: string) => parseResourceToPrimitiveValue(value, 'memory') / 1000,
   },
   storage: {
-    min: 1, // 1 GB
-    max: 1024, // 1 TB
+    min: parseResourceToPrimitiveValue(FreeTier.storage, 'storage'), // 1 Gi
+    max: 1024, // 1 Ti
     step: 0.01,
     price: DEFAULT_RATES.storagePerHour,
-    format: (value: number) => value >= 1000 ? `${value}T` : `${value}G`,
-    display: (value: number) => value >= 1000 ? `${(value / 1000).toFixed(1)} TB` : `${value} GB`,
+    format: (value: number) => value >= 1000 ? `${value}Ti` : `${value}Gi`,
+    display: (value: number) => value >= 1000 ? `${(value / 1000).toFixed(1)} Ti` : `${value} Gi`,
     toSlider: (value: number) => logScale(value, ResourceLimits.storage.min, ResourceLimits.storage.max),
     fromSlider: (sliderValue: number) => {
       const rawValue = expScale(sliderValue, ResourceLimits.storage.min, ResourceLimits.storage.max)

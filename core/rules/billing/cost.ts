@@ -3,8 +3,8 @@ import { parseResourceToPrimitiveValue } from './resource.ts'
 
 export interface CostRates {
   cpuPerHour: number // cost per CPU core per hour in credits
-  memoryPerHour: number // cost per GB per hour in credits
-  storagePerHour: number // cost per GB per hour in credits
+  memoryPerHour: number // cost per Gi per hour in credits
+  storagePerHour: number // cost per Gi per hour in credits
 }
 
 /**
@@ -39,13 +39,13 @@ export function calculateTotalCost(
 } {
   // Parse resources to standardized units
   const cpuCores = parseResourceToPrimitiveValue(cpu, 'cpu') / 1000
-  const memoryGB = parseResourceToPrimitiveValue(memory, 'memory') / 1024
-  const storageGB = parseResourceToPrimitiveValue(storage, 'storage')
+  const memoryGi = parseResourceToPrimitiveValue(memory, 'memory') / 1024
+  const storageGi = parseResourceToPrimitiveValue(storage, 'storage')
 
   return calculateCost(
     `${cpuCores}`,
-    `${memoryGB}G`,
-    `${storageGB}G`,
+    `${memoryGi}G`,
+    `${storageGi}G`,
     1,
     rates,
   )
@@ -67,13 +67,13 @@ function calculateCost(
 } {
   // Parse resources to standardized units
   const cpuCores = parseResourceToPrimitiveValue(cpu, 'cpu') / 1000
-  const memoryGB = parseResourceToPrimitiveValue(memory, 'memory') / 1024
-  const storageGB = parseResourceToPrimitiveValue(storage, 'storage')
+  const memoryGi = parseResourceToPrimitiveValue(memory, 'memory') / 1024
+  const storageGi = parseResourceToPrimitiveValue(storage, 'storage')
 
   // Calculate base hourly cost for one replica (only for usage above free tier)
   const baseCostPerHour = (cpuCores * rates.cpuPerHour) +
-    (memoryGB * rates.memoryPerHour) +
-    (storageGB * rates.storagePerHour)
+    (memoryGi * rates.memoryPerHour) +
+    (storageGi * rates.storagePerHour)
 
   // Multiply by replicas
   const hourlyCost = baseCostPerHour * replicas

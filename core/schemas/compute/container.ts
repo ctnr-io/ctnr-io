@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ResourceQuantities } from '../common.ts'
+import { VolumeMount } from '../storage/volume.ts'
 
 /**
  * Container port configuration
@@ -68,16 +69,6 @@ export const EnvVar = z.object({
   }).optional(),
 })
 export type EnvVar = z.infer<typeof EnvVar>
-
-/**
- * Volume mount configuration
- */
-export const VolumeMount = z.object({
-  name: z.string(),
-  mountPath: z.string(),
-  readOnly: z.boolean().optional(),
-})
-export type VolumeMount = z.infer<typeof VolumeMount>
 
 /**
  * Container resource limits and requests

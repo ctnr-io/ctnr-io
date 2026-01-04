@@ -50,7 +50,7 @@ function AddVolumeForm({
   const [formData, setFormData] = useState({
     name: '',
     size: '10',
-    sizeUnit: 'GiB',
+    sizeUnit: 'Gi',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,7 +82,7 @@ function AddVolumeForm({
 
       <div className='grid grid-cols-2 gap-2'>
         <div className='space-y-2'>
-          <Label htmlFor='volume-size'>Size <i className="text-xs text-muted-foreground font-normal">20 GiB max currently</i></Label>
+          <Label htmlFor='volume-size'>Size <i className="text-xs text-muted-foreground font-normal">20 Gi max currently</i></Label>
           <Input
             id='volume-size'
             type='number'
@@ -103,7 +103,7 @@ function AddVolumeForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='GiB'>GiB</SelectItem>
+              <SelectItem value='Gi'>Gi</SelectItem>
             </SelectContent>
           </Select>
         </div>

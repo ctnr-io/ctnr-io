@@ -84,7 +84,7 @@ export const CountryCodes: Record<string, string> = {
   'GE': 'Géorgie',
   'DE': 'Allemagne',
   'GH': 'Ghana',
-  'GI': 'Gibraltar',
+  'GI': 'Giraltar',
   'GR': 'Grèce',
   'GL': 'Groenland',
   'GD': 'Grenade',

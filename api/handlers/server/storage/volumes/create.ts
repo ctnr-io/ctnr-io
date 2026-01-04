@@ -14,7 +14,7 @@ export const Input = z.object({
     .min(1, 'Volume name is required')
     .max(63, 'Volume name must be 63 characters or less')
     .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, 'Volume name must be lowercase alphanumeric with hyphens'),
-  size: VolumeSize.describe('Size of the volume, e.g., 10GiB'),
+  size: VolumeSize.describe('Size of the volume, e.g., 10Gi'),
 })
 
 export type Input = z.infer<typeof Input>

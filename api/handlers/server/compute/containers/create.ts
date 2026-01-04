@@ -1,11 +1,12 @@
 import { z } from 'zod'
 import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
-import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ServerContext } from 'api/context/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
 import { ensureVolume } from 'core/data/storage/volume.ts'
+import { containerInputToDeployment } from 'core/transform/container.ts'
 import { hash } from 'node:crypto'
+import { VolumeMount } from 'core/schemas/mod.ts'
 
 export const Meta = {
   aliases: {
@@ -16,14 +17,6 @@ export const Meta = {
     },
   },
 }
-
-// Volume mount specification
-const VolumeMount = z.string()
-  .regex(
-    /^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(?::\d+(?:[Gg][Bb]?|GiB)?)?$/,
-    'Volume format must be name:path or name:path:size (e.g., "data:/app/data", "data:/app/data:5G", "data:/app/data:5GB", or "data:/app/data:5GiB")',
-  )
-  .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
 
 export const Input = z.object({
     image: z.string()
@@ -109,34 +102,6 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     })
   }
 
-  // Parse replicas parameter
-  let replicaCount: number
-  let minReplicas: number
-  let maxReplicas: number
-
-  if (typeof replicas === 'string') {
-    // Range format: "1-5"
-    const [min, max] = replicas.split('-').map(Number)
-    minReplicas = min
-    maxReplicas = max
-    replicaCount = min // Start with minimum
-  } else {
-    // Single number
-    replicaCount = replicas as number
-    minReplicas = replicaCount
-    maxReplicas = replicaCount
-  }
-
-  const labels: Record<string, string> = {}
-  labels['ctnr.io/name'] = name
-
-  const annotations: Record<string, string> = {}
-  annotations['ctnr.io/min-replicas'] = minReplicas.toString()
-  annotations['ctnr.io/max-replicas'] = maxReplicas.toString()
-  // TODO: Add kyverno or something else to enforce bandwidth limits for all pods
-  annotations['kubernetes.io/ingress-bandwidth'] = '100M'
-  annotations['kubernetes.io/egress-bandwidth'] = '100M'
-
   // Create PersistentVolumeClaims for volumes that don't exist
   for (const volDevice of volumeDevices) {
     yield* ensureVolume({
@@ -147,155 +112,30 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     })
   }
 
-  const deploymentResource: Deployment = {
-    apiVersion: 'apps/v1',
-    kind: 'Deployment',
-    metadata: {
-      name,
-      namespace: ctx.project.namespace,
-      labels,
-      annotations,
-    },
-    spec: {
-      // Start with 0 replicas, will be updated when starting
-      replicas: 0,
-      selector: {
-        matchLabels: {
-          'ctnr.io/name': name,
-          'ctnr.io/type': 'container',
-        },
-      },
-      template: {
-        metadata: {
-          labels: {
-            'ctnr.io/name': name,
-            'ctnr.io/type': 'container',
-          },
-        },
-        spec: {
-          restartPolicy: 'Always', // Deployments use Always restart policy
-          // Enable gVisor runtime for additional container isolation
-          // runtimeClassName: "gvisor", // Uncommented for enhanced security
-          hostNetwork: false, // Do not use host network
-          hostPID: false, // Do not share host PID namespace
-          hostIPC: false, // Do not share host IPC namespace
-          hostUsers: false, // Do not use host users, prevent root escalation
-          automountServiceAccountToken: false, // Prevent user access to kubernetes API
-          containers: [
-            {
-              name,
-              image,
-              stdin: interactive,
-              tty: terminal,
-              command: command ? ['sh', '-c', command] : undefined,
-              env: env.length === 0 ? [] : env.map((e) => {
-                const [name, value] = e.split('=')
-                return { name, value }
-              }),
-              ports: publish?.map((p) => ({
-                name: p.name,
-                containerPort: Number(p.port),
-                protocol: p.protocol?.toUpperCase() as 'TCP' | 'UDP',
-              })),
-              volumeMounts: volumeDevices.map((vol) => ({
-                name: vol.name,
-                mountPath: vol.mountPath,
-              })),
-              readinessProbe: {
-                exec: {
-                  command: ['true'],
-                },
-              },
-              livenessProbe: {
-                exec: {
-                  command: ['true'],
-                },
-              },
-              startupProbe: {
-                exec: {
-                  command: ['true'],
-                },
-              },
-              // Enhanced container-level security ctx
-              securityContext: {
-                allowPrivilegeEscalation: false, // Prevent privilege escalation
-                privileged: false, // Explicitly disable privileged mode
-                // readOnlyRootFilesystem: true, // Make root filesystem read-only
-                // runAsNonRoot: true, // Ensure container runs as non-root
-                // runAsUser: 65534, // Run as nobody user
-                // runAsGroup: 65534, // Run as nobody group
-                capabilities: {
-                  drop: ['ALL'], // Drop all capabilities
-                  // Add specific capabilities only if needed
-                  add: [
-                    'CHOWN',
-                    'DAC_OVERRIDE',
-                    'FOWNER',
-                    'FSETID',
-                    'KILL',
-                    'NET_BIND_SERVICE',
-                    'SETGID',
-                    'SETUID',
-                    'AUDIT_WRITE',
-                  ],
-                },
-              },
-              // Enhanced resource limits to prevent resource exhaustion attacks
-              resources: {
-                limits: {
-                  // CPU & Memory are namespaced scoped
-                  cpu: toQuantity(cpu), // 125 milliCPU (increased from 100m for better performance)
-                  memory: toQuantity(memory), // 256 MiB (increased from 256Mi)
-                  'ephemeral-storage': toQuantity(ephemeralStorage), // Limit ephemeral storage
-                  // TODO: Add GPU limits when GPU resources are available
-                  // "nvidia.com/gpu": new Quantity(1, ""),
-                },
-                requests: {
-                  // CPU & Memory are namespaced scoped
-                  cpu: toQuantity(cpu), // 125 milliCPU (increased from 100m for better performance)
-                  memory: toQuantity(memory), // 256 MiB (increased from 256Mi)
-                  'ephemeral-storage': toQuantity(ephemeralStorage), // Limit ephemeral storage
-                  // TODO: Add GPU limits when GPU resources are available
-                  // "nvidia.com/gpu": new Quantity(1, ""),
-                },
-              },
-            },
-          ],
-          volumes: volumeDevices.map((vol) => ({
-            name: vol.name,
-            persistentVolumeClaim: {
-              claimName: vol.name,
-            },
-          })),
-          // TODO: Add topology spread constraints for better distribution
-          // topologySpreadConstraints: [
-          //   {
-          //     maxSkew: 1,
-          //     topologyKey: "ctx.kube.client['karmada'].io/hostname",
-          //     whenUnsatisfiable: "DoNotSchedule",
-          //     labelSelector: {
-          //       matchLabels: {
-          //         "ctnr.io/name": name
-          //       }
-          //     }
-          //   }
-          // ],
-          // Set DNS policy for better network security
-          dnsPolicy: 'ClusterFirst',
-          // TODO: Configure custom DNS when needed for additional security
-          // dnsConfig: {
-          //   nameservers: ["8.8.8.8", "8.8.4.4"],
-          //   searches: ["default.svc.cluster.local"],
-          //   options: [
-          //     {
-          //       name: "ndots",
-          //       value: "2"
-          //     }
-          //   ]
-          // },
-        },
-      },
-    },
+  // Build the deployment using the transform function
+  const deploymentResource = containerInputToDeployment({
+    name,
+    namespace: ctx.project.namespace,
+    image,
+    env,
+    publish: publish?.map((p) => ({
+      name: p.name || `port-${p.port}`,
+      port: Number(p.port),
+      protocol: p.protocol,
+    })),
+    volume: volumeDevices,
+    interactive,
+    terminal,
+    command,
+    replicas,
+    cpu,
+    memory,
+    ephemeralStorage,
+  })
+
+  // Start with 0 replicas, will be updated when starting
+  if (deploymentResource.spec) {
+    deploymentResource.spec.replicas = 0
   }
 
   // Check if the deployment already exists

@@ -3,33 +3,33 @@ import { z } from 'zod'
 /**
  * Volume size schema
  */
-const VolumeSizeRegexp = /^(\d+)(?:G|Gi|GB|GiB)?$/
+const VolumeSizeRegexp = /^(\d+)(?:G|Gi)?$/
 export const VolumeSize = z.string()
-  .regex(VolumeSizeRegexp, 'Size must be in format like 10GB, 10G, 10GiB')
+  .regex(VolumeSizeRegexp, 'Size must be in format like 10G, 10Gi')
   .refine((value) => {
     const match = value.match(VolumeSizeRegexp)
     console.log('VolumeSize match:', match)
     if (!match) return false
     const size = parseInt(match[1], 10)
     return size >= 1 && size <= 20
-  }, 'Currently volume size cannot exceed 20 GiB or be less than 1 GiB')
+  }, 'Currently volume size cannot exceed 20 Gi or be less than 1 Gi')
   .describe('Volume size')
 
 /**
  * Volume mount schema
  */
-const VolumeMountRegexp = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(:(\d+)(?:G|Gi|GB|GiB)?)?$/
+const VolumeMountRegexp = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?:\/[^:]*(:(\d+)(?:G|Gi)?)?$/
 export const VolumeMount = z.string()
   .regex(
     VolumeMountRegexp,
-    'Volume format must be name:path or name:path:size (e.g., "data:/app/data", "data:/app/data:5G", "data:/app/data:5GB", or "data:/app/data:5GiB")',
+    'Volume format must be name:path or name:path:size (e.g., "data:/app/data", "data:/app/data:5G", or "data:/app/data:5Gi")',
   )
   .refine((value) => {
     const match = value.match(VolumeMountRegexp)
     if (!match || !match[3]) return true // Size is optional, so valid if not present
     const size = parseInt(match[3], 10)
     return size >= 1 && size <= 20
-  }, 'Currently volume size cannot exceed 20 GiB or be less than 1 GiB')
+  }, 'Currently volume size cannot exceed 20 Gi or be less than 1 Gi')
   .describe('Volume mount in format name:path:size (size optional, defaults to 1G)')
 
 /**

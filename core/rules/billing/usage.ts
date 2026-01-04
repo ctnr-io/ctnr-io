@@ -63,8 +63,8 @@ export interface Usage {
 
 const freeTierLimits = {
   cpu: parseResourceToPrimitiveValue(FreeTier.cpu, 'cpu'), // 1 CPU in millicores
-  memory: parseResourceToPrimitiveValue(FreeTier.memory, 'memory'), // 2GB in MB
-  storage: parseResourceToPrimitiveValue(FreeTier.storage, 'storage'), // 10GB
+  memory: parseResourceToPrimitiveValue(FreeTier.memory, 'memory'), // 2Gi in MB
+  storage: parseResourceToPrimitiveValue(FreeTier.storage, 'storage'), // 10Gi
 }
 
 export async function getUsage(opts: {

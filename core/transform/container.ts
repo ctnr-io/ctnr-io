@@ -1,14 +1,36 @@
 /**
  * Container Transformer
  * Converts Kubernetes Deployment resources to Container DTOs
+ * and Container input to Deployment resources
  */
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
+import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import type { Container, ContainerInstance, ContainerPort, ContainerReplicas, ContainerStatus, ContainerSummary } from 'core/schemas/compute/container.ts'
 import type { PodMetrics } from 'infra/kubernetes/types/metrics.ts'
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
 import { normalizeQuantity } from './resources.ts'
+
+/**
+ * Input for creating a container (deployment)
+ */
+export interface ContainerInput {
+  name: string
+  namespace: string
+  image: string
+  env?: string[]
+  publish?: Array<{ name: string; port: number; protocol?: string }>
+  volume?: Array<{ name: string; mountPath: string; size: string }>
+  interactive?: boolean
+  terminal?: boolean
+  command?: string
+  replicas?: number | string
+  cpu?: string
+  memory?: string
+  ephemeralStorage?: string
+  restart?: 'always' | 'on-failure' | 'never'
+}
 
 /**
  * Options for transforming a deployment to a container
@@ -356,4 +378,166 @@ function extractImageName(image: string): string {
 function extractImageTag(image: string): string | undefined {
   const parts = image.split(':')
   return parts.length > 1 ? parts[1] : undefined
+}
+
+/**
+ * Transform Container input to a Kubernetes Deployment resource
+ */
+export function containerInputToDeployment(input: ContainerInput): Deployment {
+  const {
+    name,
+    namespace,
+    image,
+    env = [],
+    publish = [],
+    volume = [],
+    interactive = false,
+    terminal = false,
+    command,
+    replicas = 1,
+    cpu = '250m',
+    memory = '256M',
+    ephemeralStorage = '1G',
+  } = input
+
+  // Parse replicas parameter
+  let replicaCount: number
+  let minReplicas: number
+  let maxReplicas: number
+
+  if (typeof replicas === 'string') {
+    // Range format: "1-5"
+    const [min, max] = replicas.split('-').map(Number)
+    minReplicas = min
+    maxReplicas = max
+    replicaCount = min // Start with minimum
+  } else {
+    // Single number
+    replicaCount = replicas as number
+    minReplicas = replicaCount
+    maxReplicas = replicaCount
+  }
+
+  const labels: Record<string, string> = {
+    'ctnr.io/name': name,
+  }
+
+  const annotations: Record<string, string> = {
+    'ctnr.io/min-replicas': minReplicas.toString(),
+    'ctnr.io/max-replicas': maxReplicas.toString(),
+    'kubernetes.io/ingress-bandwidth': '100M',
+    'kubernetes.io/egress-bandwidth': '100M',
+  }
+
+  const deploymentResource: Deployment = {
+    apiVersion: 'apps/v1',
+    kind: 'Deployment',
+    metadata: {
+      name,
+      namespace,
+      labels,
+      annotations,
+    },
+    spec: {
+      replicas: replicaCount,
+      selector: {
+        matchLabels: {
+          'ctnr.io/name': name,
+          'ctnr.io/type': 'container',
+        },
+      },
+      template: {
+        metadata: {
+          labels: {
+            'ctnr.io/name': name,
+            'ctnr.io/type': 'container',
+          },
+        },
+        spec: {
+          restartPolicy: 'Always',
+          hostNetwork: false,
+          hostPID: false,
+          hostIPC: false,
+          hostUsers: false,
+          automountServiceAccountToken: false,
+          containers: [
+            {
+              name,
+              image,
+              stdin: interactive,
+              tty: terminal,
+              command: command ? ['sh', '-c', command] : undefined,
+              env: env.length === 0 ? [] : env.map((e) => {
+                const [name, value] = e.split('=')
+                return { name, value }
+              }),
+              ports: publish.map((p) => ({
+                name: p.name,
+                containerPort: Number(p.port),
+                protocol: (p.protocol?.toUpperCase() || 'TCP') as 'TCP' | 'UDP',
+              })),
+              volumeMounts: volume.map((vol) => ({
+                name: vol.name,
+                mountPath: vol.mountPath,
+              })),
+              readinessProbe: {
+                exec: {
+                  command: ['true'],
+                },
+              },
+              livenessProbe: {
+                exec: {
+                  command: ['true'],
+                },
+              },
+              startupProbe: {
+                exec: {
+                  command: ['true'],
+                },
+              },
+              securityContext: {
+                allowPrivilegeEscalation: false,
+                privileged: false,
+                capabilities: {
+                  drop: ['ALL'],
+                  add: [
+                    'CHOWN',
+                    'DAC_OVERRIDE',
+                    'FOWNER',
+                    'FSETID',
+                    'KILL',
+                    'NET_BIND_SERVICE',
+                    'SETGID',
+                    'SETUID',
+                    'AUDIT_WRITE',
+                  ],
+                },
+              },
+              resources: {
+                limits: {
+                  cpu: toQuantity(cpu),
+                  memory: toQuantity(memory),
+                  'ephemeral-storage': toQuantity(ephemeralStorage),
+                },
+                requests: {
+                  cpu: toQuantity(cpu),
+                  memory: toQuantity(memory),
+                  'ephemeral-storage': toQuantity(ephemeralStorage),
+                },
+              },
+            },
+          ],
+          volumes: volume.map((vol) => ({
+            name: vol.name,
+            persistentVolumeClaim: {
+              claimName: vol.name,
+            },
+          })),
+          dnsPolicy: 'ClusterFirst',
+        },
+      },
+    },
+  }
+
+  return deploymentResource
 }

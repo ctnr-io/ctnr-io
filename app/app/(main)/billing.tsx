@@ -396,7 +396,7 @@ export default function BillingScreen() {
                             {(parseFloat(resources.memory.used.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} /{' '}
                             {resources.memory.limit === 'Infinity'
                               ? '∞'
-                              : (parseFloat(resources.memory.limit.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} GB
+                              : (parseFloat(resources.memory.limit.replace(/[a-zA-Z]/g, '')) / 1024).toFixed(1)} Gi
                           </p>
                         </div>
                       </div>
@@ -422,7 +422,7 @@ export default function BillingScreen() {
                             {parseFloat(resources.storage.used.replace(/[a-zA-Z]/g, '')).toFixed(1)} /{' '}
                             {resources.storage.limit === 'Infinity'
                               ? '∞'
-                              : parseFloat(resources.storage.limit.replace(/[a-zA-Z]/g, '')).toFixed(1)} GB
+                              : parseFloat(resources.storage.limit.replace(/[a-zA-Z]/g, '')).toFixed(1)} Gi
                           </p>
                         </div>
                       </div>
@@ -455,11 +455,11 @@ export default function BillingScreen() {
                       <Badge variant='outline' className='font-mono'>1 credit</Badge>
                     </div>
                     <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
-                      <span className='text-foreground font-medium'>Memory per GB/hour</span>
+                      <span className='text-foreground font-medium'>Memory per Gi/hour</span>
                       <Badge variant='outline' className='font-mono'>1 credit</Badge>
                     </div>
                     <div className='flex justify-between items-center p-3 bg-muted rounded-lg'>
-                      <span className='text-foreground font-medium'>Storage per GB/hour</span>
+                      <span className='text-foreground font-medium'>Storage per Gi/hour</span>
                       <Badge variant='outline' className='font-mono'>1 credit</Badge>
                     </div>
                   </div>

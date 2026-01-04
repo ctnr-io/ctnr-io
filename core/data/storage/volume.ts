@@ -49,7 +49,7 @@ export async function* ensureVolume(
     },
     spec: {
       accessModes: ['ReadWriteMany'],
-      volumeMode: 'Block',
+      volumeMode: 'Filesystem',
       resources: {
         requests: {
           storage: toQuantity(size),

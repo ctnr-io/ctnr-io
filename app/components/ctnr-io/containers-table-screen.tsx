@@ -2,38 +2,18 @@
 
 import { DataTableScreen, TableAction, TableColumn } from 'app/components/ctnr-io/data-table-screen.tsx'
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
-import { Container, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
+import { ContainerIcon, Eye, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useRouter } from 'expo-router'
 import { ReactNode, useCallback, useEffect, useState } from 'react'
-import {
-  DialogClose,
-  DialogFooter,
-} from '../shadcn/ui/dialog.tsx'
+import { DialogClose, DialogFooter } from '../shadcn/ui/dialog.tsx'
 import { Button } from '../shadcn/ui/button.tsx'
 import { Label } from '../shadcn/ui/label.tsx'
 import { TerminalLine } from './terminal-line.tsx'
 import ResponsiveDialog from './responsive-dialog.tsx'
-
-// Container type definition
-interface ContainerData {
-  id: string
-  name: string
-  image: string
-  status: 'running' | 'stopped' | 'restarting'
-  created: string
-  ports: string[]
-  cpu: string
-  memory: string
-  replicas: {
-    max: number
-    min: number
-    current: number
-  }
-  routes: string[]
-  clusters: string[]
-}
+import { Badge } from '../shadcn/ui/badge.tsx'
+import { Container } from 'core/schemas/mod.ts'
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -48,8 +28,8 @@ function getStatusColor(status: string) {
   }
 }
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
+function formatDate(date: Date) {
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -59,13 +39,13 @@ function formatDate(dateString: string) {
 }
 
 export default function ContainersTableScreen({
-  data,
+  data = [],
   isLoading = false,
   onRowClick,
 }: {
-  data: ContainerData[]
+  data: Container[] | undefined
   isLoading?: boolean
-  onRowClick: (container: ContainerData) => void
+  onRowClick: (container: Container) => void
 }) {
   const queryClient = useQueryClient()
   const trpc = useTRPC()
@@ -73,6 +53,9 @@ export default function ContainersTableScreen({
 
   const invalidate = () => {
     queryClient.invalidateQueries({
+      queryKey: trpc.core.listQuery.queryKey(),
+    })
+    queryClient.refetchQueries({
       queryKey: trpc.core.listQuery.queryKey(),
     })
     queryClient.invalidateQueries({
@@ -118,7 +101,7 @@ export default function ContainersTableScreen({
   }, [isPending])
 
   // Define table columns
-  const columns: TableColumn<ContainerData>[] = [
+  const columns: TableColumn<Container>[] = [
     {
       key: 'name',
       label: 'Name',
@@ -150,63 +133,38 @@ export default function ContainersTableScreen({
       key: 'replicas',
       label: 'Replicas',
       render: (_value, item) => (
-        <div className='flex items-center gap-2'>
-          <span className='text-sm font-medium'>
-            {item.replicas.current}
-          </span>
-          <div className='flex items-center gap-1'>
-            <div
-              className={`w-2 h-2 rounded-full ${
-                item.replicas.current >= item.replicas.min
-                  ? 'bg-chart-2'
-                  : item.replicas.current > 0
-                  ? 'bg-chart-4'
-                  : 'bg-destructive'
-              }`}
-            >
-            </div>
-            <span className='text-xs text-muted-foreground'>
-              {item.replicas.min}-{item.replicas.max} range
-            </span>
-          </div>
-        </div>
+        <Badge variant='outline'>
+          {item.replicas.current}
+        </Badge>
       ),
+      className: 'text-end',
     },
     {
       key: 'ports',
       label: 'Ports',
-      render: (value: string[]) => value.length > 0 ? value.join(', ') : '-',
-      className: 'font-mono text-sm',
+      render: (_value, item) =>
+        item.ports
+          ? item.ports.map((port) => (
+            <Badge variant='outline'>
+            </Badge>
+          )).join(', ')
+          : '-',
     },
     {
       key: 'cpu',
       label: 'CPU',
-      className: 'font-mono text-sm',
+      render: (_value, item) => <Badge variant='outline'>
+        {item.resources?.requests?.cpu || '-'}
+      </Badge>,
+      className: 'text-end',
     },
     {
       key: 'memory',
       label: 'Memory',
-      className: 'font-mono text-sm',
-    },
-    {
-      key: 'clusters',
-      label: 'Clusters',
-      render: (value: string[]) => {
-        if (value.length === 0) return '-'
-        return (
-          <div className='flex flex-wrap gap-1'>
-            {value.map((cluster, index) => (
-              <span
-                key={index}
-                className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20'
-              >
-                {cluster}
-              </span>
-            ))}
-          </div>
-        )
-      },
-      className: 'text-sm',
+      render: (_value, item) => <Badge variant='outline'>
+        {item.resources?.requests?.memory || '-'}
+      </Badge>,
+      className: 'text-end',
     },
     {
       key: 'routes',
@@ -251,7 +209,7 @@ export default function ContainersTableScreen({
       className: 'text-sm',
     },
     {
-      key: 'created',
+      key: 'createdAt',
       label: 'Created',
       render: (value) => formatDate(value),
       className: 'text-sm text-muted-foreground',
@@ -259,7 +217,7 @@ export default function ContainersTableScreen({
   ]
 
   // Define table actions
-  const actions: TableAction<ContainerData>[] = [
+  const actions: TableAction<Container>[] = [
     {
       icon: Square,
       label: 'Stop',
@@ -298,7 +256,7 @@ export default function ContainersTableScreen({
       disabled: isPending,
       variant: 'ghost',
       className: 'text-destructive hover:text-destructive',
-      Wrapper: useCallback(({ item, children }: { item: ContainerData; children: ReactNode }) => {
+      Wrapper: useCallback(({ item, children }: { item: Container; children: ReactNode }) => {
         const [open, setOpen] = useState(false)
         return (
           <ResponsiveDialog
@@ -360,13 +318,13 @@ export default function ContainersTableScreen({
           </DialogClose>
         </DialogFooter>
       </ResponsiveDialog>
-      <DataTableScreen<ContainerData>
+      <DataTableScreen<Container>
         title='Containers'
         description='Manage and monitor your application containers'
-        icon={Container}
+        icon={ContainerIcon}
         primaryAction={{
           label: 'Run Container',
-          icon: Container,
+          icon: ContainerIcon,
           onClick: () => setRunDialogOpen(true),
         }}
         infoDescription='View and manage all your containers in one place. Start, stop, restart, and monitor your containers with real-time status updates. You can also view logs, attach to containers, and manage port forwarding.'
@@ -387,7 +345,7 @@ export default function ContainersTableScreen({
         rowClickable
         searchable
         searchPlaceholder='Search containers by name, image, status, or clusters...'
-        searchKeys={['name', 'image', 'status', 'clusters']}
+        searchKeys={['name', 'image', 'status']}
         columnFilterable
         defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}
         emptyMessage='No containers found. Create your first container to get started.'

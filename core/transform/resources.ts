@@ -60,30 +60,30 @@ export function parseMemoryToMB(value: string | unknown): number {
   if (!str) return 0
 
   // Binary units (Ki, Mi, Gi, Ti)
-  if (str.endsWith('Ki')) {
+  if (str.endsWith('Ki') || str.endsWith('KiB')) {
     return Math.round(safeParseFloat(str.slice(0, -2)) / 1024)
   }
-  if (str.endsWith('Mi')) {
+  if (str.endsWith('Mi') || str.endsWith('MiB')) {
     return safeParseFloat(str.slice(0, -2))
   }
-  if (str.endsWith('Gi')) {
+  if (str.endsWith('Gi') || str.endsWith('GiB')) {
     return safeParseFloat(str.slice(0, -2)) * 1024
   }
-  if (str.endsWith('Ti')) {
+  if (str.endsWith('Ti') || str.endsWith('TiB')) {
     return safeParseFloat(str.slice(0, -2)) * 1024 * 1024
   }
 
   // Decimal units (K, M, G, T)
-  if (str.endsWith('K')) {
+  if (str.endsWith('K') || str.endsWith('KB')) {
     return Math.round(safeParseFloat(str.slice(0, -1)) / 1000)
   }
-  if (str.endsWith('M')) {
+  if (str.endsWith('M') || str.endsWith('MB')) {
     return safeParseFloat(str.slice(0, -1))
   }
-  if (str.endsWith('G')) {
+  if (str.endsWith('G') || str.endsWith('GB')) {
     return safeParseFloat(str.slice(0, -1)) * 1000
   }
-  if (str.endsWith('T')) {
+  if (str.endsWith('T') || str.endsWith('TB')) {
     return safeParseFloat(str.slice(0, -1)) * 1000 * 1000
   }
 
@@ -100,30 +100,30 @@ export function parseStorageToGB(value: string | unknown): number {
   if (!str) return 0
 
   // Binary units (Ki, Mi, Gi, Ti)
-  if (str.endsWith('Ki')) {
+  if (str.endsWith('Ki') || str.endsWith('KiB')) {
     return Math.round(safeParseFloat(str.slice(0, -2)) / (1024 * 1024) * 100) / 100
   }
-  if (str.endsWith('Mi')) {
+  if (str.endsWith('Mi') || str.endsWith('MiB')) {
     return Math.round(safeParseFloat(str.slice(0, -2)) / 1024 * 100) / 100
   }
-  if (str.endsWith('Gi')) {
+  if (str.endsWith('Gi') || str.endsWith('GiB')) {
     return safeParseFloat(str.slice(0, -2))
   }
-  if (str.endsWith('Ti')) {
+  if (str.endsWith('Ti') || str.endsWith('TiB')) {
     return safeParseFloat(str.slice(0, -2)) * 1024
   }
 
   // Decimal units (K, M, G, T)
-  if (str.endsWith('K')) {
+  if (str.endsWith('K') || str.endsWith('KB')) {
     return Math.round(safeParseFloat(str.slice(0, -1)) / (1000 * 1000) * 100) / 100
   }
-  if (str.endsWith('M')) {
+  if (str.endsWith('M') || str.endsWith('MB')) {
     return Math.round(safeParseFloat(str.slice(0, -1)) / 1000 * 100) / 100
   }
-  if (str.endsWith('G')) {
+  if (str.endsWith('G') || str.endsWith('GB')) {
     return safeParseFloat(str.slice(0, -1))
   }
-  if (str.endsWith('T')) {
+  if (str.endsWith('T') || str.endsWith('TB')) {
     return safeParseFloat(str.slice(0, -1)) * 1000
   }
 
@@ -148,7 +148,7 @@ export function formatMemoryMB(mb: number): string {
   if (mb >= 1024 && mb % 1024 === 0) {
     return `${mb / 1024}Gi`
   }
-  return `${mb}MiB`
+  return `${mb}Mi`
 }
 
 /**
@@ -166,7 +166,7 @@ export function formatStorageGB(gb: number): string {
  */
 export interface ParsedResources {
   cpu: number // millicores
-  memory: number // MiB
+  memory: number // Mi
   storage: number // Gi
 }
 

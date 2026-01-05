@@ -45,7 +45,7 @@ export type Output<T extends OutputType> = {
 // Keep ContainerData for backward compatibility
 export type ContainerData = Container
 
-export default async function* listContainer<T extends OutputType = 'raw'>(
+export default async function* listContainersApiHandler<T extends OutputType = 'raw'>(
   request: ServerRequest<Input<T>>,
 ): ServerResponse<Output<T>> {
   const { ctx, input } = request

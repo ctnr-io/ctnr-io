@@ -18,7 +18,11 @@ export const Input = z.object({
   name: z.string().optional(),
 })
 
-export type Input = z.infer<typeof Input>
+type OutputType = NonNullable<z.infer<typeof Input>['output']>
+
+export type Input<T extends OutputType> = z.infer<typeof Input> & {
+  output?: T
+}
 
 type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
   'raw': Volume[]
@@ -28,9 +32,9 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
   'wide': void
 }[Type]
 
-export default async function* (
-  { ctx, input }: ServerRequest<Input>,
-): ServerResponse<Output<NonNullable<typeof input['output']>>> {
+export default async function* listVolumesApiHandler<T extends OutputType = 'raw'>(
+  { ctx, input }: ServerRequest<Input<T>>,
+): ServerResponse<Output<T>> {
   const { output = 'raw', name } = input
 
   // Create context for core/data
@@ -44,16 +48,16 @@ export default async function* (
 
   switch (output) {
     case 'raw':
-      return volumes
+      return volumes as Output<T>
 
     case 'json':
-      return JSON.stringify(volumes, null, 2)
+      return JSON.stringify(volumes, null, 2) as Output<T>
 
     case 'yaml':
-      return YAML.stringify(volumes)
+      return YAML.stringify(volumes) as Output<T>
 
     case 'name':
-      return volumes.map((vol) => vol.name).join('\n')
+      return volumes.map((vol) => vol.name).join('\n') as Output<T>
 
     case 'wide':
     default:
@@ -73,6 +77,6 @@ export default async function* (
           volume.status.padEnd(12) +
           age
       }
-      return
+      return (void 0) as Output<T>
   }
 }

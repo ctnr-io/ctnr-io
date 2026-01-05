@@ -41,7 +41,7 @@ export interface GenericResourceTableScreenProps<T extends ResourceItem> {
 
   // Form configuration
   addFormComponent?: React.ComponentType<{
-    onSubmit: (data: Omit<T, 'id'>) => Promise<void>
+    onSubmit: (data: Partial<Omit<T, 'id'>>) => Promise<void>
     onCancel: () => void
     isSubmitting: boolean
   }>

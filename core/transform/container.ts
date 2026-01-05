@@ -507,20 +507,21 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
               securityContext: {
                 allowPrivilegeEscalation: false,
                 privileged: false,
-                capabilities: {
-                  drop: ['ALL'],
-                  add: [
-                    'CHOWN',
-                    'DAC_OVERRIDE',
-                    'FOWNER',
-                    'FSETID',
-                    'KILL',
-                    'NET_BIND_SERVICE',
-                    'SETGID',
-                    'SETUID',
-                    'AUDIT_WRITE',
-                  ],
-                },
+                // When `hostUsers: false`, we can use all capabilities because root in container is isolated as an user namespace on the host.
+                // capabilities: {
+                //   drop: ['ALL'],
+                //   add: [
+                //     'CHOWN',
+                //     'DAC_OVERRIDE',
+                //     'FOWNER',
+                //     'FSETID',
+                //     'KILL',
+                //     'NET_BIND_SERVICE',
+                //     'SETGID',
+                //     'SETUID',
+                //     'AUDIT_WRITE',
+                //   ],
+                // },
               },
               resources: {
                 limits: {

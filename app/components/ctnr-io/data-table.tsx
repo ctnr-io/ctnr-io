@@ -11,14 +11,21 @@ import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx
 import { cn } from 'lib/shadcn/utils.ts'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/ui/tooltip.tsx'
 
-export interface TableColumn<T = any> {
-  key: string
-  label: string
-  render?: (value: any, item: T) => ReactNode
-  className?: string
-  mobileLabel?: string // For mobile card view
-  visibleOnMobile?: boolean // Hide this column on mobile
-}
+export type TableColumn<T extends any, Key extends keyof T & string = keyof T & string> =
+  & {
+    label: string
+    className?: string
+    mobileLabel?: string // For mobile card view
+    visibleOnMobile?: boolean // Hide this column on mobile
+  }
+  & (Key extends keyof T ? {
+      key: Key
+      render?: (value: T[Key], item: T) => ReactNode // Render function for the column
+    }
+    : {
+      key: string
+      render: (value: any, item: T) => ReactNode // Render function for the column
+    })
 
 export interface TableAction<T = any> {
   icon: LucideIcon
@@ -221,7 +228,7 @@ export function DataTable<T = any>({
           {columns
             .filter((col) => mobileVisibleColumns?.includes(col.key))
             .map((column) => {
-              const value = item[column.key as keyof T]
+              const value = item[column.key as keyof T & string]
               const displayValue = column.render ? column.render(value, item) : String(value || '')
 
               if (!displayValue || displayValue === '-') return null
@@ -292,7 +299,7 @@ export function DataTable<T = any>({
                     onClick={(e) => handleRowClickFromEvent(e, item)}
                   >
                     {visibleColumnsArray.map((column) => {
-                      const value = item[column.key as keyof T]
+                      const value = item[column.key as keyof T & string]
                       const displayValue = column.render ? column.render(value, item) : String(value || '')
 
                       return (
@@ -307,9 +314,9 @@ export function DataTable<T = any>({
                           {actions
                             .filter((action) => !action.condition || action.condition(item))
                             .map(({ Wrapper = ActionWrapperDefault, ...action }) => (
-                              <Wrapper item={item} key={action.label}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Wrapper item={item} key={action.label}>
                                     <Button
                                       variant={action.variant || 'ghost'}
                                       size='sm'
@@ -323,12 +330,12 @@ export function DataTable<T = any>({
                                     >
                                       <action.icon className='h-4 w-4' />
                                     </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {action.label}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </Wrapper>
+                                  </Wrapper>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {action.label}
+                                </TooltipContent>
+                              </Tooltip>
                             ))}
                         </div>
                       </TableCell>

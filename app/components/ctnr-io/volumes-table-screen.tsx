@@ -26,8 +26,7 @@ function getStatusColor(status: string) {
   }
 }
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString)
+function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -43,7 +42,7 @@ function AddVolumeForm({
   onCancel,
   isSubmitting,
 }: {
-  onSubmit: (data: Omit<Volume, 'id'>) => Promise<void>
+  onSubmit: (data: Pick<Omit<Volume, 'id'>, 'name' | 'size' | 'status' | 'createdAt'>) => Promise<void>
   onCancel: () => void
   isSubmitting: boolean
 }) {
@@ -60,8 +59,7 @@ function AddVolumeForm({
       name: formData.name,
       size: `${formData.size}${formData.sizeUnit}`,
       status: 'available' as const,
-      createdAt: new Date().toISOString(),
-      attachedTo: [] as string[], // Empty array for new volumes
+      createdAt: new Date(),
     }
 
     await onSubmit(volume)
@@ -193,6 +191,7 @@ export default function VolumesTableScreen() {
       label: 'Size',
       className: 'text-sm',
       visibleOnMobile: true,
+      render: value => <Badge variant='outline'>{value}</Badge>,
     },
     {
       key: 'status',
@@ -260,7 +259,7 @@ export default function VolumesTableScreen() {
       resourceName='Volume'
       resourceNamePlural='Volumes'
       icon={HardDrive}
-      data={volumes}
+      data={volumes as Volume[]}
       isLoading={isLoading}
       columns={columns}
       onAdd={handleAdd}

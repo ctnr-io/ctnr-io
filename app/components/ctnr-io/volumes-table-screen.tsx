@@ -174,9 +174,6 @@ export default function VolumesTableScreen() {
     })
   }
 
-  const handleRowClick = (volume: Volume) => {
-    // TODO: Navigate to volume details or edit page
-  }
   // Define table columns
   const columns: TableColumn<Volume>[] = [
     {
@@ -268,7 +265,6 @@ export default function VolumesTableScreen() {
       columns={columns}
       onAdd={handleAdd}
       onDelete={handleDelete}
-      onRowClick={handleRowClick}
       addFormComponent={AddVolumeForm}
       description='Manage your persistent storage volumes'
       infoDescription='Create and manage storage volumes for your containers. Volumes use ReadWriteMany access mode, allowing them to be attached to multiple containers simultaneously for shared data access.'

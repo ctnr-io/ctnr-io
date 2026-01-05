@@ -89,10 +89,10 @@ export function ResourceLimitsDisplay() {
   // Format display values
   const cpuUsed = (cpuUsedNum / 1000).toFixed(1) // millicores to cores
   const cpuLimit = cpuLimitNum === Infinity ? '∞' : (cpuLimitNum / 1000).toFixed() // millicores to cores
-  const memoryUsed = (memoryUsedNum / 1024).toFixed(1) // MiB to Gi
-  const memoryLimit = memoryLimitNum === Infinity ? '∞' : (memoryLimitNum / 1024).toFixed() // MiB to Gi
-  const storageUsed = storageUsedNum.toFixed(1) // Already in Gi
-  const storageLimit = storageLimitNum === Infinity ? '∞' : storageLimitNum.toFixed() // Already in Gi
+  const memoryUsed = (memoryUsedNum / 1024).toFixed(1) // MiB to GiB
+  const memoryLimit = memoryLimitNum === Infinity ? '∞' : (memoryLimitNum / 1024).toFixed() // MiB to GiB
+  const storageUsed = storageUsedNum.toFixed(1) // Already in GiB
+  const storageLimit = storageLimitNum === Infinity ? '∞' : storageLimitNum.toFixed() // Already in GiB
 
   return (
     <div className='flex flex-1 justify-between items-center gap-4'>
@@ -128,16 +128,16 @@ export function ResourceLimitsDisplay() {
         />
         <ResourceIndicator
           icon={MemoryStick}
-          label='Memory (Gi)'
-          unit='Gi'
+          label='Memory (GiB)'
+          unit='GiB'
           used={memoryUsed}
           limit={memoryLimit}
           percentage={resources.memory.percentage}
         />
         <ResourceIndicator
           icon={HardDrive}
-          label='Storage (Gi)'
-          unit='Gi'
+          label='Storage (GiB)'
+          unit='GiB'
           used={storageUsed}
           limit={storageLimit}
           percentage={resources.storage.percentage}

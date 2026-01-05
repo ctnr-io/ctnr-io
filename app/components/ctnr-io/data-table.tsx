@@ -5,10 +5,11 @@ import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
 import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
-import { ReactNode, useMemo, useState, MouseEvent } from 'react'
+import { MouseEvent, ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/ui/tooltip.tsx'
 
 export interface TableColumn<T = any> {
   key: string
@@ -307,19 +308,26 @@ export function DataTable<T = any>({
                             .filter((action) => !action.condition || action.condition(item))
                             .map(({ Wrapper = ActionWrapperDefault, ...action }) => (
                               <Wrapper item={item} key={action.label}>
-                                <Button
-                                  variant={action.variant || 'ghost'}
-                                  size='sm'
-                                  onClick={!action.onClick ? undefined : (e) => {
-                                    e.stopPropagation() // Prevent card click when clicking action buttons
-                                    action.onClick?.(item)
-                                  }}
-                                  className={`${action.className} cursor-pointer`}
-                                  title={action.label}
-                                  disabled={action.disabled}
-                                >
-                                  <action.icon className='h-4 w-4' />
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant={action.variant || 'ghost'}
+                                      size='sm'
+                                      onClick={!action.onClick ? undefined : (e) => {
+                                        e.stopPropagation() // Prevent card click when clicking action buttons
+                                        action.onClick?.(item)
+                                      }}
+                                      className={`${action.className} cursor-pointer`}
+                                      title={action.label}
+                                      disabled={action.disabled}
+                                    >
+                                      <action.icon className='h-4 w-4' />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {action.label}
+                                  </TooltipContent>
+                                </Tooltip>
                               </Wrapper>
                             ))}
                         </div>

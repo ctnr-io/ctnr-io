@@ -77,9 +77,9 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
   // Calculate estimated costs based on current slider values
   const calculateEstimatedCost = () => {
     return calculateTotalCost(
-      String(cpuValue), // CPU in cores
-      memoryValue + 'Gi', // Memory in Gi
-      storageValue + 'Gi', // Storage in Gi
+      String(cpuValue), // vCPU in cores
+      memoryValue + 'Gi', // Memory in GiB
+      storageValue + 'Gi', // Storage in GiB
     )
   }
 
@@ -134,7 +134,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
             <Lock className='h-4 w-4' />
             <AlertDescription>
               Resource limit adjustments are only available for paid tier users. You're currently on the free tier with
-              fixed limits: 1 CPU core, 2 Gi memory, and 1 Gi storage.
+              fixed limits: 1 vCPU core, 2 GiB memory, and 1 GiB storage.
             </AlertDescription>
           </Alert>
         )}
@@ -149,11 +149,11 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-6'>
-              {/* CPU Slider */}
+              {/* vCPU Slider */}
               <div className='space-y-3'>
                 <div className='flex justify-between items-center'>
                   <label className='text-sm font-medium text-foreground flex items-center gap-2'>
-                    CPU Limit
+                    vCPU Limit
                     {tier === 'free' && <Lock className='h-3 w-3 text-muted-foreground' />}
                   </label>
                   <span className='text-sm font-semibold text-primary'>
@@ -171,7 +171,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                 />
                 <p className='text-xs text-muted-foreground'>
                   {tier === 'free'
-                    ? 'Fixed at 1 CPU core for free tier users'
+                    ? 'Fixed at 1 vCPU core for free tier users'
                     : `Range: ${ResourceLimits.cpu.display(ResourceLimits.cpu.min)} - ${
                       ResourceLimits.cpu.display(ResourceLimits.cpu.max)
                     }`}
@@ -200,7 +200,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                 />
                 <p className='text-xs text-muted-foreground'>
                   {tier === 'free'
-                    ? 'Fixed at 2 Gi memory for free tier users'
+                    ? 'Fixed at 2 GiB memory for free tier users'
                     : `Range: ${ResourceLimits.memory.display(ResourceLimits.memory.min)} - ${
                       ResourceLimits.memory.display(ResourceLimits.memory.max)
                     }`}
@@ -229,7 +229,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
                 />
                 <p className='text-xs text-muted-foreground'>
                   {tier === 'free'
-                    ? 'Fixed at 1 Gi storage for free tier users'
+                    ? 'Fixed at 1 GiB storage for free tier users'
                     : `Range: ${ResourceLimits.storage.display(ResourceLimits.storage.min)} - ${
                       ResourceLimits.storage.display(ResourceLimits.storage.max)
                     }`}
@@ -250,18 +250,18 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
             <CardContent className='space-y-4'>
               <div className='p-3 bg-muted/50 rounded-lg'>
                 <div className='text-xs text-muted-foreground space-y-1'>
-                  <div className='font-medium text-foreground mb-2'>Free tier: 1 CPU, 2 Gi memory, 1 Gi storage</div>
+                  <div className='font-medium text-foreground mb-2'>Free tier: 1 vCPU, 2 GiB memory, 1 GiB storage</div>
                   <div>
-                    CPU: {ResourceLimits.cpu.display(cpuValue)}{' '}
+                    vCPU: {ResourceLimits.cpu.display(cpuValue)}{' '}
                     × €{(DEFAULT_RATES.cpuPerHour * 0.01).toFixed(3)}/core/hour
                   </div>
                   <div>
                     Memory: {ResourceLimits.memory.display(memoryValue)}{' '}
-                    × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(3)}/Gi/hour
+                    × €{(DEFAULT_RATES.memoryPerHour * 0.01).toFixed(3)}/GiB/hour
                   </div>
                   <div>
                     Storage: {ResourceLimits.storage.display(storageValue)}{' '}
-                    × €{(DEFAULT_RATES.storagePerHour * 0.01).toFixed(3)}/Gi/hour
+                    × €{(DEFAULT_RATES.storagePerHour * 0.01).toFixed(3)}/GiB/hour
                   </div>
                 </div>
               </div>

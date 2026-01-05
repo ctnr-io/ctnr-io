@@ -8,13 +8,8 @@ import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useRouter } from 'expo-router'
 import { ReactNode, useCallback, useEffect, useState } from 'react'
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogTitle,
-  DialogTrigger,
 } from '../shadcn/ui/dialog.tsx'
 import { Button } from '../shadcn/ui/button.tsx'
 import { Label } from '../shadcn/ui/label.tsx'
@@ -267,39 +262,39 @@ export default function ContainersTableScreen({
   const actions: TableAction<ContainerData>[] = [
     {
       icon: Square,
-      label: 'Stop Container',
+      label: 'Stop',
       onClick: (container) => stopMutation.mutate({ name: container.name }),
       condition: (container) => container.status === 'running',
       disabled: isPending,
     },
     {
       icon: Play,
-      label: 'Start Container',
+      label: 'Start',
       onClick: (container) => startMutation.mutate({ name: container.name }),
       condition: (container) => container.status === 'stopped',
       disabled: isPending,
     },
     {
       icon: RotateCcw,
-      label: 'Restart Container',
+      label: 'Restart',
       onClick: (container) => restartMutation.mutate({ name: container.name }),
       disabled: isPending,
     },
     {
       icon: Eye,
-      label: 'View Logs',
+      label: 'Logs',
       onClick: (container) => router.push(`/containers/${container.name}?tab=logs`),
       disabled: isPending,
     },
     {
       icon: Settings,
-      label: 'Container Settings',
+      label: 'Settings',
       onClick: (container) => router.push(`/containers/${container.name}?tab=config`),
       disabled: isPending,
     },
     {
       icon: Trash2,
-      label: 'Delete Container',
+      label: 'Container',
       disabled: isPending,
       variant: 'ghost',
       className: 'text-destructive hover:text-destructive',

@@ -89,7 +89,6 @@ async function ensureResource<T extends Resource>(
     `/${getPluralKind(resource.kind)}`,
   ].filter(Boolean).join('')
 
-  console.log(`Ensuring ${resource.kind} ${name} in namespace ${namespace} with path ${resourcePath}`)
   await match(
     // Get the resource and return null if it does not exist
     await kc.performRequest({
@@ -108,7 +107,11 @@ async function ensureResource<T extends Resource>(
           bodyJson: resource,
           abortSignal,
         }).then((data) => {
-          console.log(`Created ${resource.kind} ${name} in namespace ${namespace}:`, new TextDecoder().decode(data))
+          const dataStr = new TextDecoder().decode(data)
+          console.log(`Created ${resource.kind} ${name} in namespace ${namespace}:`, dataStr)
+          if (dataStr.includes('404 page not found')) {
+            throw new Error(`Failed to create ${resource.kind} ${name} in namespace ${namespace}: 404 page not found`)
+          }
           return data
         }).catch((err) => {
           console.error(`Failed to create ${resource.kind} ${name} in namespace ${namespace}:`, err)

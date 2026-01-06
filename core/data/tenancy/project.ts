@@ -96,7 +96,6 @@ const { userId, projectId } = input
     kind: 'ClusterPropagationPolicy',
     metadata: {
       name: propagationPolicy,
-      namespace: namespaceName,
     },
     spec: {
       conflictResolution: 'Overwrite',

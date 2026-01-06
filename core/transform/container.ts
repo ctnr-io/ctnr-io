@@ -405,8 +405,8 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
     command,
     replicas = 1,
     cpu = '250m',
-    memory = '256M',
-    ephemeralStorage = '1G',
+    memory = '256Mi',
+    ephemeralStorage = '1Gi',
   } = input
 
   // Parse replicas parameter

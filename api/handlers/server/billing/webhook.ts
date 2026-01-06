@@ -112,7 +112,10 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
         vat_rate: '0.2',
       }],
       // We cannot set it as paid now
-      status: 'unpaid',
+      status:  Deno.env.get('QONTO_API_CUSTOM_INVOICE_STATUS') || 'unpaid',
+    }).catch((err) => {
+      console.error('Failed to create invoice in Qonto:', err)
+      throw err
     })
 
     const invoiceUrl = invoice.client_invoice?.invoice_url!

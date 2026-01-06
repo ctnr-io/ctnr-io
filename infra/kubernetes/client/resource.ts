@@ -8,6 +8,7 @@ type Resource = {
   kind: string
   metadata: ObjectMeta
   spec?: JSONObject
+  data?: JSONObject
 }
 
 export function createEnsureResourceFunction<T extends Resource>(opts: { strategy: 'update' | 'replace' }) {
@@ -28,7 +29,19 @@ export async function createDeleteResourceFunction<T extends Resource>() {
   ) => {
     const namespace = resource.metadata.namespace
     const name = resource.metadata.name
-    const path = `/apis/${resource.apiVersion}/namespaces/${namespace}/${getPluralKind(resource.kind)}/${name}`
+    const isClusterScoped = !namespace || resource.kind === 'Namespace'
+
+    // Determine if this is a core API resource
+    const apiPrefix = resource.apiVersion.includes('/') ? '/apis' : '/api'
+
+    // Build the resource path for DELETE
+    const path = [
+      `${apiPrefix}/${resource.apiVersion}`,
+      isClusterScoped ? '' : `/namespaces/${namespace}`,
+      `/${getPluralKind(resource.kind)}`,
+      `/${name}`,
+    ].filter(Boolean).join('')
+
     await kc.performRequest({
       method: 'DELETE',
       path,
@@ -56,12 +69,32 @@ async function ensureResource<T extends Resource>(
 ): Promise<void> {
   const namespace = resource.metadata.namespace
   const name = resource.metadata.name
-  const path = `/apis/${resource.apiVersion}/namespaces/${namespace}/${getPluralKind(resource.kind)}/${name}`
+  const isClusterScoped = !('namespace' in resource.metadata) || resource.kind === 'Namespace'
+
+  // Determine if this is a core API resource
+  const apiPrefix = resource.apiVersion.includes('/') ? '/apis' : '/api'
+
+  // Build the resource path (GET, PUT, DELETE)
+  const resourcePath = [
+    `${apiPrefix}/${resource.apiVersion}`,
+    isClusterScoped ? '' : `/namespaces/${namespace}`,
+    `/${getPluralKind(resource.kind)}`,
+    `/${name}`,
+  ].filter(Boolean).join('')
+
+  // Build the collection path (POST)
+  const collectionPath = [
+    `${apiPrefix}/${resource.apiVersion}`,
+    isClusterScoped ? '' : `/namespaces/${namespace}`,
+    `/${getPluralKind(resource.kind)}`,
+  ].filter(Boolean).join('')
+
+  console.log(`Ensuring ${resource.kind} ${name} in namespace ${namespace} with path ${resourcePath}`)
   await match(
     // Get the resource and return null if it does not exist
     await kc.performRequest({
       method: 'GET',
-      path,
+      path: resourcePath,
       abortSignal,
       expectJson: true,
     }).catch(() => null) as unknown as T | null,
@@ -71,23 +104,48 @@ async function ensureResource<T extends Resource>(
       () =>
         kc.performRequest({
           method: 'POST',
-          path,
+          path: collectionPath,
           bodyJson: resource,
           abortSignal,
+        }).then((data) => {
+          console.log(`Created ${resource.kind} ${name} in namespace ${namespace}:`, new TextDecoder().decode(data))
+          return data
+        }).catch((err) => {
+          console.error(`Failed to create ${resource.kind} ${name} in namespace ${namespace}:`, err)
+          throw err
         }),
     )
     .with({
-      metadata: resource.metadata, 
-      spec: resource.spec,
+      metadata: resource.metadata,
+      ...('spec' in resource ? { spec: resource.spec } : {}),
+      ...('data' in resource ? { data: resource.data } : {}),
     } as any, () => true)
-    .otherwise(async (data) => {
+    .otherwise(async (current: Resource) => {
+      const bodyJson = {
+        // Merge metadata
+        metadata: {
+          ...resource.metadata,
+          labels: {
+            ...current.metadata.labels,
+            ...resource.metadata.labels,
+          },
+          annotations: {
+            ...current.metadata.annotations,
+            ...resource.metadata.annotations,
+          },
+        },
+        // Replace spec
+        ...('spec' in resource ? { spec: resource.spec } : { spec: current.spec }),
+        // Replace data
+        ...('data' in resource ? { data: resource.data } : { data: current.data }),
+      }
       switch (opts.strategy) {
         case 'update':
           console.debug(`Updating existing ${resource.kind} ${name} in namespace ${namespace}`)
           return kc.performRequest({
             method: 'PUT',
-            path,
-            bodyJson: resource,
+            path: resourcePath,
+            bodyJson,
             abortSignal,
           })
         case 'replace':
@@ -95,22 +153,11 @@ async function ensureResource<T extends Resource>(
           // Delete the existing resource first
           await kc.performRequest({
             method: 'DELETE',
-            path,
+            path: resourcePath,
             abortSignal,
           })
           // Then create the new one
-          while (
-            await kc.performRequest({
-              method: 'POST',
-              path,
-              bodyJson: resource,
-              abortSignal,
-            }).catch(() => null) === null
-          ) {
-            // Wait until the resource is fully deleted before creating a new one
-            console.debug(`Waiting for ${resource.kind} ${name} in namespace ${namespace} to be deleted...`)
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-          }
+          return ensureResource(kc, resource, abortSignal, opts)
       }
     })
 }

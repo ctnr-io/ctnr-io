@@ -108,7 +108,6 @@ async function ensureResource<T extends Resource>(
           abortSignal,
         }).then((data) => {
           const dataStr = new TextDecoder().decode(data)
-          console.log(`Created ${resource.kind} ${name} in namespace ${namespace}:`, dataStr)
           if (dataStr.includes('404 page not found')) {
             throw new Error(`Failed to create ${resource.kind} ${name} in namespace ${namespace}: 404 page not found`)
           }

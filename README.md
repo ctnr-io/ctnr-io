@@ -8,7 +8,7 @@
 [![Built with Deno](https://img.shields.io/badge/Built%20with-Deno-000000?logo=deno)](https://deno.land)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
 
-[Documentation](https://docs.ctnr.io) • [Discord](https://discord.gg/ctnr) • [Report Bug](https://github.com/ctnr-io/ctnr/issues)
+[Documentation](https://docs.ctnr.io) • [Discord](https://discord.gg/9wqquM9hfj) • [Report Bug](https://github.com/ctnr-io/ctnr-io/issues)
 
 </div>
 
@@ -58,7 +58,7 @@ curl -fsSL https://get.ctnr.io | bash
 
 ### Download from Releases
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/ctnr-io/ctnr/releases).
+Download the latest release for your platform from [GitHub Releases](https://github.com/ctnr-io/ctnr-io/releases).
 
 <details>
 <summary><strong>Linux/macOS</strong></summary>
@@ -248,9 +248,9 @@ This project is licensed under the **GNU General Public License v3.0** — see t
 ## 🔗 Links
 
 - 📖 **Documentation**: [docs.ctnr.io](https://docs.ctnr.io)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/ctnr-io/ctnr/issues)
-- 💬 **Community**: [Discord](https://discord.gg/ctnr)
-- 🌐 **Website**: [ctnr.io](https://ctnr.io)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/ctnr-io/ctnr-io/issues)
+- 💬 **Community**: [Discord](https://discord.gg/9wqquM9hfj)
+- 🌐 **Website**: [ctnr.io](https://www.ctnr.io)
 
 ---
 

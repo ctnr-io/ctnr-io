@@ -1,37 +1,11 @@
-# Stage 1: Build the Expo web app from source
-FROM oven/bun:latest AS builder
-
-ARG CTNR_VERSION=""
-ARG CTNR_API_URL=https://api.ctnr.io
-ARG CTNR_APP_URL=https://app.ctnr.io
-ARG SUPABASE_URL=""
-ARG SUPABASE_ANON_KEY=""
-
-ENV CTNR_VERSION=${CTNR_VERSION}
-ENV CTNR_API_URL=${CTNR_API_URL}
-ENV CTNR_APP_URL=${CTNR_APP_URL}
-ENV SUPABASE_URL=${SUPABASE_URL}
-ENV SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-
-WORKDIR /workspace
-
-# Copy lockfile and package.json first for layer caching
-COPY app/package.json app/bun.lock ./
-RUN bun install --frozen-lockfile
-
-# Copy the rest of the app source and build
-COPY app/ .
-RUN bunx expo export --platform web
-
-# Stage 2: Serve the built app
 FROM debian:bookworm-slim
 
-ARG CTNR_VERSION=""
+ARG CTNR_VERSION
 ENV CTNR_VERSION=${CTNR_VERSION}
 
 WORKDIR /workspace
 
-# Install required dependencies for bun
+# Install required dependencies for bun and curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
@@ -41,10 +15,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install bun to /workspace/.bun for non-root user
 RUN curl -fsSL https://bun.sh/install | bash && mv /root/.bun /workspace/.bun
 
-# Copy the built dist from the builder stage
-COPY --from=builder /workspace/dist ./dist
+# Download and extract the app from the GitHub release
+RUN curl -fsSL https://github.com/ctnr-io/ctnr-io/releases/download/${CTNR_VERSION}/ctnr-app-${CTNR_VERSION}.tar.gz -o ctnr-app.tar.gz && \
+    tar -xzf ctnr-app.tar.gz && \
+    rm ctnr-app.tar.gz
 
-# Copy package.json and .npmrc for serve dependency
+# Copy package.json for serve dependency
 COPY app/package.json app/.npmrc ./
 
 # Create appuser with UID 1000 and set permissions

@@ -313,10 +313,6 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/app:latest
           build-args: |
             CTNR_VERSION=${{ steps.version.outputs.version }}
-            CTNR_API_URL=https://api.ctnr.io
-            CTNR_APP_URL=https://app.ctnr.io
-            SUPABASE_URL=${{ vars.SUPABASE_URL }}
-            SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}
 
   rollback-release:
     needs: [publish-app-image, publish-api-image]

@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -110,7 +110,7 @@ jobs:
 
       - name: Build app
         env:
-          CTNR_VERSION: ${{ needs.compute-tags.outputs.branch_tag }}
+          CTNR_VERSION: ${{ needs.compute-tags.outputs.short_sha }}
           CTNR_API_URL: https://api.ctnr.io
           CTNR_APP_URL: https://app.ctnr.io
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
@@ -137,8 +137,44 @@ jobs:
           path: |
             app/ctnr-app-${{ needs.compute-tags.outputs.short_sha }}.*
 
+  release-all:
+    needs: [compute-tags, build-cli, build-app]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Prepare release assets
+        run: |
+          # Flatten the artifact structure
+          find dist -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            mv "$file" ./
+          done
+
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          tag_name: ${{ needs.compute-tags.outputs.short_sha }}
+          target_commitish: ${{ github.sha }}
+          name: Branch build ${{ needs.compute-tags.outputs.short_sha }} (${{ needs.compute-tags.outputs.branch_tag }})
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+          files: |
+            *.tar.gz
+            *.zip
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-api-image:
-    needs: compute-tags
+    needs: [compute-tags, release-all]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -165,9 +201,11 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/api:${{ needs.compute-tags.outputs.branch_tag }}
             ghcr.io/${{ github.repository_owner }}/api:${{ needs.compute-tags.outputs.short_sha }}
             ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
+          build-args: |
+            CTNR_VERSION=${{ needs.compute-tags.outputs.short_sha }}
 
   publish-app-image:
-    needs: compute-tags
+    needs: [compute-tags, release-all]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -195,9 +233,19 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/app:${{ needs.compute-tags.outputs.short_sha }}
             ghcr.io/${{ github.repository_owner }}/app:${{ github.sha }}
           build-args: |
-            CTNR_VERSION=${{ needs.compute-tags.outputs.branch_tag }}
-            CTNR_API_URL=https://api.ctnr.io
-            CTNR_APP_URL=https://app.ctnr.io
-            SUPABASE_URL=${{ vars.SUPABASE_URL }}
-            SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}
+            CTNR_VERSION=${{ needs.compute-tags.outputs.short_sha }}
 
+  rollback-release:
+    needs: [compute-tags, publish-app-image, publish-api-image]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ needs.compute-tags.outputs.short_sha }}
+          echo "Rolling back release $VERSION"
+          gh release delete "$VERSION" --yes || true
+          gh api --method DELETE /repos/${{ github.repository }}/git/refs/tags/$VERSION 2>/dev/null || true
+        shell: bash

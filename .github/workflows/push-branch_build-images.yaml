@@ -1,0 +1,251 @@
+name: Push Branch - Build Images
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  compute-tags:
+    runs-on: ubuntu-latest
+    outputs:
+      branch_tag: ${{ steps.tags.outputs.branch_tag }}
+      short_sha: ${{ steps.tags.outputs.short_sha }}
+    steps:
+      - name: Compute image tags
+        id: tags
+        run: |
+          SANITIZED_BRANCH=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/-\{2,\}/-/g')
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          echo "branch_tag=${SANITIZED_BRANCH}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+  build-cli:
+    needs: compute-tags
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-msvc
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: linux
+            arch: x64
+            ext: ''
+          - target: aarch64-unknown-linux-gnu
+            os: linux
+            arch: arm64
+            ext: ''
+          - target: x86_64-apple-darwin
+            os: darwin
+            arch: x64
+            ext: ''
+          - target: aarch64-apple-darwin
+            os: darwin
+            arch: arm64
+            ext: ''
+          - target: x86_64-pc-windows-msvc
+            os: windows
+            arch: x64
+            ext: '.exe'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.5
+
+      - name: Compile cli binary
+        run: |
+          curl -sfS https://dotenvx.sh/install.sh | sh
+
+          deno task compile \
+            --target ${{ matrix.target }} \
+            --output dist/ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} \
+            cli/static_main.ts
+
+      - name: Create tarball (Unix)
+        if: matrix.os != 'windows'
+        run: |
+          cd dist
+          tar -czf ctnr-cli-${{ needs.compute-tags.outputs.short_sha }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}
+
+      - name: Create zip (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          cd dist
+          zip ctnr-cli-${{ needs.compute-tags.outputs.short_sha }}-${{ matrix.os }}-${{ matrix.arch }}.zip ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctnr-cli-${{ matrix.os }}-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            dist/ctnr-cli-${{ needs.compute-tags.outputs.short_sha }}-${{ matrix.os }}-${{ matrix.arch }}.*
+
+  build-app:
+    needs: compute-tags
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Build app
+        env:
+          CTNR_VERSION: ${{ needs.compute-tags.outputs.short_sha }}
+          CTNR_API_URL: https://api.ctnr.io
+          CTNR_APP_URL: https://app.ctnr.io
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          cd app
+
+          # Install dependencies
+          bun install
+
+          # Build the app
+          bunx expo export --platform web
+
+      - name: Create tarball
+        run: |
+          cd app
+          tar -czf ctnr-app-${{ needs.compute-tags.outputs.short_sha }}.tar.gz dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctnr-app
+          if-no-files-found: error
+          path: |
+            app/ctnr-app-${{ needs.compute-tags.outputs.short_sha }}.*
+
+  release-all:
+    needs: [compute-tags, build-cli, build-app]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Prepare release assets
+        run: |
+          # Flatten the artifact structure
+          find dist -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            mv "$file" ./
+          done
+
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          tag_name: ${{ needs.compute-tags.outputs.short_sha }}
+          target_commitish: ${{ github.sha }}
+          name: Branch build ${{ needs.compute-tags.outputs.short_sha }} (${{ needs.compute-tags.outputs.branch_tag }})
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+          files: |
+            *.tar.gz
+            *.zip
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-api-image:
+    needs: [compute-tags, release-all]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.api
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/api:${{ needs.compute-tags.outputs.branch_tag }}
+            ghcr.io/${{ github.repository_owner }}/api:${{ needs.compute-tags.outputs.short_sha }}
+            ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
+          build-args: |
+            CTNR_VERSION=${{ needs.compute-tags.outputs.short_sha }}
+
+  publish-app-image:
+    needs: [compute-tags, release-all]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push App container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.app
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/app:${{ needs.compute-tags.outputs.branch_tag }}
+            ghcr.io/${{ github.repository_owner }}/app:${{ needs.compute-tags.outputs.short_sha }}
+            ghcr.io/${{ github.repository_owner }}/app:${{ github.sha }}
+          build-args: |
+            CTNR_VERSION=${{ needs.compute-tags.outputs.short_sha }}
+
+  rollback-release:
+    needs: [compute-tags, publish-app-image, publish-api-image]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ needs.compute-tags.outputs.short_sha }}
+          echo "Rolling back release $VERSION"
+          gh release delete "$VERSION" --yes || true
+          gh api --method DELETE /repos/${{ github.repository }}/git/refs/tags/$VERSION 2>/dev/null || true
+        shell: bash

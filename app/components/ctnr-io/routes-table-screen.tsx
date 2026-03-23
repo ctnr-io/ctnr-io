@@ -110,15 +110,17 @@ function AddRouteForm({
       setFormError('Target port is required')
       return
     }
-    const fullDomain = formData.subdomain ? `${formData.subdomain}.${formData.domain}` : formData.domain
+    // Only build a subdomain if a root domain is also selected
+    const fullDomain = (formData.subdomain && formData.domain)
+      ? `${formData.subdomain}.${formData.domain}`
+      : formData.domain || undefined
 
     const routeData = {
       name: formData.name,
       path: formData.path,
       container: formData.container,
       port: formData.port,
-      // If fullDomain is an empty string, pass an empty string (API accepts it as 'no domain')
-      domain: fullDomain || '',
+      domain: fullDomain,
       protocol: formData.protocol,
       status: 'pending' as const,
       createdAt: new Date(),
@@ -353,7 +355,7 @@ export default function RoutesTableScreen() {
     await createRoute.mutateAsync({
       name: routeForm.name,
       container: routeForm.container,
-      domain: routeForm.domain,
+      domain: routeForm.domain || undefined,
       port: routeForm.port,
       path: routeForm.path,
       protocol: routeForm.protocol as 'http' | 'https',

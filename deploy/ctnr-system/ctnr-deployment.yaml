@@ -1,0 +1,190 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctnr-deployment
+  namespace: ctnr-system
+  labels:
+    app: ctnr-deployment
+spec:
+  selector:
+    matchLabels:
+      app: ctnr-deployment
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    # Try to have canary/blue-green like deployment with minimal downtime
+    rollingUpdate:
+      maxUnavailable: 2 # Always have min 1 ready pods
+      maxSurge: 3 # Allow up to 3 extra pods during update 
+  template:
+    metadata:
+      labels:
+        app: ctnr-deployment
+      annotations:
+    spec:
+      volumes:
+        - name: kubeconfig
+          emptyDir: {}
+        - name: gitops
+          emptyDir: {}
+      initContainers:
+        - name: git-clone
+          image: buildpack-deps:bullseye
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /workspace/.kube
+            - name: gitops
+              mountPath: /gitops
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ctnr-secrets
+                  key: github-token
+          envFrom:
+            - configMapRef:
+                name: ctnr-env
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              git clone --depth 1 --single-branch --branch main https://git:$GITHUB_TOKEN@github.com/ctnr-io/gitops /gitops
+              cp /gitops/kubeconfig.yaml /workspace/.kube/config
+
+      containers:
+        - name: ctnr-api
+          image: ghcr.io/ctnr-io/api:${CTNR_VERSION}
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /workspace/.kube
+          envFrom:
+            - configMapRef:
+                name: ctnr-env
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+              name: ctnr-api
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "3Gi"
+              cpu: "2"
+        - name: ctnr-app
+          image: ghcr.io/ctnr-io/app:${CTNR_VERSION}
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          envFrom:
+            - configMapRef:
+                name: ctnr-env
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: ctnr-app
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ctnr-service
+  namespace: ctnr-system
+spec:
+  selector:
+    app: ctnr-deployment
+  ports:
+  - port: 3000
+    name: ctnr-api
+  - port: 8080
+    name: ctnr-app
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ctnr-api-http-route
+  namespace: ctnr-system
+spec:
+  parentRefs:
+  - name: public-gateway
+    namespace: kube-public
+    sectionName: web
+  - name: public-gateway
+    namespace: kube-public
+    sectionName: websecure
+  hostnames:
+  - "api.${DOMAIN_NAME}"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/"
+    backendRefs:
+    - name: ctnr-service
+      port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ctnr-app-http-route
+  namespace: ctnr-system
+spec:
+  parentRefs:
+  - name: public-gateway
+    namespace: kube-public
+    sectionName: web
+  - name: public-gateway
+    namespace: kube-public
+    sectionName: websecure
+  hostnames:
+  - "app.${DOMAIN_NAME}"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/"
+    backendRefs:
+    - name: ctnr-service
+      port: 8080
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: api.${DOMAIN_NAME}
+  namespace: ctnr-system
+spec:
+  endpoints:
+  - dnsName: api.${DOMAIN_NAME}
+    recordTTL: 0
+    recordType: CNAME
+    targets:
+    - gtw.${DOMAIN_NAME}
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: app.${DOMAIN_NAME}
+  namespace: ctnr-system
+spec:
+  endpoints:
+  - dnsName: app.${DOMAIN_NAME}
+    recordTTL: 0
+    recordType: CNAME
+    targets:
+    - gtw.${DOMAIN_NAME}

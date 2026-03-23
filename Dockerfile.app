@@ -20,8 +20,8 @@ RUN curl -fsSL https://github.com/ctnr-io/ctnr-io/releases/download/${CTNR_VERSI
     tar -xzf ctnr-app.tar.gz && \
     rm ctnr-app.tar.gz
 
-# Copy package.json for serve dependency
-COPY app/package.json app/.npmrc ./
+# Copy package.json, npmrc, and serve config
+COPY app/package.json app/.npmrc serve.json ./
 
 # Create appuser with UID 1000 and set permissions
 RUN useradd -u 1000 -m appuser && chown -R 1000:1000 /workspace
@@ -33,4 +33,4 @@ RUN /workspace/.bun/bin/bun install
 
 EXPOSE 8080
 
-CMD ["/workspace/.bun/bin/bun", "x", "serve", "dist", "-l", "8080"]
+CMD ["/workspace/.bun/bin/bun", "x", "serve", "dist", "-l", "8080", "--config", "/workspace/serve.json"]

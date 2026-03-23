@@ -1,0 +1,152 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ctnr-api-rbac
+  labels:
+    app: ctnr-api-trpc
+    component: rbac
+rules:
+# Namespace management - needed for creating user namespaces
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+# Pod management in user namespaces - needed for container operations
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: [""]
+  resources: ["pods/attach"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: [""]
+  resources: ["pods/portforward"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: [""]
+  resources: ["pods/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: [""]
+  resources: ["pods/proxy"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# PersistentVolumeClaim management - needed for storage operations
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# CiliumNetworkPolicy management - needed for network policy creation in user namespaces
+- apiGroups: ["cilium.io"]
+  resources: ["ciliumnetworkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# Service management - needed for creating services
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# HTTPRoute management - needed for Gateway API routing
+- apiGroups: ["gateway.networking.k8s.io"]
+  resources: ["httproutes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# IngressRoute management - needed for Traefik routing
+- apiGroups: ["traefik.io"]
+  resources: ["ingressroutes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# Certificate management - needed for cert-manager certificates
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificates"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# PropagationPolicy management - needed for Karmada policy propagation
+- apiGroups: ["policy.karmada.io"]
+  resources: ["propagationpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# FederatedResourceQuota management - needed for Karmada resource quota propagation
+- apiGroups: ["policy.karmada.io"]
+  resources: ["federatedresourcequotas"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# ResourceQuota management - needed for managing resource quotas in user namespaces
+- apiGroups: [""]
+  resources: ["resourcequotas"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# Deployment management - needed for managing deployments
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["apps"]
+  resources: ["deployments/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["apps"]
+  resources: ["deployments/scale"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# ReplicaSet management - needed for deployment operations
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["apps"]
+  resources: ["replicasets/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["apps"]
+  resources: ["replicasets/scale"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# Horizontal Pod Autoscaler management - needed for horizontal scaling
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# HPA v2 API support - needed for advanced HPA features
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers/v2"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+
+# Metrics access - needed for HPA and VPA scaling decisions
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+- apiGroups: ["custom.metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+- apiGroups: ["external.metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+
+# Additional resources that might be needed for container operations
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ctnr-api-rbac-binding
+  labels:
+    app: ctnr-api-trpc
+    component: rbac
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: ctnr-system
+roleRef:
+  kind: ClusterRole
+  name: ctnr-api-rbac
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,103 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: ctnr-api-repo-sync
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/ctnr-io/ctnr
+  ref:
+    branch: main
+  secretRef:
+    name: ctnr-api-git-token
+  ignore: |
+    *
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ctnr-api-git-token
+  namespace: flux-system
+type: kubernetes.io/basic-auth
+data:
+  username: ${GIT_USER}
+  password: ${GIT_TOKEN}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: ctnr-api-repo-sync
+  namespace: flux-system 
+spec:
+  interval: 1m
+  path: .
+  prune: true
+  force: true
+  sourceRef:
+    kind: GitRepository
+    name: ctnr-api-repo-sync
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: ctnr-proxy
+  namespace: flux-system
+spec:
+  dependsOn:
+  - name: ctnr-api-repo-sync
+  interval: 1m
+  path: ./layers/14-service/production/management/ctnr-io/ctnr-proxy
+  prune: true
+  force: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  postBuild:
+    substituteFrom:
+    - kind: Secret
+      name: environment-variables
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: ctnr-system
+  namespace: flux-system
+spec:
+  dependsOn:
+  - name: ctnr-api-repo-sync
+  - name: ctnr-proxy # routes defined in ctnr-system must be applied after ctnr-proxy because of wildcard overriding api
+  interval: 1m
+  path: ./layers/14-service/production/management/ctnr-io/ctnr-system
+  prune: true
+  force: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  postBuild:
+    substituteFrom:
+    - kind: Secret
+      name: environment-variables
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: ctnr-edge
+  namespace: flux-system
+spec:
+  dependsOn:
+  - name: ctnr-system
+  interval: 1m
+  path: ./layers/14-service/production/management/ctnr-io/ctnr-edge
+  prune: true
+  force: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  postBuild:
+    substituteFrom:
+    - kind: Secret
+      name: environment-variables

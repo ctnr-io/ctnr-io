@@ -8,6 +8,7 @@ export * from './gateway/tls_route.ts'
 
 // Traefik resources (IngressRoute, Middleware)
 export * from './traefik/ingress_route.ts'
+export * from './traefik/middleware.ts'
 
 // Karmada resources (PropagationPolicy, FederatedResourceQuota)
 export * from './karmada/cluster_propagation_policy.ts'

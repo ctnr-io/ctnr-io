@@ -14,6 +14,8 @@ export const Meta = {
       'interactive': 'i',
       'terminal': 't',
       'publish': 'p',
+      'env': 'e',
+      'volume': 'v',
     },
   },
 }

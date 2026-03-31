@@ -19,6 +19,7 @@ import {
   HTTPRoute,
   IngressRoute,
   List,
+  Middleware,
   PodMetrics,
   PropagationPolicy,
   ReferenceGrant,
@@ -141,6 +142,33 @@ export async function createKubeClient(context: 'karmada' | 'eu-1') {
             expectJson: true,
             ...opts,
           }) as Promise<List<IngressRoute>>,
+        getMiddleware: (name: string, opts?: Pick<GetOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'GET',
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/middlewares/${name}`,
+            expectJson: true,
+            ...opts,
+          }) as Promise<Middleware>,
+        createMiddleware: (body: Middleware, opts?: Pick<PutOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'POST',
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/middlewares`,
+            bodyJson: body,
+            ...opts,
+          }),
+        replaceMiddleware: (name: string, body: Middleware, opts?: Pick<PutOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'PUT',
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/middlewares/${name}`,
+            bodyJson: body,
+            ...opts,
+          }),
+        deleteMiddleware: (name: string, opts?: Pick<DeleteOpts, 'abortSignal'>) =>
+          client.performRequest({
+            method: 'DELETE',
+            path: `/apis/traefik.io/v1alpha1/namespaces/${namespace}/middlewares/${name}`,
+            ...opts,
+          }),
       }
     },
     GatewayNetworkingV1(namespace: string) {

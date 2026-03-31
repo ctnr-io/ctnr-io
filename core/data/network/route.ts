@@ -10,9 +10,11 @@ import {
   ensureService,
   ensureHTTPRoute,
   ensureIngressRoute,
+  ensureMiddleware,
   ensureCertificate,
   HTTPRoute,
   IngressRoute,
+  Middleware,
 } from 'infra/kubernetes/mod.ts'
 
 export interface EnsureRouteInput {
@@ -25,6 +27,14 @@ export interface EnsureRouteInput {
   namespace: string
   project: { id: string; cluster: ClusterName }
 }
+
+/**
+ * Default rate limit applied to every IngressRoute (custom-domain traffic).
+ * Keeps bandwidth usage well within Contabo's unlimited-but-fair-use limits.
+ */
+const RATE_LIMIT_AVERAGE = 100  // requests per period
+const RATE_LIMIT_BURST = 200    // max burst
+const RATE_LIMIT_PERIOD = '1s'  // sliding window
 
 /**
  * Ensure a route exists (Service + HTTPRoute)
@@ -121,7 +131,25 @@ export async function ensureRoute(
       throw new Error(`Domain ${hostname} is not verified`)
     }
 
-  await ensureIngressRoute(kubeClient, {
+    // 3a. Ensure rate-limit Middleware for the IngressRoute
+    const rateLimitMiddlewareName = `${name}-rate-limit`
+    await ensureMiddleware(kubeClient, {
+      apiVersion: 'traefik.io/v1alpha1',
+      kind: 'Middleware',
+      metadata: {
+        name: rateLimitMiddlewareName,
+        namespace,
+      },
+      spec: {
+        rateLimit: {
+          average: RATE_LIMIT_AVERAGE,
+          burst: RATE_LIMIT_BURST,
+          period: RATE_LIMIT_PERIOD,
+        },
+      },
+    } as Middleware, signal)
+
+    await ensureIngressRoute(kubeClient, {
       apiVersion: 'traefik.io/v1alpha1',
       kind: 'IngressRoute',
       metadata: {
@@ -137,6 +165,10 @@ export async function ensureRoute(
             name: input.container,
             port: port.port,
           })),
+          middlewares: [{
+            name: rateLimitMiddlewareName,
+            namespace,
+          }],
         }],
         tls: {
           secretName: `${name}-tls`,
@@ -188,6 +220,14 @@ export async function deleteRoute(
 
   // Try to delete as IngressRoute
   await kubeClient.TraefikV1Alpha1(namespace).deleteIngressRoute(name)
+
+  // Delete the associated rate-limit Middleware if it exists
+  await kubeClient.TraefikV1Alpha1(namespace).deleteMiddleware(`${name}-rate-limit`).catch((err) => {
+    // Ignore 404 (middleware may not exist for older routes), but log unexpected errors
+    if (!String(err).includes('404')) {
+      console.warn(`Failed to delete rate-limit middleware for route ${name}:`, err)
+    }
+  })
 
   // Check if there is any route and delete the service if not
   const routes = await listRoutes(kubeClient, namespace, { name })

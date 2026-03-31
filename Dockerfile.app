@@ -21,7 +21,7 @@ RUN curl -fsSL https://github.com/ctnr-io/ctnr-io/releases/download/${CTNR_VERSI
     rm ctnr-app.tar.gz
 
 # Copy package.json, npmrc, and serve config
-COPY app/package.json app/.npmrc serve.json ./
+COPY app/package.json app/.npmrc app/serve.json ./
 
 # Create appuser with UID 1000 and set permissions
 RUN useradd -u 1000 -m appuser && chown -R 1000:1000 /workspace

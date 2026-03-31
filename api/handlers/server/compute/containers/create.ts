@@ -46,7 +46,8 @@ export const Input = z.object({
   command: z.string()
     .max(1000, 'Command length is limited for security reasons')
     .optional()
-    .describe('Command to run in the container'),
+    .describe('Command to run in the container')
+    .meta({ positional: true }),
   replicas: z.union([
     z.number().min(1).max(20),
     z.string().regex(/^\d+-\d+$/, 'Replicas range must be in format "min-max" (e.g., "1-5")'),

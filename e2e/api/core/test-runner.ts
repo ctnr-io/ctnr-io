@@ -79,7 +79,7 @@ export async function waitForCondition(
 export async function cleanupContainer(name: string): Promise<void> {
   try {
     // Try to remove the container if it exists
-    const result = await runCliCommand(['run', '--name', name, '--force', 'busybox:1.35', 'echo', 'cleanup'])
+    const result = await runCliCommand(['run', '--name', name, '--force', 'busybox:1.35', 'echo cleanup'])
     console.log(`Cleanup attempt for ${name}: ${result.success ? 'success' : 'failed'}`)
   } catch (error) {
     console.log(`Cleanup error for ${name}:`, error)

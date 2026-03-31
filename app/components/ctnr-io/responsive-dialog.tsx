@@ -74,7 +74,7 @@ export default function ResponsiveDialog({
 
   const close = () => setValue(false)
 
-  const responsiveClass = `fixed z-50 w-full max-w-none max-h-[90vh] rounded-none m-0 p-4 ${breakpoint}:top-1/2 ${breakpoint}:left-1/2 ${breakpoint}:h-auto ${breakpoint}:w-auto ${breakpoint}:min-w-100 ${breakpoint}:rounded-lg ${breakpoint}:p-6`
+  const responsiveClass = `fixed z-50 w-full max-w-none max-h-[90vh] rounded-none m-0 p-4 bg-background ${breakpoint}:top-1/2 ${breakpoint}:left-1/2 ${breakpoint}:h-auto ${breakpoint}:w-auto ${breakpoint}:min-w-100 ${breakpoint}:rounded-lg ${breakpoint}:p-6`
 
   return (
     <ShadcnDialog.Dialog open={value} onOpenChange={setValue}>

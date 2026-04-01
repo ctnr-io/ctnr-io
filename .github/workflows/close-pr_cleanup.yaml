@@ -1,0 +1,64 @@
+name: Close PR - Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  compute-tags:
+    runs-on: ubuntu-latest
+    outputs:
+      branch_tag: ${{ steps.tags.outputs.branch_tag }}
+    steps:
+      - name: Compute tags
+        id: tags
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/-\{2,\}/-/g')
+          echo "branch_tag=${SANITIZED_BRANCH}" >> $GITHUB_OUTPUT
+
+  delete-release:
+    needs: [compute-tags]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete draft GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_TAG="${{ needs.compute-tags.outputs.branch_tag }}"
+          gh release list --repo ${{ github.repository }} --json tagName,name,isDraft | \
+            jq -r '.[] | select(.isDraft == true) | select(.name | contains("('"$BRANCH_TAG"')")) | .tagName' | \
+            while read tag; do
+              echo "Deleting release: $tag"
+              gh release delete "$tag" --yes --repo ${{ github.repository }} || true
+              gh api --method DELETE /repos/${{ github.repository }}/git/refs/tags/$tag 2>/dev/null || true
+            done
+
+  delete-images:
+    needs: [compute-tags]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete container image versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_TAG="${{ needs.compute-tags.outputs.branch_tag }}"
+          OWNER="${{ github.repository_owner }}"
+
+          for IMAGE in api app; do
+            # Try org packages first, then user packages
+            VERSIONS=$(gh api --paginate "/orgs/$OWNER/packages/container/$IMAGE/versions" 2>/dev/null || \
+                       gh api --paginate "/users/$OWNER/packages/container/$IMAGE/versions" 2>/dev/null || echo "[]")
+
+            echo "$VERSIONS" | jq -r --arg tag "$BRANCH_TAG" \
+              '.[] | select(.metadata.container.tags | any(. == $tag)) | .id' | \
+            while read version_id; do
+              echo "Deleting $IMAGE version: $version_id"
+              gh api --method DELETE "/orgs/$OWNER/packages/container/$IMAGE/versions/$version_id" 2>/dev/null || \
+              gh api --method DELETE "/users/$OWNER/packages/container/$IMAGE/versions/$version_id" 2>/dev/null || true
+            done
+          done

@@ -19,7 +19,7 @@ export async function runCliCommand(args: string[], options?: {
     stdout: 'piped',
     stderr: 'piped',
     env,
-    cwd: '../ctnr',
+    cwd: '.',
   })
 
   const process = command.spawn()

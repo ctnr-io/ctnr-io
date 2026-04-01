@@ -22,7 +22,22 @@ env:
   SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.5
+
+      - name: Run tests
+        run: deno test -A
+
   build-cli:
+    needs: [test]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -115,6 +130,7 @@ jobs:
             dist/ctnr-cli-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
 
   build-app:
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -220,8 +236,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: Release ${{ steps.version.outputs.version }}
-          draft: false
-          prerelease: false
+          draft: true
           generate_release_notes: true
           files: |
             *.tar.gz

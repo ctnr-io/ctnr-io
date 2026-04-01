@@ -31,7 +31,7 @@ jobs:
         run: |
           BRANCH_TAG="${{ needs.compute-tags.outputs.branch_tag }}"
           gh release list --repo ${{ github.repository }} --json tagName,name,isDraft | \
-            jq -r '.[] | select(.isDraft == true) | select(.name | contains("('"$BRANCH_TAG"')")) | .tagName' | \
+            jq -r --arg tag "$BRANCH_TAG" '.[] | select(.isDraft == true) | select(.name | contains("(" + $tag + ")")) | .tagName' | \
             while read tag; do
               echo "Deleting release: $tag"
               gh release delete "$tag" --yes --repo ${{ github.repository }} || true

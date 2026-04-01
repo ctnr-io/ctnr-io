@@ -5,6 +5,7 @@ import './run.test.ts'
 import './list.test.ts'
 import './attach.test.ts'
 import './integration.test.ts'
+import './aliases.test.ts'
 
 // Export test utilities for potential reuse
 export * from './test-runner.ts'

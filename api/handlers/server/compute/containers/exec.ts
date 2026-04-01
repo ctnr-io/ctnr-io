@@ -18,7 +18,8 @@ export const Input = z.object({
     .max(1000, 'Command length is limited for security reasons')
     .optional()
     .default('/bin/sh')
-    .describe('Command to execute in the container'),
+    .describe('Command to execute in the container')
+    .meta({ positional: true }),
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
   replica: z.string().optional().describe(

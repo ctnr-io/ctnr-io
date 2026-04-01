@@ -23,9 +23,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
       'run',
       '--name',
       'INVALID_NAME_WITH_CAPS',
-      '--image',
       'busybox:1.35',
-      '--command',
       'echo test',
     ])
 
@@ -50,9 +48,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         '--name',
         containerName,
         '--detach',
-        '--image',
         'busybox:1.35',
-        '--command',
         'echo Hello from e2e test',
       ], { timeout: 10000 })
 
@@ -90,9 +86,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         'TEST_VAR=hello_world',
         '--env',
         'ANOTHER_VAR=test_value',
-        '--image',
         'busybox:1.35',
-        '--command',
         "sh -c 'echo $TEST_VAR && echo $ANOTHER_VAR'",
       ], { timeout: 10000 })
 
@@ -116,9 +110,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         '8080',
         '--port',
         '9090',
-        '--image',
         'busybox:1.35',
-        '--command',
         'sleep 10',
       ], { timeout: 10000 })
 
@@ -140,9 +132,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         containerName,
         '--detach',
         '--force',
-        '--image',
         'busybox:1.35',
-        '--command',
         'echo forced recreation',
       ], { timeout: 10000 })
 
@@ -164,9 +154,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         containerName,
         '--interactive',
         '--detach',
-        '--image',
         'busybox:1.35',
-        '--command',
         'echo interactive test',
       ], { timeout: 10000 })
 
@@ -187,9 +175,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         containerName,
         '--terminal',
         '--detach',
-        '--image',
         'busybox:1.35',
-        '--command',
         'echo terminal test',
       ], { timeout: 10000 })
 
@@ -209,9 +195,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         '--name',
         containerName,
         '--detach',
-        '--image',
         'busybox:1.35',
-        '--command',
         "echo 'Custom command executed' && sleep 5",
       ], { timeout: 10000 })
 

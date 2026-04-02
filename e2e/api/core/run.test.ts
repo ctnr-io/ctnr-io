@@ -6,9 +6,11 @@ Deno.test('Core API - Run Command Tests', async (t) => {
     const result = await runCliCommand(['run', '--help'])
 
     assertEquals(result.code, 0)
-    assertStringIncludes(result.stdout, 'run')
-    assertStringIncludes(result.stdout, 'Container image to run')
-    assertStringIncludes(result.stdout, 'Name of the container')
+    // Help text is written to stderr via console.warn (logger.info), so check combined output
+    const output = result.stdout + result.stderr
+    assertStringIncludes(output, 'run')
+    assertStringIncludes(output, 'Container image to run')
+    assertStringIncludes(output, 'Name of the container')
   })
 
   await t.step('should fail when no arguments provided', async () => {

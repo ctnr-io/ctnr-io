@@ -6,8 +6,10 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
     const result = await runCliCommand(['attach', '--help'])
 
     assertEquals(result.code, 0)
-    assertStringIncludes(result.stdout, 'attach')
-    assertStringIncludes(result.stdout, 'Name of the container')
+    // Help text is written to stderr via console.warn (logger.info), so check combined output
+    const output = result.stdout + result.stderr
+    assertStringIncludes(output, 'attach')
+    assertStringIncludes(output, 'Name of the container')
   })
 
   await t.step('should fail when no container name provided', async () => {

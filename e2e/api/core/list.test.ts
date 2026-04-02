@@ -6,7 +6,8 @@ Deno.test('Core API - List Command Tests', async (t) => {
     const result = await runCliCommand(['list', '--help'])
 
     assertEquals(result.code, 0)
-    assertStringIncludes(result.stdout, 'list')
+    // Help text is written to stderr via console.warn (logger.info), so check combined output
+    assertStringIncludes(result.stdout + result.stderr, 'list')
   })
 
   await t.step('should list containers when none exist', async () => {

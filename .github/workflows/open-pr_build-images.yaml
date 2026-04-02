@@ -21,6 +21,10 @@ jobs:
           deno-version: 2.5
 
       - name: Run tests
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          CTNR_API_URL: https://api.ctnr.io
         run: deno test -A
 
   compute-tags:

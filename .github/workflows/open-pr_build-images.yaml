@@ -25,7 +25,8 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           CTNR_API_URL: https://api.ctnr.io
-        run: deno test -A
+          CTNR_E2E_TOKEN: ${{ secrets.CTNR_E2E_TOKEN }}
+        run: deno test -A e2e/cli/
 
   compute-tags:
     runs-on: ubuntu-latest

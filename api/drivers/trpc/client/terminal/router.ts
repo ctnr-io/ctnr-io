@@ -32,6 +32,7 @@ import * as GetProject from 'api/handlers/server/tenancy/project/get.ts'
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from '../context.ts'
 import login from 'api/handlers/client/auth/login_from_terminal.ts'
+import loginWithToken from 'api/handlers/client/auth/login_with_token.ts'
 import logout from 'api/handlers/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'api/context/mod.ts'
@@ -39,6 +40,11 @@ import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
 import { createDeferer } from 'lib/api/defer.ts'
 import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import z from 'zod'
+
+const LoginInput = z.object({
+  token: z.string().optional().describe('Access token to authenticate directly, bypassing OAuth flow'),
+  refreshToken: z.string().optional().describe('Refresh token (optional, used with --token)'),
+})
 
 export const trpc = initTRPC.context<TrpcClientContext>().create()
 
@@ -146,7 +152,19 @@ const WithWideOutputDefault = {
 
 export const TRPCCLientTerminalRouter = trpc.router({
   // Client authentication procedures
-  login: trpc.procedure.mutation(transformQueryProcedure(login)),
+  login: trpc.procedure
+    .input(LoginInput.optional())
+    .mutation(async (opts: { input: z.infer<typeof LoginInput> | undefined; ctx: TrpcClientContext; signal: AbortSignal | undefined }) => {
+      if (opts.input?.token) {
+        return transformQueryProcedure(loginWithToken)({
+          ctx: opts.ctx,
+          input: { token: opts.input.token, refreshToken: opts.input.refreshToken },
+          signal: opts.signal,
+        })
+      }
+      // loginFromTerminal accepts unknown input; null satisfies the unknown type constraint
+      return transformQueryProcedure(login)({ ctx: opts.ctx, input: null, signal: opts.signal })
+    }),
   logout: trpc.procedure.mutation(logout),
 
   // Core container procedures

@@ -100,6 +100,17 @@ Deno.test('Core API - Run Command Tests', async (t) => {
 
       // Test command structure, may fail due to auth/connection
       assert(result.code === 0 || result.code === 1, 'Should exit with code 0 or 1')
+      if (result.code === 1) {
+        // If it fails, it should be due to authentication or server connection, not command structure
+        const output = result.stdout + result.stderr
+        assert(
+          output.includes('authentication') ||
+            output.includes('connection') ||
+            output.includes('server') ||
+            output.includes('login'),
+          'Should fail due to authentication/connection issues, not command structure',
+        )
+      }
     } finally {
       await cleanupContainer(containerName)
     }

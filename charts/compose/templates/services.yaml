@@ -63,7 +63,7 @@ spec:
           {{- with $svc.ports }}
           ports:
             {{- range $idx, $port := . }}
-            - name: {{ default (printf "port-%d" (int $port.containerPort)) $port.name | quote }}
+            - name: {{ default (printf "port-%d-%s" (int $port.containerPort) (lower (default "tcp" $port.protocol))) $port.name | quote }}
               containerPort: {{ int (required (printf "services.%s.ports[%d].containerPort is required" $name $idx) $port.containerPort) }}
               protocol: {{ upper (default "TCP" $port.protocol) }}
             {{- end }}
@@ -135,7 +135,7 @@ spec:
     ctnr.io/type: container
   ports:
     {{- range $idx, $port := . }}
-    - name: {{ default (printf "port-%d" (int $port.containerPort)) $port.name | quote }}
+    - name: {{ default (printf "port-%d-%s" (int $port.containerPort) (lower (default "tcp" $port.protocol))) $port.name | quote }}
       port: {{ int (default $port.containerPort $port.servicePort) }}
       targetPort: {{ int .containerPort }}
       protocol: {{ upper (default "TCP" $port.protocol) }}

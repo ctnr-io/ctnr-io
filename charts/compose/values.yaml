@@ -52,7 +52,7 @@ routes: []
 
 certManager:
   enabled: false
-  clusterIssuer: letsencrypt
+  clusterIssuerName: letsencrypt
 
 routeDefaults:
   rateLimit:

@@ -1,0 +1,69 @@
+{{- range $idx, $route := .Values.routes }}
+{{- $name := default (printf "route-%d" $idx) $route.name -}}
+{{- $routeName := include "ctnr-compose.routeName" (dict "root" $ "name" $name) -}}
+{{- $service := required (printf "routes[%d].service is required" $idx) $route.service -}}
+{{- $path := default "/" $route.path -}}
+{{- $protocol := lower (default "https" $route.protocol) -}}
+{{- $port := int (default 80 $route.port) -}}
+{{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $service) -}}
+{{- $host := "" -}}
+{{- if $route.host -}}
+  {{- if and $.Values.domain (not (contains "." $route.host)) -}}
+    {{- $host = printf "%s.%s" $route.host $.Values.domain -}}
+  {{- else -}}
+    {{- $host = $route.host -}}
+  {{- end -}}
+{{- else if $.Values.domain -}}
+  {{- $host = $.Values.domain -}}
+{{- end -}}
+{{- $host = required (printf "routes[%d].host or domain is required" $idx) $host -}}
+{{- if hasSuffix ".ctnr.io" $host }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $service | quote }}
+spec:
+  hostnames:
+    - {{ $host | quote }}
+  parentRefs:
+    - name: public-gateway
+      namespace: kube-public
+      sectionName: {{ if eq $protocol "http" }}web{{ else }}websecure{{ end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ $path | quote }}
+      backendRefs:
+        - kind: Service
+          name: {{ $svcName }}
+          port: {{ $port }}
+---
+{{- else }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $service | quote }}
+spec:
+  entryPoints:
+    - {{ if eq $protocol "http" }}web{{ else }}websecure{{ end }}
+  routes:
+    - kind: Rule
+      match: {{ printf "Host(`%s`) && PathPrefix(`%s`)" $host $path | quote }}
+      services:
+        - name: {{ $svcName }}
+          port: {{ $port }}
+  {{- if eq $protocol "https" }}
+  tls: {}
+  {{- end }}
+---
+{{- end }}
+{{- end }}

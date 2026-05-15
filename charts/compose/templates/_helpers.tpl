@@ -33,6 +33,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- printf "%s-%s" (include "ctnr-compose.fullname" .root) .name | replace "_" "-" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{- define "ctnr-compose.routeName" -}}
+{{- printf "%s-%s" (include "ctnr-compose.fullname" .root) .name | replace "_" "-" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
 {{- define "ctnr-compose.volumeName" -}}
 {{- . | replace "." "-" | replace "/" "-" -}}
 {{- end -}}

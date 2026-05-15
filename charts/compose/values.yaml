@@ -30,3 +30,16 @@ volumes: {}
 networks: {}
 configs: {}
 secrets: {}
+
+
+domain: ""
+# routes host values can be full domains or subdomains combined with `domain`.
+
+routes: []
+# routes:
+#   - name: api
+#     service: api
+#     host: api   # resolves to api.<domain> when `domain` is set
+#     path: /
+#     protocol: https
+#     port: 80

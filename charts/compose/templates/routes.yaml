@@ -8,7 +8,8 @@
 {{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $service) -}}
 {{- $hosts := list -}}
 {{- if $route.host }}
-  {{- if or (contains "." $route.host) (eq (lower $route.host) "localhost") (contains ":" $route.host) -}}
+  {{- $isExplicitHost := or (contains "." $route.host) (eq (lower $route.host) "localhost") (contains ":" $route.host) -}}
+  {{- if $isExplicitHost -}}
     {{- $hosts = append $hosts $route.host -}}
   {{- else if gt (len $.Values.domains) 0 -}}
     {{- range $domain := $.Values.domains -}}
@@ -21,7 +22,7 @@
   {{- end -}}
 {{- end -}}
 {{- if eq (len $hosts) 0 -}}
-  {{- fail (printf "routes[%d] must provide a full host or use short host with non-empty domains" $idx) -}}
+  {{- fail (printf "routes[%d] requires either: host as FQDN/localhost/IP, or short host with non-empty domains (example: host=api with domains=[example.com])" $idx) -}}
 {{- end -}}
 {{- range $hIdx, $host := $hosts }}
 {{- $routeName := $routeBaseName -}}

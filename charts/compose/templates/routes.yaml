@@ -8,7 +8,7 @@
 {{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $service) -}}
 {{- $hosts := list -}}
 {{- if $route.host }}
-  {{- if contains "." $route.host -}}
+  {{- if or (contains "." $route.host) (eq (lower $route.host) "localhost") (contains ":" $route.host) -}}
     {{- $hosts = append $hosts $route.host -}}
   {{- else if gt (len $.Values.domains) 0 -}}
     {{- range $domain := $.Values.domains -}}

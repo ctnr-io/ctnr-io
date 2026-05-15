@@ -15,6 +15,10 @@
 {{- end -}}
 {{- end -}}
 
+{{- define "ctnr-compose.namespace" -}}
+{{- default .Release.Namespace .Values.namespaceOverride -}}
+{{- end -}}
+
 {{- define "ctnr-compose.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
@@ -30,10 +34,10 @@ app.kubernetes.io/name: {{ include "ctnr-compose.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
-{{- define "ctnr-compose.apiName" -}}
-{{- printf "%s-api" (include "ctnr-compose.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- define "ctnr-compose.svcName" -}}
+{{- printf "%s-%s" (include "ctnr-compose.fullname" .root) .name | replace "_" "-" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "ctnr-compose.appName" -}}
-{{- printf "%s-app" (include "ctnr-compose.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- define "ctnr-compose.routeName" -}}
+{{- printf "%s-%s" (include "ctnr-compose.fullname" .root) .name | replace "_" "-" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}

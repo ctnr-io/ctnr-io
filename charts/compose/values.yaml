@@ -1,0 +1,55 @@
+nameOverride: ""
+fullnameOverride: ""
+
+namespaceOverride: ""
+
+global:
+  imagePullSecrets: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+services: {}
+# services:
+#   web:
+#     image: ghcr.io/acme/web:1.0.0
+#     replicas: 1 # also supports "1-3" (min-max)
+#     command: []
+#     args: []
+#     environment:
+#       NODE_ENV: production
+#     envFromSecrets: []
+#     # - name: API_KEY
+#     #   secretName: app-secrets
+#     #   secretKey: API_KEY
+#     ports:
+#       - name: metrics
+#         containerPort: 8080
+#         servicePort: 80
+#         protocol: TCP
+#     volumes:
+#       - source: data
+#         target: /data
+#         readOnly: false
+#     resources: {}
+
+volumes: {}
+# volumes:
+#   data:
+#     size: 10Gi
+#     accessModes:
+#       - ReadWriteMany
+#     storageClassName: ""
+
+routes: []
+# routes:
+#   - name: web-public
+#     service: web
+#     host: app.example.ctnr.io
+#     path: /
+#     protocol: https
+#     port: 80
+
+certManager:
+  enabled: false
+  clusterIssuerName: letsencrypt

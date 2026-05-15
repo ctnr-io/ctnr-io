@@ -1,0 +1,21 @@
+{{- range $name, $vol := .Values.volumes }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name | quote }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/resource-type: volume
+    ctnr.io/name: {{ $name | quote }}
+spec:
+  accessModes:
+    {{- toYaml (default (list "ReadWriteMany") $vol.accessModes) | nindent 4 }}
+  {{- if $vol.storageClassName }}
+  storageClassName: {{ $vol.storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ default "10Gi" $vol.size | quote }}
+---
+{{- end }}

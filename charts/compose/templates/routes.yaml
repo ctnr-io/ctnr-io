@@ -1,0 +1,92 @@
+{{- range $idx, $route := .Values.routes }}
+{{- $routeName := include "ctnr-compose.routeName" (dict "root" $ "name" (default (printf "route-%d" $idx) $route.name)) -}}
+{{- $service := required (printf "routes[%d].service is required" $idx) $route.service -}}
+{{- $host := required (printf "routes[%d].host is required" $idx) $route.host -}}
+{{- $protocol := lower (default "https" $route.protocol) -}}
+{{- $path := default "/" $route.path -}}
+{{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $service) -}}
+{{- $port := int (default 80 $route.port) -}}
+{{- if hasSuffix ".ctnr.io" $host }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $service | quote }}
+spec:
+  hostnames:
+    - {{ $host | quote }}
+  parentRefs:
+    - name: public-gateway
+      namespace: kube-public
+      sectionName: {{ if eq $protocol "http" }}web{{ else }}websecure{{ end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ $path | quote }}
+      backendRefs:
+        - kind: Service
+          name: {{ $svcName }}
+          port: {{ $port }}
+---
+{{- else }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ printf "%s-rate-limit" $routeName | trunc 63 | trimSuffix "-" }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+spec:
+  rateLimit:
+    average: 100
+    burst: 200
+    period: 1s
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $service | quote }}
+spec:
+  entryPoints:
+    - {{ if eq $protocol "http" }}web{{ else }}websecure{{ end }}
+  routes:
+    - kind: Rule
+      match: {{ printf "Host(`%s`) && PathPrefix(`%s`)" $host $path | quote }}
+      services:
+        - name: {{ $svcName }}
+          port: {{ $port }}
+      middlewares:
+        - name: {{ printf "%s-rate-limit" $routeName | trunc 63 | trimSuffix "-" }}
+          namespace: {{ include "ctnr-compose.namespace" $ }}
+  {{- if eq $protocol "https" }}
+  tls:
+    secretName: {{ printf "%s-tls" $routeName | trunc 63 | trimSuffix "-" }}
+  {{- end }}
+---
+{{- if and (eq $protocol "https") $.Values.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+spec:
+  dnsNames:
+    - {{ $host | quote }}
+  secretName: {{ printf "%s-tls" $routeName | trunc 63 | trimSuffix "-" }}
+  issuerRef:
+    name: {{ $.Values.certManager.clusterIssuerName | quote }}
+    kind: ClusterIssuer
+---
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,145 @@
+{{- range $name, $svc := .Values.services }}
+{{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $name) -}}
+{{- $replicasRaw := default 1 $svc.replicas -}}
+{{- $minReplicas := 1 -}}
+{{- $maxReplicas := 1 -}}
+{{- if kindIs "string" $replicasRaw -}}
+  {{- $parts := splitList "-" $replicasRaw -}}
+  {{- if eq (len $parts) 2 -}}
+    {{- $minReplicas = int (index $parts 0) -}}
+    {{- $maxReplicas = int (index $parts 1) -}}
+  {{- else -}}
+    {{- $minReplicas = int $replicasRaw -}}
+    {{- $maxReplicas = int $replicasRaw -}}
+  {{- end -}}
+{{- else -}}
+  {{- $minReplicas = int $replicasRaw -}}
+  {{- $maxReplicas = int $replicasRaw -}}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svcName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $name | quote }}
+    ctnr.io/type: container
+  annotations:
+    ctnr.io/min-replicas: {{ $minReplicas | quote }}
+    ctnr.io/max-replicas: {{ $maxReplicas | quote }}
+spec:
+  replicas: {{ $minReplicas }}
+  selector:
+    matchLabels:
+      ctnr.io/name: {{ $name | quote }}
+      ctnr.io/type: container
+  template:
+    metadata:
+      labels:
+        {{- include "ctnr-compose.selectorLabels" $ | nindent 8 }}
+        ctnr.io/name: {{ $name | quote }}
+        ctnr.io/type: container
+    spec:
+      {{- with $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name | quote }}
+          image: {{ required (printf "services.%s.image is required" $name) $svc.image | quote }}
+          imagePullPolicy: {{ default "IfNotPresent" $svc.pullPolicy }}
+          {{- with $svc.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.workingDir }}
+          workingDir: {{ . | quote }}
+          {{- end }}
+          {{- with $svc.ports }}
+          ports:
+            {{- range $idx, $port := . }}
+            - name: {{ default (printf "port-%d" $idx) $port.name | quote }}
+              containerPort: {{ int (required (printf "services.%s.ports[%d].containerPort is required" $name $idx) $port.containerPort) }}
+              protocol: {{ upper (default "TCP" $port.protocol) }}
+            {{- end }}
+          {{- end }}
+          {{- if or $svc.environment $svc.envFromSecrets }}
+          env:
+            {{- range $k, $v := (default dict $svc.environment) }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            {{- range $svc.envFromSecrets }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secretName }}
+                  key: {{ .secretKey }}
+            {{- end }}
+          {{- end }}
+          {{- with $svc.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $svc.volumes }}
+          volumeMounts:
+            {{- range . }}
+            - name: {{ .source | replace "." "-" | replace "/" "-" | quote }}
+              mountPath: {{ .target | quote }}
+              readOnly: {{ default false .readOnly }}
+            {{- end }}
+          {{- end }}
+      {{- with $svc.volumes }}
+      volumes:
+        {{- range . }}
+        - name: {{ .source | replace "." "-" | replace "/" "-" | quote }}
+          {{- if hasKey $.Values.volumes .source }}
+          persistentVolumeClaim:
+            claimName: {{ .source | quote }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- with (default $.Values.global.nodeSelector $svc.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (default $.Values.global.affinity $svc.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (default $.Values.global.tolerations $svc.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+{{- with $svc.ports }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svcName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $name | quote }}
+spec:
+  type: {{ default "ClusterIP" $svc.serviceType }}
+  selector:
+    ctnr.io/name: {{ $name | quote }}
+    ctnr.io/type: container
+  ports:
+    {{- range $idx, $port := . }}
+    - name: {{ default (printf "port-%d" $idx) $port.name | quote }}
+      port: {{ int (default $port.containerPort $port.servicePort) }}
+      targetPort: {{ int (default $port.containerPort $port.servicePort) }}
+      protocol: {{ upper (default "TCP" $port.protocol) }}
+    {{- end }}
+{{- end }}
+---
+{{- end }}

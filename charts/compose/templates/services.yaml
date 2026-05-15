@@ -31,17 +31,17 @@ spec:
         - name: {{ $name | quote }}
           image: {{ required (printf "services.%s.image is required" $name) $svc.image | quote }}
           imagePullPolicy: IfNotPresent
-          {{- if kindIs "string" $svc.command }}
-          command: ["sh", "-c", {{ $svc.command | quote }}]
-          {{- else if $svc.command }}
-          command:
-            {{- toYaml $svc.command | nindent 12 }}
-          {{- end }}
           {{- if kindIs "string" $svc.entrypoint }}
-          args: ["sh", "-c", {{ $svc.entrypoint | quote }}]
+          command: ["sh", "-c", {{ $svc.entrypoint | quote }}]
           {{- else if $svc.entrypoint }}
-          args:
+          command:
             {{- toYaml $svc.entrypoint | nindent 12 }}
+          {{- end }}
+          {{- if kindIs "string" $svc.command }}
+          args: ["sh", "-c", {{ $svc.command | quote }}]
+          {{- else if $svc.command }}
+          args:
+            {{- toYaml $svc.command | nindent 12 }}
           {{- end }}
           {{- with $svc.ports }}
           ports:
@@ -181,4 +181,4 @@ spec:
     {{- end }}
 {{ end }}
 ---
-{{- end }}
+{{ end }}

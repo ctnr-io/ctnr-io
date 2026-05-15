@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ctnr-compose
+description: Helm chart for deploying CTNR API and app
+version: 0.1.0
+appVersion: "latest"
+type: application

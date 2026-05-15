@@ -1,0 +1,68 @@
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+api:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/ctnr-io/api
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  env:
+    CTNR_API_URL: "https://api.ctnr.io"
+    CTNR_APP_URL: "https://app.ctnr.io"
+    DEBUG: "false"
+    LOG_LEVEL: "info"
+    SUPABASE_URL: ""
+    SUPABASE_ANON_KEY: ""
+    GITHUB_APP_CLIENT_ID: ""
+    GITHUB_APP_CLIENT_SECRET: ""
+    MOLLIE_API_URL: "https://api.mollie.com/v2"
+    MOLLIE_API_KEY: ""
+    MOLLIE_PROFILE_ID: ""
+    MOLLIE_MODE: "test"
+    QONTO_API_URL: "https://thirdparty-sandbox.staging.qonto.co"
+    QONTO_API_LOGIN: ""
+    QONTO_API_SECRET_KEY: ""
+    QONTO_API_STAGING_TOKEN: ""
+    QONTO_IBAN: ""
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+app:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/ctnr-io/app
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  api:
+    host: api.ctnr.io
+    path: /
+    pathType: Prefix
+  app:
+    host: app.ctnr.io
+    path: /
+    pathType: Prefix
+  tls: []

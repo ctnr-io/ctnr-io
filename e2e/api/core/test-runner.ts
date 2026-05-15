@@ -1,3 +1,8 @@
+import { fromFileUrl } from '@std/path'
+
+// Repo root is 3 levels above this file (e2e/api/core/test-runner.ts)
+const repoRoot = fromFileUrl(new URL('../../../', import.meta.url))
+
 export interface TestResult {
   success: boolean
   stdout: string
@@ -19,7 +24,7 @@ export async function runCliCommand(args: string[], options?: {
     stdout: 'piped',
     stderr: 'piped',
     env,
-    cwd: '../ctnr',
+    cwd: repoRoot,
   })
 
   const process = command.spawn()

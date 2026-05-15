@@ -86,7 +86,7 @@ spec:
     - {{ $host | quote }}
   secretName: {{ $tlsSecretName }}
   issuerRef:
-    name: {{ $.Values.certManager.clusterIssuerName | quote }}
+    name: {{ default $.Values.certManager.clusterIssuerName $.Values.certManager.clusterIssuer | quote }}
     kind: ClusterIssuer
 ---
 {{- end }}

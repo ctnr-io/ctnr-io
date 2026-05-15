@@ -130,6 +130,5 @@ export const CreateRouteInput = z.object({
   domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/).optional(),
   path: z.string().optional().default('/'),
   protocol: RouteProtocol.optional().default('https'),
-  cluster: z.enum(['eu-1']).optional(),
 })
 export type CreateRouteInput = z.infer<typeof CreateRouteInput>

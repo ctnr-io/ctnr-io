@@ -63,7 +63,11 @@ spec:
           {{- with $svc.ports }}
           ports:
             {{- range $idx, $port := . }}
-            - name: {{ default (printf "p%d-%s" (int $port.containerPort) (ternary "udp" "tcp" (eq (upper (default "TCP" $port.protocol)) "UDP"))) $port.name | quote }}
+            {{- $protoSuffix := "tcp" -}}
+            {{- if eq (upper (default "TCP" $port.protocol)) "UDP" -}}
+            {{- $protoSuffix = "udp" -}}
+            {{- end }}
+            - name: {{ default (printf "p%d-%s" (int $port.containerPort) $protoSuffix) $port.name | quote }}
               containerPort: {{ int (required (printf "services.%s.ports[%d].containerPort is required" $name $idx) $port.containerPort) }}
               protocol: {{ upper (default "TCP" $port.protocol) }}
             {{- end }}
@@ -135,7 +139,11 @@ spec:
     ctnr.io/type: container
   ports:
     {{- range $idx, $port := . }}
-    - name: {{ default (printf "p%d-%s" (int $port.containerPort) (ternary "udp" "tcp" (eq (upper (default "TCP" $port.protocol)) "UDP"))) $port.name | quote }}
+    {{- $protoSuffix := "tcp" -}}
+    {{- if eq (upper (default "TCP" $port.protocol)) "UDP" -}}
+    {{- $protoSuffix = "udp" -}}
+    {{- end }}
+    - name: {{ default (printf "p%d-%s" (int $port.containerPort) $protoSuffix) $port.name | quote }}
       port: {{ int (default $port.containerPort $port.servicePort) }}
       targetPort: {{ int .containerPort }}
       protocol: {{ upper (default "TCP" $port.protocol) }}

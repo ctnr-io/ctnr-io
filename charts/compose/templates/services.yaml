@@ -137,7 +137,7 @@ spec:
     {{- range $idx, $port := . }}
     - name: {{ default (printf "port-%d" $idx) $port.name | quote }}
       port: {{ int (default $port.containerPort $port.servicePort) }}
-      targetPort: {{ int (default $port.containerPort $port.servicePort) }}
+      targetPort: {{ int .containerPort }}
       protocol: {{ upper (default "TCP" $port.protocol) }}
     {{- end }}
 {{- end }}

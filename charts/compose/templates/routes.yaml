@@ -6,6 +6,8 @@
 {{- $path := default "/" $route.path -}}
 {{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $service) -}}
 {{- $port := int (default 80 $route.port) -}}
+{{- $rateLimitName := printf "%s-rate-limit" $routeName | trunc 63 | trimSuffix "-" -}}
+{{- $tlsSecretName := printf "%s-tls" $routeName | trunc 63 | trimSuffix "-" -}}
 {{- if hasSuffix ".ctnr.io" $host }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -36,7 +38,7 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ printf "%s-rate-limit" $routeName | trunc 63 | trimSuffix "-" }}
+  name: {{ $rateLimitName }}
   namespace: {{ include "ctnr-compose.namespace" $ }}
   labels:
     {{- include "ctnr-compose.labels" $ | nindent 4 }}
@@ -64,11 +66,11 @@ spec:
         - name: {{ $svcName }}
           port: {{ $port }}
       middlewares:
-        - name: {{ printf "%s-rate-limit" $routeName | trunc 63 | trimSuffix "-" }}
+        - name: {{ $rateLimitName }}
           namespace: {{ include "ctnr-compose.namespace" $ }}
   {{- if eq $protocol "https" }}
   tls:
-    secretName: {{ printf "%s-tls" $routeName | trunc 63 | trimSuffix "-" }}
+    secretName: {{ $tlsSecretName }}
   {{- end }}
 ---
 {{- if and (eq $protocol "https") $.Values.certManager.enabled }}
@@ -82,7 +84,7 @@ metadata:
 spec:
   dnsNames:
     - {{ $host | quote }}
-  secretName: {{ printf "%s-tls" $routeName | trunc 63 | trimSuffix "-" }}
+  secretName: {{ $tlsSecretName }}
   issuerRef:
     name: {{ $.Values.certManager.clusterIssuerName | quote }}
     kind: ClusterIssuer

@@ -32,14 +32,17 @@ configs: {}
 secrets: {}
 
 
-domain: ""
-# routes host values can be full domains or subdomains combined with `domain`.
+domains: []
+# routes host values can be full domains, or subdomains expanded against each item in `domains`.
+# domains:
+#   - example.com
+#   - example.net
 
 routes: []
 # routes:
 #   - name: api
 #     service: api
-#     host: api   # resolves to api.<domain> when `domain` is set
+#     host: api   # resolves to api.<domain> for each item in `domains`
 #     path: /
 #     protocol: https
 #     port: 80

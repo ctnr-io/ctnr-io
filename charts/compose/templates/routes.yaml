@@ -1,22 +1,33 @@
 {{- range $idx, $route := .Values.routes }}
 {{- $name := default (printf "route-%d" $idx) $route.name -}}
-{{- $routeName := include "ctnr-compose.routeName" (dict "root" $ "name" $name) -}}
+{{- $routeBaseName := include "ctnr-compose.routeName" (dict "root" $ "name" $name) -}}
 {{- $service := required (printf "routes[%d].service is required" $idx) $route.service -}}
 {{- $path := default "/" $route.path -}}
 {{- $protocol := lower (default "https" $route.protocol) -}}
 {{- $port := int (default 80 $route.port) -}}
 {{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $service) -}}
-{{- $host := "" -}}
-{{- if $route.host -}}
-  {{- if and $.Values.domain (not (contains "." $route.host)) -}}
-    {{- $host = printf "%s.%s" $route.host $.Values.domain -}}
-  {{- else -}}
-    {{- $host = $route.host -}}
+{{- $hosts := list -}}
+{{- if $route.host }}
+  {{- if contains "." $route.host -}}
+    {{- $hosts = append $hosts $route.host -}}
+  {{- else if gt (len $.Values.domains) 0 -}}
+    {{- range $domain := $.Values.domains -}}
+      {{- $hosts = append $hosts (printf "%s.%s" $route.host $domain) -}}
+    {{- end -}}
   {{- end -}}
-{{- else if $.Values.domain -}}
-  {{- $host = $.Values.domain -}}
+{{- else if gt (len $.Values.domains) 0 -}}
+  {{- range $domain := $.Values.domains -}}
+    {{- $hosts = append $hosts $domain -}}
+  {{- end -}}
 {{- end -}}
-{{- $host = required (printf "routes[%d].host or domain is required" $idx) $host -}}
+{{- if eq (len $hosts) 0 -}}
+  {{- fail (printf "routes[%d] must provide a full host or use short host with non-empty domains" $idx) -}}
+{{- end -}}
+{{- range $hIdx, $host := $hosts }}
+{{- $routeName := $routeBaseName -}}
+{{- if gt (len $hosts) 1 -}}
+  {{- $routeName = printf "%s-%d" $routeBaseName $hIdx -}}
+{{- end -}}
 {{- if hasSuffix ".ctnr.io" $host }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -65,5 +76,6 @@ spec:
   tls: {}
   {{- end }}
 ---
+{{- end }}
 {{- end }}
 {{- end }}

@@ -1,61 +1,32 @@
-nameOverride: ""
-fullnameOverride: ""
-
-namespaceOverride: ""
-
-global:
-  imagePullSecrets: []
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+version: "3.9"
 
 services: {}
 # services:
-#   web:
-#     image: ghcr.io/acme/web:1.0.0
-#     replicas: 1 # also supports "1-3" (min-max)
-#     command: []
-#     args: []
+#   api:
+#     image: ghcr.io/acme/api:1.0.0
+#     command: ["deno", "task", "start"]
 #     environment:
 #       NODE_ENV: production
-#     envFromSecrets: []
-#     # - name: API_KEY
-#     #   secretName: app-secrets
-#     #   secretKey: API_KEY
+#     deploy:
+#       replicas: 2
 #     ports:
-#       - name: metrics
-#         containerPort: 8080
-#         servicePort: 80
-#         protocol: TCP
+#       - "8080:80"
+#       - target: 9090
+#         published: 9090
+#         protocol: tcp
+#         name: metrics
 #     volumes:
+#       - "data:/var/lib/data"
 #       - source: data
-#         target: /data
-#         readOnly: false
-#     resources: {}
+#         target: /var/lib/data
+#         read_only: false
 
 volumes: {}
 # volumes:
 #   data:
-#     size: 10Gi
-#     accessModes:
-#       - ReadWriteMany
-#     storageClassName: ""
+#     driver: local
+#     driver_opts: {}
 
-routes: []
-# routes:
-#   - name: web-public
-#     service: web
-#     host: app.example.ctnr.io
-#     path: /
-#     protocol: https
-#     port: 80
-
-certManager:
-  enabled: false
-  clusterIssuerName: letsencrypt
-
-routeDefaults:
-  rateLimit:
-    average: 100
-    burst: 200
-    period: 1s
+networks: {}
+configs: {}
+secrets: {}

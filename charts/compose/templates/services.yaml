@@ -1,21 +1,7 @@
 {{- range $name, $svc := .Values.services }}
 {{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $name) -}}
-{{- $replicasRaw := default 1 $svc.replicas -}}
-{{- $minReplicas := 1 -}}
-{{- $maxReplicas := 1 -}}
-{{- if kindIs "string" $replicasRaw -}}
-  {{- $parts := splitList "-" $replicasRaw -}}
-  {{- if eq (len $parts) 2 -}}
-    {{- $minReplicas = int (index $parts 0) -}}
-    {{- $maxReplicas = int (index $parts 1) -}}
-  {{- else -}}
-    {{- $minReplicas = int $replicasRaw -}}
-    {{- $maxReplicas = int $replicasRaw -}}
-  {{- end -}}
-{{- else -}}
-  {{- $minReplicas = int $replicasRaw -}}
-  {{- $maxReplicas = int $replicasRaw -}}
-{{- end }}
+{{- $deploy := default (dict) $svc.deploy -}}
+{{- $replicas := int (default 1 $deploy.replicas) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,10 +12,10 @@ metadata:
     ctnr.io/name: {{ $name | quote }}
     ctnr.io/type: container
   annotations:
-    ctnr.io/min-replicas: {{ $minReplicas | quote }}
-    ctnr.io/max-replicas: {{ $maxReplicas | quote }}
+    ctnr.io/min-replicas: {{ $replicas | quote }}
+    ctnr.io/max-replicas: {{ $replicas | quote }}
 spec:
-  replicas: {{ $minReplicas }}
+  replicas: {{ $replicas }}
   selector:
     matchLabels:
       ctnr.io/name: {{ $name | quote }}
@@ -41,66 +27,100 @@ spec:
         ctnr.io/name: {{ $name | quote }}
         ctnr.io/type: container
     spec:
-      {{- with $.Values.global.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       containers:
         - name: {{ $name | quote }}
           image: {{ required (printf "services.%s.image is required" $name) $svc.image | quote }}
-          imagePullPolicy: {{ default "IfNotPresent" $svc.pullPolicy }}
-          {{- with $svc.command }}
+          imagePullPolicy: IfNotPresent
+          {{- if kindIs "string" $svc.command }}
+          command: ["sh", "-c", {{ $svc.command | quote }}]
+          {{- else if $svc.command }}
           command:
-            {{- toYaml . | nindent 12 }}
+            {{- toYaml $svc.command | nindent 12 }}
           {{- end }}
-          {{- with $svc.args }}
+          {{- if kindIs "string" $svc.entrypoint }}
+          args: ["sh", "-c", {{ $svc.entrypoint | quote }}]
+          {{- else if $svc.entrypoint }}
           args:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with $svc.workingDir }}
-          workingDir: {{ . | quote }}
+            {{- toYaml $svc.entrypoint | nindent 12 }}
           {{- end }}
           {{- with $svc.ports }}
           ports:
             {{- range $idx, $port := . }}
-            {{- $protoSuffix := "tcp" -}}
-            {{- if eq (upper (default "TCP" $port.protocol)) "UDP" -}}
-            {{- $protoSuffix = "udp" -}}
+            {{- if kindIs "string" $port }}
+            {{- $parts := splitList ":" $port -}}
+            {{- $last := index $parts (sub (len $parts) 1) -}}
+            {{- $lastParts := splitList "/" $last -}}
+            {{- $target := int (index $lastParts 0) -}}
+            {{- $protocol := "TCP" -}}
+            {{- if gt (len $lastParts) 1 -}}
+            {{- $protocol = upper (index $lastParts 1) -}}
             {{- end }}
-            - name: {{ default (printf "p%d-%s" (int $port.containerPort) $protoSuffix) $port.name | quote }}
-              containerPort: {{ int (required (printf "services.%s.ports[%d].containerPort is required" $name $idx) $port.containerPort) }}
-              protocol: {{ upper (default "TCP" $port.protocol) }}
+            {{- $protoSuffix := "tcp" -}}
+            {{- if eq $protocol "UDP" -}}{{- $protoSuffix = "udp" -}}{{- end }}
+            - name: {{ printf "p%d-%s" $target $protoSuffix | quote }}
+              containerPort: {{ $target }}
+              protocol: {{ $protocol }}
+            {{- else }}
+            {{- $target := int (required (printf "services.%s.ports[%d].target is required" $name $idx) $port.target) -}}
+            {{- $protocol := upper (default "TCP" $port.protocol) -}}
+            {{- $protoSuffix := "tcp" -}}
+            {{- if eq $protocol "UDP" -}}{{- $protoSuffix = "udp" -}}{{- end }}
+            - name: {{ default (printf "p%d-%s" $target $protoSuffix) $port.name | quote }}
+              containerPort: {{ $target }}
+              protocol: {{ $protocol }}
+            {{- end }}
             {{- end }}
           {{- end }}
-          {{- if or $svc.environment $svc.envFromSecrets }}
+          {{- if $svc.environment }}
           env:
-            {{- range $k, $v := (default dict $svc.environment) }}
+            {{- if kindIs "map" $svc.environment }}
+            {{- range $k, $v := $svc.environment }}
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
-            {{- range $svc.envFromSecrets }}
-            - name: {{ .name }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .secretName }}
-                  key: {{ .secretKey }}
+            {{- else }}
+            {{- range $item := $svc.environment }}
+            {{- $pair := splitList "=" ($item | toString) }}
+            - name: {{ index $pair 0 }}
+              value: {{ default "" (index $pair 1) | quote }}
             {{- end }}
-          {{- end }}
-          {{- with $svc.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- end }}
           {{- with $svc.volumes }}
           volumeMounts:
             {{- range . }}
+            {{- if kindIs "string" . }}
+            {{- $parts := splitList ":" . -}}
+            {{- $source := index $parts 0 -}}
+            {{- $target := index $parts 1 -}}
+            {{- $mode := "rw" -}}
+            {{- if gt (len $parts) 2 -}}
+            {{- $mode = index $parts 2 -}}
+            {{- end }}
+            - name: {{ include "ctnr-compose.volumeName" $source | quote }}
+              mountPath: {{ $target | quote }}
+              readOnly: {{ eq (lower $mode) "ro" }}
+            {{- else }}
             - name: {{ include "ctnr-compose.volumeName" .source | quote }}
               mountPath: {{ .target | quote }}
-              readOnly: {{ default false .readOnly }}
+              readOnly: {{ default false .read_only }}
+            {{- end }}
             {{- end }}
           {{- end }}
-      {{- with $svc.volumes }}
+      {{ with $svc.volumes }}
       volumes:
-        {{- range . }}
+        {{ range . }}
+        {{- if kindIs "string" . }}
+        {{- $parts := splitList ":" . -}}
+        {{- $source := index $parts 0 -}}
+        - name: {{ include "ctnr-compose.volumeName" $source | quote }}
+          {{- if hasKey $.Values.volumes $source }}
+          persistentVolumeClaim:
+            claimName: {{ $source | quote }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- else }}
         - name: {{ include "ctnr-compose.volumeName" .source | quote }}
           {{- if hasKey $.Values.volumes .source }}
           persistentVolumeClaim:
@@ -109,21 +129,10 @@ spec:
           emptyDir: {}
           {{- end }}
         {{- end }}
-      {{- end }}
-      {{- with (default $.Values.global.nodeSelector $svc.nodeSelector) }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with (default $.Values.global.affinity $svc.affinity) }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with (default $.Values.global.tolerations $svc.tolerations) }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
+      {{ end }}
 ---
-{{- with $svc.ports }}
+{{ with $svc.ports }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -133,21 +142,43 @@ metadata:
     {{- include "ctnr-compose.labels" $ | nindent 4 }}
     ctnr.io/name: {{ $name | quote }}
 spec:
-  type: {{ default "ClusterIP" $svc.serviceType }}
+  type: ClusterIP
   selector:
     ctnr.io/name: {{ $name | quote }}
     ctnr.io/type: container
   ports:
     {{- range $idx, $port := . }}
+    {{- if kindIs "string" $port }}
+    {{- $parts := splitList ":" $port -}}
+    {{- $last := index $parts (sub (len $parts) 1) -}}
+    {{- $lastParts := splitList "/" $last -}}
+    {{- $target := int (index $lastParts 0) -}}
+    {{- $published := $target -}}
+    {{- if gt (len $parts) 1 -}}
+    {{- $published = int (index $parts 0) -}}
+    {{- end }}
+    {{- $protocol := "TCP" -}}
+    {{- if gt (len $lastParts) 1 -}}
+    {{- $protocol = upper (index $lastParts 1) -}}
+    {{- end }}
     {{- $protoSuffix := "tcp" -}}
-    {{- if eq (upper (default "TCP" $port.protocol)) "UDP" -}}
-    {{- $protoSuffix = "udp" -}}
+    {{- if eq $protocol "UDP" -}}{{- $protoSuffix = "udp" -}}{{- end }}
+    - name: {{ printf "p%d-%s" $target $protoSuffix | quote }}
+      port: {{ $published }}
+      targetPort: {{ $target }}
+      protocol: {{ $protocol }}
+    {{- else }}
+    {{- $target := int (required (printf "services.%s.ports[%d].target is required" $name $idx) $port.target) -}}
+    {{- $published := int (default $target $port.published) -}}
+    {{- $protocol := upper (default "TCP" $port.protocol) -}}
+    {{- $protoSuffix := "tcp" -}}
+    {{- if eq $protocol "UDP" -}}{{- $protoSuffix = "udp" -}}{{- end }}
+    - name: {{ default (printf "p%d-%s" $target $protoSuffix) $port.name | quote }}
+      port: {{ $published }}
+      targetPort: {{ $target }}
+      protocol: {{ $protocol }}
     {{- end }}
-    - name: {{ default (printf "p%d-%s" (int $port.containerPort) $protoSuffix) $port.name | quote }}
-      port: {{ int (default $port.containerPort $port.servicePort) }}
-      targetPort: {{ int .containerPort }}
-      protocol: {{ upper (default "TCP" $port.protocol) }}
     {{- end }}
-{{- end }}
+{{ end }}
 ---
 {{- end }}

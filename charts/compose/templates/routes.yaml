@@ -44,9 +44,9 @@ metadata:
     {{- include "ctnr-compose.labels" $ | nindent 4 }}
 spec:
   rateLimit:
-    average: 100
-    burst: 200
-    period: 1s
+    average: {{ default 100 $.Values.routeDefaults.rateLimit.average }}
+    burst: {{ default 200 $.Values.routeDefaults.rateLimit.burst }}
+    period: {{ default "1s" $.Values.routeDefaults.rateLimit.period }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute

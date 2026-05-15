@@ -53,3 +53,9 @@ routes: []
 certManager:
   enabled: false
   clusterIssuerName: letsencrypt
+
+routeDefaults:
+  rateLimit:
+    average: 100
+    burst: 200
+    period: 1s

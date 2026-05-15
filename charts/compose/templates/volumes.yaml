@@ -10,7 +10,7 @@ metadata:
     ctnr.io/name: {{ $name | quote }}
 spec:
   accessModes:
-    {{- toYaml (default (list "ReadWriteMany") $vol.accessModes) | nindent 4 }}
+    {{- toYaml (default (list "ReadWriteOnce") $vol.accessModes) | nindent 4 }}
   {{- if $vol.storageClassName }}
   storageClassName: {{ $vol.storageClassName | quote }}
   {{- end }}

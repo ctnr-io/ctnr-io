@@ -89,7 +89,7 @@ spec:
           {{- with $svc.volumes }}
           volumeMounts:
             {{- range . }}
-            - name: {{ .source | replace "." "-" | replace "/" "-" | quote }}
+            - name: {{ include "ctnr-compose.volumeName" .source | quote }}
               mountPath: {{ .target | quote }}
               readOnly: {{ default false .readOnly }}
             {{- end }}
@@ -97,7 +97,7 @@ spec:
       {{- with $svc.volumes }}
       volumes:
         {{- range . }}
-        - name: {{ .source | replace "." "-" | replace "/" "-" | quote }}
+        - name: {{ include "ctnr-compose.volumeName" .source | quote }}
           {{- if hasKey $.Values.volumes .source }}
           persistentVolumeClaim:
             claimName: {{ .source | quote }}

@@ -24,7 +24,7 @@ spec:
       {{- end }}
       containers:
         - name: app
-          image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}"
+          image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.app.image.pullPolicy }}
           ports:
             - name: http
@@ -33,9 +33,17 @@ spec:
           readinessProbe:
             tcpSocket:
               port: http
+            initialDelaySeconds: {{ .Values.app.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.readinessProbe.failureThreshold }}
           livenessProbe:
             tcpSocket:
               port: http
+            initialDelaySeconds: {{ .Values.app.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.livenessProbe.failureThreshold }}
           resources:
             {{- toYaml .Values.app.resources | nindent 12 }}
       {{- with .Values.app.nodeSelector }}

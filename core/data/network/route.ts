@@ -42,7 +42,7 @@ const RATE_LIMIT_PERIOD = '1s'  // sliding window
 export async function ensureRoute(
   kubeClient: KubeClient,
   input: EnsureRouteInput,
-  signal: AbortSignal,
+  abortSignal: AbortSignal,
 ): Promise<void> {
   const { namespace } = input
   const { name, container: containerName, hostname, ports, project, path = '/', protocol } = input
@@ -51,7 +51,7 @@ export async function ensureRoute(
   const container = await getContainer(
     { kubeClient, namespace },
     input.container,
-    { signal },
+    { abortSignal },
   )
   if (!container) {
     throw new Error(`Container ${input.container} not found in namespace ${namespace}`)
@@ -75,7 +75,7 @@ export async function ensureRoute(
         'ctnr.io/name': containerName,
       },
     },
-  }, signal)
+  }, abortSignal)
 
   const normalizedPath = normalizePath(path)
 
@@ -119,7 +119,7 @@ export async function ensureRoute(
           }],
         }],
       },
-    }, signal)
+    }, abortSignal)
   }
 
   // 3. Ensure IngressRoute for custom domain hostnames
@@ -174,7 +174,7 @@ export async function ensureRoute(
           secretName: `${name}-tls`,
         },
       },
-    }, signal)
+    }, abortSignal)
 
     if (protocol === 'https') {
       await ensureCertificate(kubeClient, {
@@ -192,7 +192,7 @@ export async function ensureRoute(
             kind: 'ClusterIssuer',
           },
         },
-      }, signal)
+      }, abortSignal)
     }
   }
 }
@@ -263,7 +263,7 @@ export interface ListRoutesOptions {
   name?: string
   container?: string
   domain?: string
-  signal?: AbortSignal
+  abortSignal?: AbortSignal
 }
 
 /**
@@ -274,7 +274,7 @@ export async function listRoutes(
   namespace: string,
   options: ListRoutesOptions = {},
 ): Promise<Route[]> {
-  const { name, container, domain, signal } = options
+  const { name, container, domain, abortSignal } = options
 
   const routes: Route[] = []
 
@@ -282,7 +282,7 @@ export async function listRoutes(
   try {
     // deno-lint-ignore no-explicit-any
     const httpRoutesResponse: any = await kubeClient.GatewayNetworkingV1(namespace).listHTTPRoutes({
-      abortSignal: signal,
+      abortSignal,
     })
     const httpRoutes = (httpRoutesResponse.items ?? []) as HTTPRoute[]
 
@@ -302,7 +302,7 @@ export async function listRoutes(
 
   // Fetch IngressRoutes
   try {
-    const ingressRoutesResponse = await kubeClient.TraefikV1Alpha1(namespace).listIngressRoutes({ abortSignal: signal })
+    const ingressRoutesResponse = await kubeClient.TraefikV1Alpha1(namespace).listIngressRoutes({ abortSignal })
     const ingressRoutes = (ingressRoutesResponse.items ?? []) as IngressRoute[]
 
     for (const ingressRoute of ingressRoutes) {

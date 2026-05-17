@@ -3,11 +3,12 @@ import { ensureFederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.t
 import { calculateTotalCost } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
 import {
-  extractDeploymentCurrentResourceUsage,
+  extractPodResourceUsage,
   parseResourceToPrimitiveValue,
   parseResourceUsageToPrimitiveValues,
   ResourceUsage,
 } from './resource.ts'
+import { convertPodToContainerStatus } from 'core/transform/container.ts'
 
 /**
  * Represents the current status of the user's balance.
@@ -71,16 +72,16 @@ export async function getUsage(opts: {
   kubeClient: KubeClient
   namespace: string
   additionalResource?: ResourceUsage
-  signal: AbortSignal
+  abortSignal: AbortSignal
 }): Promise<Usage> {
-  const { kubeClient, namespace, additionalResource, signal } = opts
+  const { kubeClient, namespace, additionalResource, abortSignal } = opts
 
   // Default free tier limits (in proper units)
   let parsedLimits = { ...freeTierLimits }
 
   // Get namespace to check credits and tier
   const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, {
-    abortSignal: signal,
+    abortSignal,
   })
 
   let balance = getNamespaceBalance(namespaceObj)
@@ -103,14 +104,14 @@ export async function getUsage(opts: {
           'requests.storage': FreeTier.storage,
         },
       },
-    }, signal)
+    }, abortSignal)
   } else {
     // For free tier users (credits = 0), always use free tier limits
     // For paid users, try to get limits from resource quota
     const resourceQuota = await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota(
       'ctnr-resource-quota',
       {
-        abortSignal: signal,
+        abortSignal,
       },
     )
     if (resourceQuota.spec?.overall) {
@@ -123,19 +124,24 @@ export async function getUsage(opts: {
   }
   // For free tier users (credits = 0), we keep the freeTierLimits as set above
 
-  // Get all deployments
-  const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
-    abortSignal: signal,
+  // Get all pods
+  const pods = await kubeClient.CoreV1.namespace(namespace).getPodList({
+    abortSignal,
   })
 
   let totalMilliCpuUsed = 0
   let totalMemoryUsed = 0
   let totalStorageUsed = 0
 
-  // Process each deployment
-  for (const deployment of deployments.items) {
+  // Process each pod
+  for (const pod of pods.items) {
+    // If pod is not started
+    const podStatus = convertPodToContainerStatus(pod)
+    if (podStatus !== 'running') {
+      continue
+    }
     const { cpu, memory, storage } = parseResourceUsageToPrimitiveValues(
-      extractDeploymentCurrentResourceUsage(deployment),
+      extractPodResourceUsage(pod),
     )
     totalMilliCpuUsed += cpu
     totalMemoryUsed += memory
@@ -145,7 +151,7 @@ export async function getUsage(opts: {
   // Get storage usage
   try {
     const pvcs = await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaimList({
-      abortSignal: signal,
+      abortSignal,
     })
 
     for (const pvc of pvcs.items) {
@@ -186,7 +192,7 @@ export async function getUsage(opts: {
       memory: resources.memory.used,
       storage: resources.storage.used,
     })
-    balance = await updateBalance(kubeClient, namespace, nextBalance, signal)
+    balance = await updateBalance(kubeClient, namespace, nextBalance, abortSignal)
   }
 
   const currentCost = calculateTotalCost(
@@ -274,11 +280,11 @@ export async function* checkUsage(opts: {
   namespace: string
   additionalResource?: ResourceUsage
   force?: boolean
-  signal: AbortSignal
+  abortSignal: AbortSignal
 }): AsyncGenerator<string, Usage> {
-  const { kubeClient, namespace, signal } = opts
+  const { kubeClient, namespace, abortSignal } = opts
 
-  const usage = await getUsage({ kubeClient, namespace, signal, additionalResource: opts.additionalResource })
+  const usage = await getUsage({ kubeClient, namespace, abortSignal, additionalResource: opts.additionalResource })
 
   // Default free tier limits (in proper units)
   yield '🔎 Checking resource usage and credit balance...'
@@ -297,7 +303,7 @@ export async function* checkUsage(opts: {
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits immediately.`
 
       // Retrieve last threshold breach time
-      let namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, { abortSignal: signal })
+      let namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, { abortSignal })
       const thresholdDate = namespaceObj.metadata?.annotations?.['ctnr.io/credits-threshold-breach-datetime'] || null
       // If no breach time is set, it means this is the first time we hit the limit, so add one
       if (!thresholdDate) {
@@ -311,7 +317,7 @@ export async function* checkUsage(opts: {
               },
             },
           },
-          { abortSignal: signal },
+          { abortSignal },
         )
       }
       const hours = thresholdDate
@@ -322,16 +328,16 @@ export async function* checkUsage(opts: {
         // TODO: send notification to user email
       } else {
         yield `⏳ Grace period expired. Resources will be paused.`
-        // Get all deployments and scale to 0
-        const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
-          abortSignal: signal,
+        // Get all pods and scale to 0
+        const pods = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
+          abortSignal,
         })
 
         await Promise.allSettled(
-          deployments.items.map((deployment) => {
-            const name = deployment.metadata?.name
+          pods.items.map((pod) => {
+            const name = pod.metadata?.name
             if (!name) return Promise.resolve()
-            console.debug(`Scaling down deployment ${name} in namespace ${namespace} due to credit breach`)
+            console.debug(`Scaling down pod ${name} in namespace ${namespace} due to credit breach`)
             return kubeClient.AppsV1.namespace(namespace).patchDeployment(
               name,
               'json-merge',
@@ -342,9 +348,9 @@ export async function* checkUsage(opts: {
                   template: {},
                 },
               },
-              { abortSignal: signal },
+              { abortSignal },
             ).catch((error) => {
-              console.error(`Failed to scale down deployment ${name} in namespace ${namespace}:`, error)
+              console.error(`Failed to scale down pod ${name} in namespace ${namespace}:`, error)
             })
           }),
         )

@@ -115,7 +115,7 @@ export async function getBillingClient(
 export async function ensureBillingClient(
 	ctx: BillingClientContext,
 	client: BillingClient,
-	signal?: AbortSignal,
+	abortSignal?: AbortSignal,
 ): Promise<string> {
 	const { kubeClient, qontoClient, qontoClientId, userId } = ctx
 
@@ -156,7 +156,7 @@ export async function ensureBillingClient(
 					'ctnr.io/qonto-client-id': newClientId,
 				},
 			},
-		}, { abortSignal: signal })
+		}, { abortSignal })
 	}
 
 	return newClientId
@@ -167,7 +167,7 @@ export async function ensureBillingClient(
  */
 export async function deleteBillingClient(
 	ctx: BillingClientContext,
-	signal?: AbortSignal,
+	abortSignal?: AbortSignal,
 ): Promise<void> {
 	const { kubeClient, qontoClient, qontoClientId, userId } = ctx
 
@@ -190,5 +190,5 @@ export async function deleteBillingClient(
 				'ctnr.io/qonto-client-id': null,
 			},
 		},
-	} as any, { abortSignal: signal })
+	} as any, { abortSignal })
 }

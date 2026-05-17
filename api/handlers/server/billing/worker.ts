@@ -10,15 +10,15 @@ import { checkUsage } from 'core/rules/billing/usage.ts'
 import { namespaceToProject } from 'core/transform/project.ts'
 import type { Project } from 'core/schemas/mod.ts'
 
-export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<Output> {
+export default async function* BillingWorker({ ctx }: WorkerRequest<Input>): WorkerResponse<Output> {
   const controller = new AbortController()
-  const signal = controller.signal
-  signal.addEventListener('abort', () => {
+  const abortSignal = controller.signal
+  abortSignal.addEventListener('abort', () => {
     controller.abort()
   })
   await Promise.all([
     (async () => {
-      while (signal.aborted === false) {
+      while (abortSignal.aborted === false) {
         // Implement every 5 minutes billing check
         // Retrieve all project namespaces and transform to projects
         const namespaces = await ctx.kube.client['karmada'].CoreV1.getNamespaceList(
@@ -35,14 +35,14 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
                 const _msg of checkUsage({
                   kubeClient: ctx.kube.client['karmada'],
                   namespace: project.namespace,
-                  signal,
+                  abortSignal,
                 })
               ) {
                 // console.debug(`Usage check for project ${project.id}:`, _msg)
               }
             } catch (error) {
               if (error instanceof Error) {
-                console.warn(`Usage check issue for project ${project.id}:`, error.message)
+                console.warn(`Usage check issue for project ${project.id}:`, error)
               }
             }
           } catch (error) {

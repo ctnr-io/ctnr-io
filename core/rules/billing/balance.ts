@@ -40,7 +40,7 @@ export async function updateBalance(
   kubeClient: KubeClient,
   namespace: string,
   balance: Balance,
-  signal: AbortSignal,
+  abortSignal: AbortSignal,
 ): Promise<Balance> {
   await kubeClient.CoreV1.patchNamespace(namespace, 'json-merge', {
     metadata: {
@@ -49,7 +49,7 @@ export async function updateBalance(
       },
     },
   }, {
-    abortSignal: signal,
+    abortSignal,
   })
   return balance
 }
@@ -58,7 +58,7 @@ export async function addCredits(
   kubeClient: KubeClient,
   namespace: string,
   creditsToAdd: number,
-  signal: AbortSignal,
+  abortSignal: AbortSignal,
 ): Promise<Balance> {
   const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace)
   const { credits: currentCredits, lastUpdated } = getNamespaceBalance(namespaceObj)
@@ -70,6 +70,6 @@ export async function addCredits(
       credits: newCredits,
       lastUpdated,
     },
-    signal,
+    abortSignal,
   )
 }

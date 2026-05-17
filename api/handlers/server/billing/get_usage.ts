@@ -15,7 +15,7 @@ export const Output = z.any()
 export type Output = Usage
 
 export default async function* (
-  { ctx, signal }: ServerRequest<Input>,
+  { ctx, abortSignal }: ServerRequest<Input>,
 ): ServerResponse<Output> {
   const usageCtx: UsageContext = {
     kubeClient: ctx.kube.client['karmada'],

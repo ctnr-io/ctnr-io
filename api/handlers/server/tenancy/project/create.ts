@@ -25,7 +25,7 @@ const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid2
  * Create a new project for the user.
  */
 export default async function* createProject(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<Project> {
-  const { input, ctx, signal } = request
+  const { input, ctx, abortSignal } = request
 
   // Generate new project ID
   const projectId = shortUUIDtranslator.new()
@@ -38,7 +38,7 @@ export default async function* createProject(request: ServerRequest<Input, Serve
       userId: ctx.auth.user.id,
       projectId,
       projectName: input.name,
-    }, signal)
+    }, abortSignal)
 
     yield `Project ${input.name} created successfully`
 

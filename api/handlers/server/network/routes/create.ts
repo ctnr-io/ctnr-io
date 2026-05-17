@@ -1,11 +1,11 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ContainerName, PortName } from 'lib/api/schemas.ts'
-import getContainer from 'api/handlers/server/compute/containers/get.ts'
 import { ContainerData } from 'api/handlers/server/compute/containers/list.ts'
 import { ensureRoute } from 'core/data/network/route.ts'
 import handleCreateDomain from '../domains/create.ts'
 import { isDomainVerified } from 'core/data/network/domain.ts'
+import { getContainer } from 'core/data/compute/container.ts'
 
 export const Meta = {
   aliases: {
@@ -31,20 +31,19 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* createRoute(request: ServerRequest<Input>): ServerResponse<void> {
-  const { ctx, input, signal } = request
+export default async function* CreateRoute(request: ServerRequest<Input>): ServerResponse<void> {
+  const { ctx, input, abortSignal } = request
 
   const kubeClient = ctx.kube.client['karmada']
 
   try {
-    const container = yield* getContainer({
-      ...request,
-      input: {
-        name: input.container,
-        fields: ['basic', 'resources'],
-        output: 'raw',
+    const container = await getContainer(
+      {
+        kubeClient: ctx.kube.client['eu-1'],
+        namespace: ctx.project.namespace,
       },
-    })
+      input.name,
+    )
     if (!container) {
       throw new Error(`Container ${input.container} not found`)
     }
@@ -107,7 +106,7 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
       project: { id: ctx.project.id, cluster: ctx.project.cluster },
       path: input.path || '/',
       protocol: input.protocol, 
-    }, signal)
+    }, abortSignal)
 
     yield `Route created successfully for container ${input.container}:`
     yield `  - https://${hostname}`

@@ -24,10 +24,12 @@ export type StdioContext = {
   }
 }
 
-type KubeCluster = 'karmada' | 'eu-1'
+export const KubeClusters = ['karmada', 'eu-1'] as const
+export type KubeCluster = typeof KubeClusters[number]
 
 export type ServerKubeContext = {
   kube: {
+    // Change to writer/readers
     client: Record<KubeCluster, KubeClient>
   }
 }

@@ -23,7 +23,7 @@ export interface DeleteRouteResult {
   message: string
 }
 
-export default async function* (
+export default async function* DeleteRoute(
   { ctx, input }: ServerRequest<Input>,
 ): ServerResponse<void> {
   await deleteRoute(

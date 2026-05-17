@@ -42,7 +42,7 @@ export function transformSubscribeProcedure<Input, Output>(
       const gen = procedure({
         ctx: opts.ctx,
         input: opts.input,
-        signal: opts.signal,
+        abortSignal: opts.signal,
         defer,
       })
       let result = await gen.next()
@@ -72,7 +72,7 @@ export function transformQueryProcedure<Input, Output>(
       const gen = procedure({
         ctx: opts.ctx,
         input: opts.input,
-        signal: opts.signal,
+        abortSignal: opts.signal,
         defer,
       })
       let result = await gen.next()
@@ -89,18 +89,18 @@ export function transformQueryProcedure<Input, Output>(
   }
 }
 
-export async function withServerContext({ ctx, signal, next }: {
+export async function withServerContext({ ctx, signal: abortSignal, next }: {
   ctx: TrpcServerContext
   signal?: AbortSignal
   next: (opts: {
     ctx: ServerContext
   }) => Promise<MiddlewareResult<ServerContext>>
 }) {
-  if (!signal) {
+  if (!abortSignal) {
     throw new Error('AbortSignal is required')
   }
   try {
-    return next({ ctx: await createServerContext(ctx, signal) })
+    return next({ ctx: await createServerContext(ctx, abortSignal) })
   } catch (error) {
     console.error('Error creating server context:', error)
     throw new Error('An error occurred while creating server context')

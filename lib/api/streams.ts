@@ -114,13 +114,13 @@ export const setupTerminalHandling = ({
 
 export const handleStreams = async ({
   ctx,
-  signal,
+  abortSignal,
   tunnel,
   interactive,
   terminal,
 }: {
   ctx: ServerContext
-  signal: AbortSignal
+  abortSignal: AbortSignal
   defer: Deferer
   tunnel: Partial<StreamTunnel>
   interactive: boolean
@@ -145,7 +145,7 @@ export const handleStreams = async ({
   if (tunnel.stdout) {
     streamPromises.push(
       tunnel.stdout.pipeTo(ctx.stdio.stdout, {
-        signal,
+        signal: abortSignal,
         preventAbort: true,
         preventCancel: true,
         preventClose: true,
@@ -157,7 +157,7 @@ export const handleStreams = async ({
     streamPromises.push(
       tunnel.stderr
         .pipeTo(ctx.stdio.stderr, {
-          signal,
+          signal: abortSignal,
           preventAbort: true,
           preventCancel: true,
           preventClose: true,
@@ -170,7 +170,7 @@ export const handleStreams = async ({
       ctx.stdio.stdin
         .pipeThrough(handleCtrlPCtrlQStream)
         .pipeTo(interactive ? tunnel.stdin : new WritableStream(), {
-          signal,
+          signal: abortSignal,
           preventAbort: true,
           preventCancel: true,
           preventClose: true,
@@ -182,11 +182,38 @@ export const handleStreams = async ({
     // Wait for any stream to complete
     await Promise.any(streamPromises)
   } catch (error) {
-    if (signal.aborted) {
+    if (abortSignal.aborted) {
       console.debug(`Stream processing was aborted`)
     } else {
       console.error(error)
     }
+  }
+}
+
+export async function* createReadLineAsyncGeneratorFromReadableStream(
+  stream: ReadableStream<string>
+): AsyncGenerator<string> {
+  const reader = stream.getReader()
+  let buffer = ''
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        if (buffer.length > 0) {
+          yield buffer
+        }
+        break
+      }
+      buffer += value
+      let lines = buffer.split('\n')
+      buffer = lines.pop() || '' // Keep the last partial line in the buffer
+      for (const line of lines) {
+        yield line
+      }
+    }
+  } finally {
+    reader.releaseLock()
   }
 }
 

@@ -25,6 +25,7 @@ import {
   ReferenceGrant,
   TLSRoute,
 } from '../types/mod.ts'
+import { KubeCluster } from 'api/context/mod.ts'
 
 export type KubeClient = Awaited<ReturnType<typeof createKubeClient>>
 
@@ -32,9 +33,11 @@ export * from './resource.ts'
 
 const kubeconfig = process.env.KUBECONFIG || process.env.HOME + '/.kube/config'
 
-export async function createKubeClient(context: 'karmada' | 'eu-1') {
+export async function createKubeClient(context: KubeCluster) {
   const decoder = new TextDecoder('utf-8')
-  const kubeconfigFile = decoder.decode(await Deno.readFile(kubeconfig))
+  const kubeconfigFile = decoder.decode(
+    await Deno.readFile(kubeconfig)
+  )
   const client = await SpdyEnabledRestClient.forKubeConfig(
     new KubeConfig(YAML.parse(kubeconfigFile.toString()) as RawKubeConfig) as any,
     context,

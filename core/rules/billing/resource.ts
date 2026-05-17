@@ -1,10 +1,9 @@
-import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
+import { Pod } from 'infra/kubernetes/types/core.ts'
 
 export type ResourceUsage = {
   cpu: string
   memory: string
   storage: string
-  replicas: number
 }
 
 export interface ResourceParsed {
@@ -13,59 +12,17 @@ export interface ResourceParsed {
   storage: number // in Gi
 }
 
-export function extractDeploymentMinimumResourceUsage(deployment: Deployment): ResourceUsage {
-  const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
-  const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
-    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
+export function extractPodResourceUsage(pod: Pod): ResourceUsage {
+  const resources = pod.spec?.containers?.[0]?.resources
+  const cpu = resources?.limits?.cpu || resources?.requests?.cpu || '250m'
+  const memory = resources?.limits?.memory || resources?.requests?.memory || '512M'
+  const ephemeralStorage = resources?.limits?.['ephemeral-storage'] || resources?.requests?.['ephemeral-storage'] ||
+    '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
-  const annotations = deployment.metadata?.annotations || {}
-  const minReplicas = parseInt(annotations['ctnr.io/min-replicas'] || '1', 10)
-  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * minReplicas
-  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * minReplicas
-  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * minReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: minReplicas }
-  
-}
-
-export function extractDeploymentMaximumResourceUsage(deployment: Deployment): ResourceUsage {
-  const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
-  const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
-    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
-  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
-  const annotations = deployment.metadata?.annotations || {}
-  const maxReplicas = parseInt(annotations['ctnr.io/max-replicas'] || '1', 10)
-  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * maxReplicas
-  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * maxReplicas
-  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * maxReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: maxReplicas }
-}
-
-export function extractDeploymentCurrentResourceUsage(deployment: Deployment): ResourceUsage {
-  const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
-  const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
-    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
-  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
-  const currentReplicas = deployment.status?.readyReplicas ?? deployment.status?.availableReplicas ?? 0
-  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * currentReplicas
-  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * currentReplicas
-  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * currentReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: currentReplicas }
-}
-
-export function extractDeploymentResourceUsage(
-  deployment: Deployment,
-): { min: ResourceUsage; max: ResourceUsage; current: ResourceUsage } {
-  return {
-    min: extractDeploymentMinimumResourceUsage(deployment),
-    max: extractDeploymentMaximumResourceUsage(deployment),
-    current: extractDeploymentCurrentResourceUsage(deployment),
-  }
+  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu')
+  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory')
+  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage')
+  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi' }
 }
 
 /**
@@ -225,4 +182,3 @@ export function parseResourceToPrimitiveValue(
       return 0
   }
 }
-

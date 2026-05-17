@@ -32,7 +32,7 @@ interface ContainerInstance {
 
 interface ContainerLogsProps {
   containerName: string
-  replicas?: ContainerInstance[]
+  containerStatus: string
 }
 
 interface LogsState {
@@ -48,7 +48,7 @@ interface LogsState {
   showSearch: boolean
 }
 
-export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
+export function ContainerLogs({ containerName }: ContainerLogsProps) {
   const [state, setState] = useState<LogsState>({
     selectedReplicaName: null,
     logs: [],

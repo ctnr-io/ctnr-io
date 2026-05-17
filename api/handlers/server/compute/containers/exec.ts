@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/api/streams.ts'
-import { ContainerName } from 'lib/api/schemas.ts'
+import { Command, ContainerName } from 'lib/api/schemas.ts'
 
 export const Meta = {
   aliases: {
@@ -14,11 +14,8 @@ export const Meta = {
 
 export const Input = z.object({
   name: ContainerName.meta({ positional: true }),
-  command: z.string()
-    .max(1000, 'Command length is limited for security reasons')
-    .optional()
-    .default('/bin/sh')
-    .describe('Command to execute in the container')
+  command: Command
+    .default(['/bin/sh'])
     .meta({ positional: true }),
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
@@ -29,14 +26,14 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
-  const { name, command = '/bin/sh', interactive = false, terminal = false, replica } = input
+export default async function* ExecContainer({ ctx, input, abortSignal, defer }: ServerRequest<Input>): ServerResponse<void> {
+  const { name, command, interactive = false, terminal = false, replica } = input
 
   const clusterClient = ctx.kube.client[ctx.project.cluster]
 
   let pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
     labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: signal,
+    abortSignal,
   }).then(list => list.items)
 
   if (pods.length === 0) {
@@ -52,12 +49,12 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
   const containerName = pod.spec?.containers?.[0]?.name!
 
   const tunnel = await clusterClient.CoreV1.namespace(ctx.project.namespace).tunnelPodExec(podName, {
-    command: command === '/bin/sh' ? ['/bin/sh'] : ['sh', '-c', command],
+    command,
     stdin: interactive,
     tty: terminal,
     stdout: true,
     stderr: true,
-    abortSignal: signal,
+    abortSignal,
     container: containerName,
   })
 
@@ -74,5 +71,5 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
     ctx.stdio?.exit(status.exitCode || 0)
   })
 
-  await handleStreams({ ctx, signal, defer, tunnel, interactive, terminal })
+  await handleStreams({ ctx, abortSignal, defer, tunnel, interactive, terminal })
 }

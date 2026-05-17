@@ -18,7 +18,7 @@ export type Input = z.infer<typeof Input>
 export default async function* getProjectHandler(
   request: ServerRequest<Input, ServerProjectContext>,
 ): ServerResponse<Project> {
-  const { ctx, signal } = request
+  const { ctx, abortSignal } = request
 
   if (!ctx.project?.id) {
     throw new Error('No project selected in context')
@@ -27,7 +27,7 @@ export default async function* getProjectHandler(
   const project = await getProject(ctx.kube.client.karmada, {
     userId: ctx.auth.user.id,
     projectId: ctx.project.id,
-  }, signal)
+  }, abortSignal)
 
   if (!project) throw new Error('Project not found')
 

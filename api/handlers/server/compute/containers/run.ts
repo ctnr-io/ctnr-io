@@ -1,11 +1,12 @@
 import { z } from 'zod'
-import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
-import attachContainer from './attach.ts'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import logContainer from './logs.ts'
-import createContainer, * as CreateContainer from './create.ts'
-import startContainer from './start.ts'
-import routeContainer from './route.ts'
+import LogContainer from './logs.ts'
+import CreateContainer, * as CreateContainerModule from './create.ts'
+import StartContainer from './start.ts'
+import RouteContainer from './route.ts'
+import AttachContainer from './attach.ts'
+import { waitForContainer } from 'core/data/compute/container.ts'
+import { Container } from 'core/schemas/mod.ts'
 
 export const Meta = {
   aliases: {
@@ -21,7 +22,7 @@ export const Meta = {
   },
 }
 
-export const Input = CreateContainer.Input.extend({
+export const Input = CreateContainerModule.Input.extend({
   interactive: z.boolean().optional().default(false).describe('Run interactively'),
   terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
   detach: z.boolean().optional().default(false).describe('Detach from the container after starting'),
@@ -33,69 +34,27 @@ export const Input = CreateContainer.Input.extend({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
-  const { ctx, input, signal, defer } = request
-
-  const clusterClient = ctx.kube.client[ctx.project.cluster]
+export default async function* RunContainer(request: ServerRequest<Input>): ServerResponse<void> {
+  const { ctx, input, abortSignal, defer } = request
 
   const {
     interactive,
     terminal,
     detach,
-    replicas,
     publish,
   } = input
 
-  // Create the container first
-  const { name } = yield* createContainer(request)
+  const { name } = yield* CreateContainer(request)
 
-  // Start the deployment
-  yield* startContainer({
+  yield* StartContainer({
     ...request,
     input: {
       ...input,
-      name
-    }
+      name,
+      attach: false, // We will handle attach separately based on the detach/interactive options
+      interactive: false, // We will handle interactive separately
+    },
   })
-
-  // Parse replicas parameter
-  let replicaCount: number
-
-  if (typeof replicas === 'string') {
-    // Range format: "1-5"
-    const [min] = replicas.split('-').map(Number)
-    replicaCount = min // Start with minimum
-  } else {
-    // Single number
-    replicaCount = replicas as number
-  }
-
-  yield `\r\nContainers ${name} is running with ${replicaCount} replica(s).`
-
-  // Get the first pod for interactive/terminal operations
-  let pod: Pod | null = null
-  if (interactive || terminal || !detach) {
-    // Use the same approach as logs/attach/exec
-    try {
-      const pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
-        labelSelector: `ctnr.io/name=${name}`,
-        abortSignal: signal,
-      }).then((list) => list.items)
-
-      if (pods.length === 0) {
-        throw new Error(`No replicas found for container ${name}`)
-      }
-
-      pod = pods.length > 0 ? pods[0] : null
-    } catch (error) {
-      console.warn(`Failed to get pods from clusters:`, error)
-      // Fallback to checking eu cluster directly
-      const pods = await ctx.kube.client['karmada'].CoreV1.namespace(ctx.project.namespace).getPodList({
-        labelSelector: `ctnr.io/name=${name}`,
-      })
-      pod = pods.items.find((p) => p.status?.phase === 'Running') || null
-    }
-  }
 
   // Note: Service management is now handled by the route command
   // The --publish flag only affects container port configuration
@@ -105,14 +64,14 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     if (input.route) {
       // Route the container's published ports to a domain
       try {
-        yield* routeContainer({
+        yield* RouteContainer({
           ctx,
           input: {
             name,
             port: input.route,
             domain: input.domain,
           },
-          signal,
+          abortSignal,
           defer,
         })
       } catch (err) {
@@ -122,33 +81,55 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     }
   }
 
+  yield `Waiting for container running`
+
+  // Wait for container running, exit, or dead
+  const container = await waitForContainer({
+    ctx: {
+      kubeClient: ctx.kube.client[ctx.project.cluster],
+      namespace: ctx.project.namespace,
+    },
+    name,
+    abortSignal,
+    predicate: (container) => {
+      switch (container.status) {
+        case 'running':
+        case 'exited':
+        case 'dead':
+          return true
+        default:
+          return false
+      }
+    },
+  })
 
   if (detach) {
     // If detach is enabled, just return without attaching
-    yield `Containers ${name} is running. Detached successfully.`
+    yield `Containers ${name} is ${container.status}.`
     return
-  } else if (pod?.status?.phase === 'Running') {
+  }
+  
+  if (container?.status === 'running') {
     // Logs
     // Attach to the pod if interactive or terminal mode is enabled
-    yield* attachContainer({
+    yield* AttachContainer({
       ctx,
       input: {
         name,
-        interactive,
-        terminal,
+        noStdin: !interactive,
       },
-      signal,
+      abortSignal,
       defer,
     })
   } else {
-    yield* logContainer({
+    yield* LogContainer({
       ctx,
       input: {
         name,
         follow: true,
         timestamps: false,
       },
-      signal,
+      abortSignal,
       defer,
     })
   }

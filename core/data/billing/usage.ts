@@ -14,13 +14,13 @@ export interface UsageContext {
  */
 export async function getUsage(
 	ctx: UsageContext,
-	signal: AbortSignal,
+	abortSignal: AbortSignal,
 ): Promise<Usage> {
 	const { kubeClient, namespace } = ctx
 	return getUsageRule({
 		kubeClient,
 		namespace,
-		signal,
+		abortSignal,
 	})
 }
 
@@ -36,7 +36,7 @@ export interface SetLimitsInput {
 export async function setLimits(
 	ctx: UsageContext,
 	limits: SetLimitsInput,
-	signal: AbortSignal,
+	abortSignal: AbortSignal,
 ): Promise<void> {
 	const { kubeClient, namespace } = ctx
 
@@ -54,5 +54,5 @@ export async function setLimits(
 				'requests.storage': limits.storage,
 			},
 		},
-	}, signal)
+	}, abortSignal)
 }

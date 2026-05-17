@@ -347,7 +347,7 @@ export default function ContainersTableScreen({
         searchPlaceholder='Search containers by name, image, status, or clusters...'
         searchKeys={['name', 'image', 'status']}
         columnFilterable
-        defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}
+        defaultVisibleColumns={['name', 'image', 'status', 'cpu', 'memory']}
         emptyMessage='No containers found. Create your first container to get started.'
         loading={isLoading}
       />

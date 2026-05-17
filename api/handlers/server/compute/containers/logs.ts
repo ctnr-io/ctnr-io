@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { combineReadableStreamsToAsyncGenerator } from 'lib/api/streams.ts'
+import { createReadLineAsyncGeneratorFromReadableStream } from 'lib/api/streams.ts'
 import { ContainerName } from 'lib/api/schemas.ts'
-import list from '../../storage/volumes/list.ts'
+import { getContainer } from 'core/data/compute/container.ts'
 
 export const Meta = {
   aliases: {
@@ -16,66 +16,46 @@ export const Meta = {
 
 export const Input = z.object({
   name: ContainerName.meta({ positional: true }),
-  follow: z.boolean().optional().default(false).describe('Follow the logs of the container'),
-  replica: z.array(z.string()).optional().describe(
-    'Specific replicas name to get logs from. If not provided, logs from all replicas will be merged',
-  ),
-  tail: z.number().min(1).optional().describe('Number of lines to show from the end of the logs'),
-  timestamps: z.boolean().optional().default(false).describe('Show timestamps in the logs'),
+  // TODO: LogContainer details flag
+  details: z.boolean().optional().describe('Show extra details provided to logs').describe('(not implemented)'),
+  follow: z.boolean().optional().describe('Follow log output'),
+  // TODO: LogCntainer since flag
+  since: z.string().optional().describe(
+    'Show logs since timestamp (e.g. "2013-01-02T13:23:37Z") or relative (e.g. "42m" for 42 minutes)',
+  ).describe("(not implemented)"),
+  tail: z.string().optional().describe('Number of lines to show from the end of the logs (default "all")'),
+  timestamps: z.boolean().optional().describe('Show timestamps'),
+  // TODO: LogContainer until flag
+  until: z.string().optional().describe(
+    'Show logs before a timestamp (e.g. "2013-01-02T13:23:37Z") or relative (e.g. "42m" for 42 minutes)',
+  ).describe('(not implemented)'),
 })
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input, signal }: ServerRequest<Input>): ServerResponse<void> {
-  const { name, replica: replicas, follow, timestamps, tail } = input
+export default async function* LogContainer({ ctx, input, abortSignal }: ServerRequest<Input>): ServerResponse<void> {
+  const { name, follow, timestamps, tail } = input
 
-  const clusterClient = ctx.kube.client[ctx.project.cluster]
+  const kubeClient = ctx.kube.client[ctx.project.cluster]
 
-  let pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
-    labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: signal,
-  }).then(list => list.items)
+  const container = await getContainer({
+    kubeClient,
+    namespace: ctx.project.namespace,
+  }, name)
 
-  if (pods.length === 0) {
-    throw new Error(`No replicas found for container ${name}`)
-  }
-
-  // Filter by replica if specified
-  pods = replicas && replicas.length > 0
-    ? pods.filter((pod) => replicas.includes(pod.metadata?.name || ''))
-    : pods
-
-  const tailLines = tail ? Math.floor(tail / pods.length) : undefined
+  const tailLines = !tail ? undefined : (tail === 'all' ? undefined : parseInt(tail, 10))
 
   // Create log streams for each pod
-  const logStreams = (await Promise.all(
-    pods.map(async (pod) => {
-      try {
-        const containerName = pod.spec?.containers?.[0]?.name!
-        const name = pod.metadata?.name!
+  const stream = await kubeClient.CoreV1.namespace(ctx.project.namespace).streamPodLog(name, {
+    container: container.name,
+    follow,
+    tailLines,
+    timestamps,
+    abortSignal,
+  })
 
-        const stream = await clusterClient.CoreV1.namespace(ctx.project.namespace).streamPodLog(name, {
-          container: containerName,
-          follow,
-          tailLines,
-          timestamps,
-          abortSignal: signal,
-        })
-
-        return { stream, name }
-      } catch (error) {
-        console.warn(`Failed to get logs from pod ${name}:`, error)
-        return null
-      }
-    }),
-  )).filter(Boolean) as { stream: ReadableStream<string>; name: string }[]
-
-  if (logStreams.length === 0) {
-    throw new Error(`Failed to get logs from any replica for ${name}`)
-  }
-
-  const streamGenerator = combineReadableStreamsToAsyncGenerator(logStreams)
-  for await (const chunk of streamGenerator) {
-    yield chunk.trimEnd() // Trim to avoid extra new lines
+  const readlineGenerator = createReadLineAsyncGeneratorFromReadableStream(stream)
+  for await (const line of readlineGenerator) {
+    yield line
   }
 }

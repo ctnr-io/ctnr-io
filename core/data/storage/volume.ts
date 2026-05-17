@@ -179,7 +179,7 @@ export interface VolumeContext {
 
 export interface ListVolumesOptions {
   name?: string
-  signal?: AbortSignal
+  abortSignal?: AbortSignal
 }
 
 /**
@@ -190,11 +190,11 @@ export async function listVolumes(
   options: ListVolumesOptions = {}
 ): Promise<Volume[]> {
   const { kubeClient, namespace } = ctx
-  const { name: filterName, signal } = options
+  const { name: filterName, abortSignal } = options
 
   const pvcList = await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaimList({
     labelSelector: 'ctnr.io/resource-type=volume',
-    abortSignal: signal,
+    abortSignal,
   })
 
   return pvcList.items

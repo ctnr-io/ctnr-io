@@ -15,10 +15,10 @@ export async function createServerContext(opts: {
     id?: string
   }
   stdio: StdioContext['stdio']
-}, signal: AbortSignal): Promise<ServerContext> {
+}, abortSignal: AbortSignal): Promise<ServerContext> {
   const versionContext = await createVersionContext()
   const authContext = await createServerAuthContext(opts)
-  const kubeContext = await createServerKubeContext(authContext.auth.user.id, signal)
+  const kubeContext = await createServerKubeContext(authContext.auth.user.id, abortSignal)
   const projectContext = await createServerProjectContext(
     {
       ...authContext,
@@ -28,14 +28,14 @@ export async function createServerContext(opts: {
       // If project id is not provided, use user id as default project id
       id: opts.project.id ?? authContext.auth.user.id,
     },
-    signal,
+    abortSignal
   )
   const stdioContext = await createServerStdioContext(opts.stdio)
   const billingContext = await createBillingContext({
     ...kubeContext,
     ...authContext,
     ...projectContext
-  }, signal)
+  }, abortSignal)
 
   return {
     __type: 'server',

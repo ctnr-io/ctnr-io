@@ -4,7 +4,6 @@ import * as Attach from 'api/handlers/server//compute/containers/attach.ts'
 import * as Exec from 'api/handlers/server//compute/containers/exec.ts'
 import * as Remove from 'api/handlers/server//compute/containers/remove.ts'
 import * as Restart from 'api/handlers/server//compute/containers/restart.ts'
-import * as Rollout from 'api/handlers/server//compute/containers/rollout.ts'
 import * as Route from 'api/handlers/server//compute/containers/route.ts'
 import * as Logs from 'api/handlers/server//compute/containers/logs.ts'
 import * as Start from 'api/handlers/server/compute/containers/start.ts'
@@ -47,19 +46,19 @@ export function transformSubscribeResolver<
   Output,
 >(
   resolver: (input: Input, opts: {
-    signal?: AbortSignal
+    abortSignal?: AbortSignal
     onStarted?: () => void
     onError?: (error: Error) => void
     onComplete?: () => void
     onData?: (data: SubscribeProcedureOutput<Output>) => void
     onStopped?: () => void
   }) => Unsubscribable,
-  { input, signal }: { ctx: TrpcClientContext; input: Input; signal?: AbortSignal },
+  { input, abortSignal }: { ctx: TrpcClientContext; input: Input; abortSignal?: AbortSignal },
 ): Promise<Output> {
   let result: Output
   return new Promise<Output>((resolve, reject) =>
     resolver(input, {
-      signal,
+      abortSignal,
       onError: reject,
       onComplete: () => {
         resolve(result)
@@ -117,9 +116,9 @@ export function createSubscribeQuery<Input, Output>(
   return trpc.procedure
     .meta(Meta)
     .input(Input)
-    .query(({ input, signal, ctx }: any) =>
+    .query(({ input, abortSignal, ctx }: any) =>
       ctx.connect((server: any) =>
-        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
+        transformSubscribeResolver(subscribePath(server).subscribe, { input, abortSignal, ctx })
       )
     )
 }
@@ -133,9 +132,9 @@ export function createSubscribeMutation<Input, Output>(
   return trpc.procedure
     .meta(Meta)
     .input(Input)
-    .mutation(({ input, signal, ctx }: any) =>
+    .mutation(({ input, abortSignal, ctx }: any) =>
       ctx.connect((server: any) =>
-        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
+        transformSubscribeResolver(subscribePath(server).subscribe, { input, abortSignal, ctx })
       )
     )
 }
@@ -162,7 +161,6 @@ export const TRPCCLientTerminalRouter = trpc.router({
   remove: createSubscribeMutation(Remove.Meta, Remove.Input, (server) => server.core.remove),
   rm: createSubscribeMutation(Remove.Meta, Remove.Input, (server) => server.core.remove),
   restart: createSubscribeMutation(Restart.Meta, Restart.Input, (server) => server.core.restart),
-  rollout: createSubscribeMutation(Rollout.Meta, Rollout.Input, (server) => server.core.rollout),
   route: createSubscribeMutation(Route.Meta, Route.Input, (server) => server.core.route),
   start: createSubscribeMutation(Start.Meta, Start.Input, (server) => server.core.start),
   stop: createSubscribeMutation(Stop.Meta, Stop.Input, (server) => server.core.stop),

@@ -2,7 +2,7 @@ import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import z from 'zod'
 import { match } from 'ts-pattern'
 import * as GetServerVersion from 'api/handlers/server/protocol/version/get_version.ts'
-import { VersionContext } from 'api/context/mod.ts'
+import { LoggerContext, VersionContext } from 'api/context/mod.ts'
 
 export const Meta = {} as const
 
@@ -13,8 +13,12 @@ export type Input = z.infer<typeof Input>
 export type Output = void
 
 // TODO: finish and test it
-export default async function* installCli(request: ClientRequest<Input, VersionContext>): ClientResponse {
-  yield `🔍 Checking for the latest CLI version...`
+export default async function* installCli(
+  request: ClientRequest<Input, VersionContext & LoggerContext>,
+): ClientResponse {
+  const ctx = request.ctx
+
+  yield ctx.log.loader(`🔍 Checking for the latest CLI version...`)
 
   // Fetch latest release info from GitHub API
   // Call server to know its current version
@@ -30,7 +34,7 @@ export default async function* installCli(request: ClientRequest<Input, VersionC
 
   // If cli version != remote version, re-install cli
   if (!request.input.force && serverVersion === cliVersion) {
-    yield `✅ You are already using the latest version (${cliVersion}).`
+    // yield `✅ You are already using the latest version (${cliVersion}).`
     return
   }
 
@@ -69,7 +73,7 @@ export default async function* installCli(request: ClientRequest<Input, VersionC
     throw new Error('No suitable asset found for download')
   }
 
-  yield `⬇️  Downloading CLI version ${version} for ${os} ${arch}...`
+  yield ctx.log.loader(`⬇️  Downloading CLI version ${version} for ${os} ${arch}...`)
   const binaryResponse = await fetch(asset.browser_download_url)
   if (!binaryResponse.ok) {
     throw new Error('Failed to download the CLI binary')
@@ -123,11 +127,11 @@ export default async function* installCli(request: ClientRequest<Input, VersionC
   // Clean up
   await Deno.remove(tempFilePath)
 
-  yield `✅ CLI updated to version ${version} and installed at ${destPath}`
+  yield ctx.log.loader(`✅ CLI updated to version ${version} and installed at ${destPath}`)
 
   // Add installDir to PATH if not already present
   if (!Deno.env.get('PATH')?.split(Deno.build.os === 'windows' ? ';' : ':').includes(installDir)) {
-    yield `⚠️  Make sure ${installDir} is in your PATH environment variable.`
+    yield ctx.log.loader(`⚠️  Make sure ${installDir} is in your PATH environment variable.`)
     if (Deno.build.os === 'windows') {
       yield `You can add it to PATH by running: setx PATH "%PATH%;${installDir}"`
     } else {

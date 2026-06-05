@@ -1,78 +1,82 @@
-import { ClientAuthContext } from 'api/context/mod.ts'
+import { ClientAuthContext, LoggerContext } from 'api/context/mod.ts'
 import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import login from './login.ts'
 import { html } from '@tmpl/core'
 
-export default async function* loginFromTerminal({ ctx }: ClientRequest<unknown, ClientAuthContext>): ClientResponse {
+function extractOAuthUrl(message: string): string | null {
+  const match = message.match(/Open this URL:\s*(\S+)/)
+  return match?.[1] ?? null
+}
+
+export default async function* loginFromTerminal(
+  { ctx }: ClientRequest<unknown, ClientAuthContext & LoggerContext>,
+): ClientResponse {
+  // Start callback server to get redirect URI
+  const { server, promise, url: redirectUri } = startCallbackServer()
+
   try {
-    // Start callback server to get redirect URI
-    const { server, promise, url: redirectUri } = startCallbackServer()
+    // Use the shared login function with the callback server's redirect URI
+    const loginGenerator = login({
+      ctx,
+      input: {
+        redirectTo: redirectUri,
+        provider: 'github',
+      },
+    })
 
-    try {
-      // Use the shared login function with the callback server's redirect URI
-      const loginGenerator = login({
-        ctx,
-        input: {
-          redirectTo: redirectUri,
-          provider: 'github',
-        },
-      })
+    // Process login generator and capture OAuth URL
+    for await (const message of loginGenerator) {
+      const messageText = typeof message === 'string' ? message : message.value
+      const extractedOAuthUrl = messageText ? extractOAuthUrl(messageText) : null
 
-      let oauthUrl: string | null = null
+      // Check if this message contains the OAuth URL
+      if (extractedOAuthUrl) {
+        const oauthUrl = extractedOAuthUrl
 
-      // Process login generator and capture OAuth URL
-      for await (const message of loginGenerator) {
-        if (typeof message === 'string') {
-          // Check if this message contains the OAuth URL
-          if (message.startsWith('Open this URL: ')) {
-            oauthUrl = message.replace('Open this URL: ', '')
+        // Open browser instead of just yielding the message
+        yield ctx.log.loader('📱 Opening browser for authentication...')
 
-            // Open browser instead of just yielding the message
-            yield '📱 Opening browser for authentication...'
-
-            // Check if running in terminal and try to open browser
-            if (typeof Deno !== 'undefined' && Deno.stdin?.isTerminal?.()) {
-              try {
-                await openBrowser(oauthUrl)
-              } catch (error) {
-                yield 'Failed to open browser automatically:', error
-                yield `Please manually open: ${oauthUrl}`
-              }
-            } else {
-              yield 'Please open the following URL in your browser:'
-              yield `  ${oauthUrl}`
-              yield 'After authenticating, return to this terminal to continue.'
-            }
-
-            // Wait for the callback
-            yield '⏳ Waiting for authentication callback...'
-            const { code } = await promise
-
-            // Exchange the authorization code for a session
-            yield '🔄 Completing authentication...'
-            const { data, error } = await ctx.auth.client.exchangeCodeForSession(code)
-
-            if (error) {
-              throw new Error(`Failed to exchange code for session: ${error.message}`)
-            }
-
-            if (data.session) {
-              yield '✅ Authentication successful!'
-              return
-            } else {
-              throw new Error('Session not established after code exchange')
-            }
-          } else {
-            // Pass through other messages from login
-            yield message
+        // Check if running in terminal and try to open browser
+        if (typeof Deno !== 'undefined' && Deno.stdin?.isTerminal?.()) {
+          try {
+            await openBrowser(oauthUrl)
+          } catch {
+            yield 'Failed to open browser automatically.'
+            yield `Please open the following URL in your browser: ${oauthUrl}`
+            yield `  ${oauthUrl}`
+            yield 'After authenticating, return to this terminal to continue.'
           }
+        } else {
+          yield 'Please open the following URL in your browser:'
+          yield `  ${oauthUrl}`
+          yield 'After authenticating, return to this terminal to continue.'
+        }
+
+        // Wait for the callback
+        yield ctx.log.loader('🤙 Waiting for authentication callback...')
+        const { code } = await promise
+
+        // Exchange the authorization code for a session
+        yield ctx.log.loader('🔄 Completing authentication...')
+        const { data, error } = await ctx.auth.client.exchangeCodeForSession(code)
+
+        if (error) {
+          throw new Error(`Failed to exchange code for session: ${error.message}`)
+        }
+
+        if (data.session) {
+          yield '🔑 Authentication successful!'
+          return
+        } else {
+          throw new Error('Session not established after code exchange')
         }
       }
-    } finally {
-      server.shutdown()
+
+      // Pass through other messages from login
+      yield message
     }
-  } catch (error) {
-    throw new Error(`OAuth flow failed: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    server.shutdown()
   }
 }
 

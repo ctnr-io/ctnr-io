@@ -24,10 +24,10 @@ export default async function* StopContainer(request: ServerRequest<Input>): Ser
   const { ctx, input, abortSignal } = request
   const { name, signal, time } = input
 
+  yield ctx.log.loader(`⏸️ Stopping container ${name}...`)
+
   await stopContainer({
     kubeClient: ctx.kube.client.karmada,
     namespace: ctx.project.namespace,
   }, name, signal, time, abortSignal)
-
-  yield `⏸️  Stopped containers ${name}`
 }

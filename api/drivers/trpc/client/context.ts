@@ -77,7 +77,7 @@ export async function createTrpcClientContext(
           throw new ClientAuthError('No active session found')
         }
 
-        console.warn('Connect to server at', process.env.CTNR_API_URL)
+        console.debug('Connect to server at', process.env.CTNR_API_URL)
         const accessToken = session?.access_token
         const refreshToken = session?.refresh_token
         client = await createTRPCWebSocketClient({

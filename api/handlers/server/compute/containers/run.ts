@@ -6,7 +6,6 @@ import StartContainer from './start.ts'
 import RouteContainer from './route.ts'
 import AttachContainer from './attach.ts'
 import { waitForContainer } from 'core/data/compute/container.ts'
-import { Container } from 'core/schemas/mod.ts'
 
 export const Meta = {
   aliases: {
@@ -39,7 +38,6 @@ export default async function* RunContainer(request: ServerRequest<Input>): Serv
 
   const {
     interactive,
-    terminal,
     detach,
     publish,
   } = input
@@ -59,7 +57,7 @@ export default async function* RunContainer(request: ServerRequest<Input>): Serv
   // Note: Service management is now handled by the route command
   // The --publish flag only affects container port configuration
   if (publish && publish.length > 0) {
-    yield `Containers ports are available for routing.`
+    // yield ctx.log.loader(`Containers ports are available for routing.`)
 
     if (input.route) {
       // Route the container's published ports to a domain
@@ -81,7 +79,7 @@ export default async function* RunContainer(request: ServerRequest<Input>): Serv
     }
   }
 
-  yield `Waiting for container running`
+  yield ctx.log.loader(`⌛️ Waiting for container running`)
 
   // Wait for container running, exit, or dead
   const container = await waitForContainer({

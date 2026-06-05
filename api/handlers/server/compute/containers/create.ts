@@ -1,13 +1,10 @@
 import { z } from 'zod'
-import { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { ServerContext } from 'api/context/mod.ts'
 import { Command, ContainerName, Publish } from 'lib/api/schemas.ts'
 import { ensureVolume } from 'core/data/storage/volume.ts'
-import { containerInputToPod } from 'core/transform/container.ts'
 import { hash } from 'node:crypto'
 import { VolumeMount } from 'core/schemas/mod.ts'
-import { createContainer, deleteContainer, getContainerPod, waitForContainerPod, waitForContainerPodDeletion } from 'core/data/compute/container.ts'
+import { createContainer, deleteContainer, getContainerPod } from 'core/data/compute/container.ts'
 
 export const Meta = {
   aliases: {
@@ -119,12 +116,11 @@ export default async function* CreateContainer(request: ServerRequest<Input>): S
   if (existingPod && !force) {
     throw new Error(`Container with name ${name} already exists. Use --force to recreate.`)
   } else if (force) {
-    yield `Recreating container ${name}...`
+    yield ctx.log.loader(`🔄 Recreating container ${name}...`)
    await deleteContainer(writeCtx, name, abortSignal!) 
   } else {
-    yield `Creating container ${name}...`
+    yield ctx.log.loader(`⚡️ Creating container ${name}...`)
   }
-  
 
   // Build the pod using the transform function
   await createContainer({
@@ -148,8 +144,6 @@ export default async function* CreateContainer(request: ServerRequest<Input>): S
     memory,
     ephemeralStorage,
   }, abortSignal)
-
-  yield `Container ${name} created`
 
   return { name }
 }

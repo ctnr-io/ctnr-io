@@ -31,7 +31,7 @@ export default async function* ExecContainer({ ctx, input, abortSignal, defer }:
 
   const clusterClient = ctx.kube.client[ctx.project.cluster]
 
-  let pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
+  const pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal,
   }).then(list => list.items)

@@ -78,7 +78,7 @@ export default async function* CreateRoute(request: ServerRequest<Input>): Serve
       // Wait for domain to be verified (simple retry mechanism)
       let verified = false
       for (let attempt = 0; attempt < 10; attempt++) {
-        yield `Checking domain verification status for ${input.domain} (attempt ${attempt + 1}/10)...`
+        yield ctx.log.loader(`🔍 Checking domain verification status for ${input.domain} (attempt ${attempt + 1}/10)...`)
         const domainVerified = await isDomainVerified(input.domain!, projectId)
         if (domainVerified) {
           verified = true

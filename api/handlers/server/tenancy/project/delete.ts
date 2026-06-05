@@ -30,7 +30,7 @@ export default async function* deleteProjectHandler(request: ServerRequest<Input
     throw new Error(`Project with id ${input.id} not found`)
   }
 
-  yield `Deleting project ${input.id}...`
+  yield ctx.log.loader(`🗑️ Deleting project ${input.id}...`)
 
   // Delete project
   try {

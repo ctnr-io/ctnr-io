@@ -31,7 +31,7 @@ export default async function* createProject(request: ServerRequest<Input, Serve
   const projectId = shortUUIDtranslator.new()
 
   try {
-    yield `Creating project ${input.name}...`
+    yield ctx.log.loader(`🆕 Creating project ${input.name}...`)
 
     // Create the project using ensureProject
     const project = await ensureProject(ctx.kube.client.karmada, {

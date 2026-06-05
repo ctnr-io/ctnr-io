@@ -22,5 +22,5 @@ export default async function* (
     namespace: ctx.project.namespace,
   }
 
-  return await getUsage(usageCtx, signal)
+  return await getUsage(usageCtx, abortSignal)
 }

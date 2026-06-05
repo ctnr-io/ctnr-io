@@ -5,6 +5,7 @@ import {
   WebhookResponse,
   WorkerRequest,
   WorkerResponse,
+  TerminalOutputMessage,
 } from 'lib/api/types.ts'
 import { ServerContext, WebhookContext, WorkerContext } from 'api/context/mod.ts'
 import { createDeferer } from 'lib/api/defer.ts'
@@ -16,7 +17,7 @@ import { createWorkerContext } from 'api/context/worker/mod.ts'
 
 export type SubscribeProcedureOutput<Output> = {
   type: 'yield'
-  value: string
+  value: TerminalOutputMessage
 } | {
   type: 'return'
   value?: Output

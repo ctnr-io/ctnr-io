@@ -3,7 +3,7 @@ import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ContainerName } from 'lib/api/schemas.ts'
 import { checkUsage } from 'core/rules/billing/usage.ts'
 import { extractPodResourceUsage } from 'core/rules/billing/resource.ts'
-import { getContainerPod, startContainer, waitForContainer, waitForContainerPod } from 'core/data/compute/container.ts'
+import { getContainerPod, startContainer, waitForContainer } from 'core/data/compute/container.ts'
 import AttachContainer from './attach.ts'
 
 export const Meta = {
@@ -46,7 +46,7 @@ export default async function* StartContainer(request: ServerRequest<Input>): Se
     force: false,
   })
 
-  yield `🚀 Starting container ${name}`
+  yield ctx.log.loader(`⚡️ Starting container ${name}`)
 
   await startContainer(
     {
@@ -56,8 +56,6 @@ export default async function* StartContainer(request: ServerRequest<Input>): Se
     name,
     abortSignal,
   )
-
-  yield `✅ Containers ${name} started`
 
   if (input.attach) {
     await waitForContainer({
@@ -81,8 +79,7 @@ export default async function* StartContainer(request: ServerRequest<Input>): Se
       ctx,
       input: {
         name,
-        interactive,
-        terminal: pod.spec?.containers?.[0]?.tty || false,
+        noStdin: !interactive,
       },
       abortSignal,
       defer: request.defer,

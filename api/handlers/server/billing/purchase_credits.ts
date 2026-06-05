@@ -35,7 +35,7 @@ export type Output = {
 }
 
 export default async function* PurchaseCredits({ ctx, input, abortSignal }: ServerRequest<Input>): ServerResponse<Output> {
-  yield `Initiating payment for ${input.amount} credits`
+  yield ctx.log.loader(`💳 Initiating payment for ${input.amount} credits`)
 
   /**
    * When using localhost, the expo ngrok will handle the call from *.exp.direct/api/*

@@ -11,35 +11,20 @@ import * as Stop from 'api/handlers/server/compute/containers/stop.ts'
 import * as Get from 'api/handlers/server/compute/containers/get.ts'
 import * as Create from 'api/handlers/server/compute/containers/create.ts'
 
-// Storage handlers
-import * as ListVolumes from 'api/handlers/server/storage/volumes/list.ts'
-import * as CreateVolume from 'api/handlers/server/storage/volumes/create.ts'
-import * as DeleteVolume from 'api/handlers/server/storage/volumes/delete.ts'
-
-// Network handlers
-import * as ListDomains from 'api/handlers/server/network/domains/list.ts'
-import * as CreateDomain from 'api/handlers/server/network/domains/create.ts'
-import * as DeleteDomain from 'api/handlers/server/network/domains/delete.ts'
-import * as ListRoutes from 'api/handlers/server/network/routes/list.ts'
-import * as CreateRoute from 'api/handlers/server/network/routes/create.ts'
-import * as DeleteRoute from 'api/handlers/server/network/routes/delete.ts'
-
-// Tenancy handlers
-import * as ListProject from 'api/handlers/server/tenancy/project/list.ts'
-import * as GetProject from 'api/handlers/server/tenancy/project/get.ts'
-
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from '../context.ts'
-import login from 'api/handlers/client/auth/login_from_terminal.ts'
 import logout from 'api/handlers/client/auth/logout.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'api/context/mod.ts'
 import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
 import { createDeferer } from 'lib/api/defer.ts'
-import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
+import { ClientRequest, ClientResponse, isTerminalLoadMessage } from 'lib/api/types.ts'
 import z from 'zod'
+import loginFromTerminal from 'api/handlers/client/auth/login_from_terminal.ts'
+import { Spinner } from 'lib/ts/spinner.ts'
 
 export const trpc = initTRPC.context<TrpcClientContext>().create()
+
 
 export function transformSubscribeResolver<
   Input,
@@ -56,19 +41,30 @@ export function transformSubscribeResolver<
   { input, abortSignal }: { ctx: TrpcClientContext; input: Input; abortSignal?: AbortSignal },
 ): Promise<Output> {
   let result: Output
+  const spinner = new Spinner()
   return new Promise<Output>((resolve, reject) =>
     resolver(input, {
       abortSignal,
-      onError: reject,
+      onError: (error) => {
+        spinner.stop()
+        reject(error)
+      },
       onComplete: () => {
+        spinner.stop()
         resolve(result)
       },
       onData: (data: SubscribeProcedureOutput<Output>) => {
         switch (data.type) {
           case 'yield':
+            if (isTerminalLoadMessage(data.value)) {
+              spinner.start(data.value.value)
+              return
+            }
+            spinner.stop()
             console.info(data.value)
             return
           case 'return':
+            spinner.stop()
             result = data.value as Output
             return
         }
@@ -82,6 +78,7 @@ type TRPClientRequest<Input> = { ctx: ClientContext; input: Input; signal: Abort
 export function transformQueryProcedure<Input, Output>(
   procedure: (opts: ClientRequest<Input>) => ClientResponse<Output>,
 ) {
+  const spinner = new Spinner()
   return async function (opts: TRPClientRequest<Input>): Promise<Output> {
     const defer = createDeferer()
     try {
@@ -92,8 +89,14 @@ export function transformQueryProcedure<Input, Output>(
       while (true) {
         const { value, done } = await gen.next()
         if (done) {
+          spinner.stop()
           return value
         }
+        if (isTerminalLoadMessage(value)) {
+          spinner.start(value.value)
+          continue
+        }
+        spinner.stop()
         console.info(value)
       }
     } catch (error) {
@@ -145,7 +148,7 @@ const WithWideOutputDefault = {
 
 export const TRPCCLientTerminalRouter = trpc.router({
   // Client authentication procedures
-  login: trpc.procedure.mutation(transformQueryProcedure(login)),
+  login: trpc.procedure.mutation(transformQueryProcedure(loginFromTerminal)),
   logout: trpc.procedure.mutation(logout),
 
   // Core container procedures

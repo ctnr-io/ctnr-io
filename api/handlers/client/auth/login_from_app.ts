@@ -1,8 +1,9 @@
 import { ClientAuthContext } from 'api/context/mod.ts'
+import { LoggerContext } from 'api/context/logger.ts'
 import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import login from './login.ts'
 
-export default async function* loginFromApp({ ctx }: ClientRequest<unknown, ClientAuthContext>): ClientResponse {
+export default async function* loginFromApp({ ctx }: ClientRequest<unknown, ClientAuthContext & LoggerContext>): ClientResponse {
   try {
     // Use deep-linking for app-based OAuth flow
     const deepLinkRedirectUri = 'ctnr-io://auth/callback'
@@ -56,7 +57,7 @@ export default async function* loginFromApp({ ctx }: ClientRequest<unknown, Clie
             oauthUrl = message.replace('Open this URL: ', '')
 
             // Open OAuth URL in system browser
-            yield '📱 Opening browser for authentication...'
+            yield ctx.log.loader('📱 Opening browser for authentication...')
 
             try {
               // In a real app environment, this would use expo-web-browser or Linking API
@@ -65,14 +66,14 @@ export default async function* loginFromApp({ ctx }: ClientRequest<unknown, Clie
               yield 'After authenticating, you will be redirected back to the app.'
 
               // Wait for the deep-link callback
-              yield '⏳ Waiting for authentication callback...'
+              yield ctx.log.loader('⏳ Waiting for authentication callback...')
               await callbackPromise
 
               // Continue with the login flow - it should detect the session
               continue
             } catch (error) {
               console.error('Failed to open browser:', error)
-              yield `Please manually open: ${oauthUrl}`
+              yield ctx.log.loader(`👉 Please manually open: ${oauthUrl}`)
             }
           } else {
             // Pass through other messages from login

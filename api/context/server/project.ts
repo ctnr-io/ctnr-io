@@ -1,9 +1,10 @@
 import { Project } from 'core/schemas/mod.ts'
 import { ServerAuthContext, ServerKubeContext, ServerProjectContext } from '../mod.ts'
 import { ensureProject, getProject } from 'core/data/tenancy/project.ts'
+import { LoggerContext } from 'api/context/logger.ts'
 
 export async function createServerProjectContext(
-  ctx: ServerAuthContext & ServerKubeContext,
+  ctx: LoggerContext & ServerAuthContext & ServerKubeContext,
   options: { id: string },
   abortSignal: AbortSignal,
 ): Promise<ServerProjectContext> {

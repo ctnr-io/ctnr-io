@@ -9,6 +9,7 @@ import {
   ResourceUsage,
 } from './resource.ts'
 import { convertPodToContainerStatus } from 'core/transform/container.ts'
+import { TerminalOutputMessage } from 'lib/api/types.ts'
 
 /**
  * Represents the current status of the user's balance.
@@ -225,8 +226,7 @@ export async function getUsage(opts: {
     resources.storage.percentage >= 100
 
   // Check if current usage is within free tier limits
-  const currentUsageWithinFreeTier =
-    parseResourceToPrimitiveValue(resources.cpu.used, 'cpu') <= freeTierLimits.cpu &&
+  const currentUsageWithinFreeTier = parseResourceToPrimitiveValue(resources.cpu.used, 'cpu') <= freeTierLimits.cpu &&
     parseResourceToPrimitiveValue(resources.memory.used, 'memory') <= freeTierLimits.memory &&
     parseResourceToPrimitiveValue(resources.storage.used, 'storage') <= freeTierLimits.storage
 
@@ -281,18 +281,13 @@ export async function* checkUsage(opts: {
   additionalResource?: ResourceUsage
   force?: boolean
   abortSignal: AbortSignal
-}): AsyncGenerator<string, Usage> {
+}): AsyncGenerator<TerminalOutputMessage, Usage> {
   const { kubeClient, namespace, abortSignal } = opts
 
   const usage = await getUsage({ kubeClient, namespace, abortSignal, additionalResource: opts.additionalResource })
 
   // Default free tier limits (in proper units)
-  yield '🔎 Checking resource usage and credit balance...'
-
-  // Display current usage information
-  yield `${usage.tier === 'free' ? '🆓' : '⚡️'} Account Status: ${
-    usage.tier === 'free' ? 'Free Tier' : 'Paid'
-  } | Credits: ${usage.balance.credits}`
+  yield { type: 'load', value: 'Checking resource usage and credit balance...' }
 
   // Check status and provide appropriate messages
   switch (usage.status) {
@@ -386,28 +381,28 @@ export async function* checkUsage(opts: {
     }
 
     case 'resource_limits_reached_for_additional_resource': {
-      yield `⚠️  Resource limit would be exceeded with this additional provisioning!`
-      yield `📊 With additional: CPU ${usage.resources.cpu.next}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.next}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.next}/${usage.resources.storage.limit}`
-      yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
       if (!opts.force) {
+        yield `⚠️  Resource limit would be exceeded with this additional provisioning!`
+        // yield `📊 With additional: CPU ${usage.resources.cpu.next}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.next}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.next}/${usage.resources.storage.limit}`
+        yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
         throw new Error('Resource limits would be exceeded with provisioning')
       }
       yield `🔥 Force flag enabled - proceeding despite resource limit warnings!`
-      yield `⚠️  Warning: This may cause resource contention and performance issues.`
+      // yield `⚠️  Warning: This may cause resource contention and performance issues.`
       break
     }
 
     // TODO: add low_balance case w/ notification only if credits < 5 * max daily cost
 
     case 'free_tier':
-      yield `✅ Free tier usage check passed`
-      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
+      // yield `✅ Free tier usage check passed`
+      // yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
       break
 
     case 'normal':
-      yield `✅ Usage and credit check passed`
-      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
-      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.balance.credits} credits)`
+      // yield `✅ Usage and credit check passed`
+      // yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
+      // yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.balance.credits} credits)`
       break
 
     default:

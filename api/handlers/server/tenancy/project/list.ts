@@ -23,7 +23,7 @@ export type Input = z.infer<typeof Input>
  * List all projects for the user.
  */
 export default async function* listProjects(
-  { ctx, input, signal }: ServerRequest<Input, ServerProjectContext>,
+  { ctx, input, abortSignal }: ServerRequest<Input, ServerProjectContext>,
 ): ServerResponse<Project[]> {
   const labelSelectors = [
     `${ProjectNamespaceLabels.OwnerId}=${ctx.auth.user.id}`,
@@ -33,7 +33,7 @@ export default async function* listProjects(
 
   const namespaces = await ctx.kube.client.karmada.CoreV1.getNamespaceList({
     labelSelector: labelSelectors,
-    abortSignal: signal,
+    abortSignal,
   })
 
   // Map to the expected schema format

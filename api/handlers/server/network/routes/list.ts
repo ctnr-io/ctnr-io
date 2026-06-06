@@ -30,7 +30,7 @@ type Output<Type extends 'raw' | 'json' | 'yaml' | 'name' | 'wide'> = {
   'wide': void
 }[Type]
 
-export default async function* (
+export default async function* ListRoute(
   { ctx, input }: ServerRequest<Input>,
 ): ServerResponse<Output<NonNullable<typeof input['output']>>> {
   const { output = 'raw', name, container, domain } = input

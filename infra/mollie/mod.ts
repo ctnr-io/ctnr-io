@@ -30,9 +30,9 @@ export async function ensureMollieCustormerId(opts: {
   namespaceObj: Namespace
   email: string
   userId: string
-  signal: AbortSignal
+  abortSignal: AbortSignal
 }): Promise<string> {
-  const { kubeClient, mollieClient, namespaceObj, email, userId, signal } = opts
+  const { kubeClient, mollieClient, namespaceObj, email, userId, abortSignal } = opts
 
   const mollieCustomerIdLabel = `ctnr.io/mollie-${Deno.env.get('MOLLIE_MODE')}-customer-id`
 
@@ -53,7 +53,7 @@ export async function ensureMollieCustormerId(opts: {
         },
       },
     }, {
-      abortSignal: signal,
+      abortSignal,
     })
   }
   return mollieCustomerId

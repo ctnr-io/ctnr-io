@@ -14,8 +14,6 @@ import { useEffect } from 'react'
 import ResponsiveDialog from './responsive-dialog.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
-import { useNavigation } from 'expo-router'
-import { useLocalSearchParams } from 'expo-router'
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -53,18 +51,6 @@ export type ContainerData = {
   cpu: string
   memory: string
   storage: string
-  replicas: {
-    max: number
-    min: number
-    current: number
-    instances: {
-      name: string
-      status: string
-      createdAt: Date
-      cpu: string
-      memory: string
-    }[]
-  }
   routes: string[]
   clusters: string[]
   restartPolicy: string
@@ -307,66 +293,6 @@ export function ContainersDetailScreen(props: {
                 },
               ],
             },
-            {
-              title: 'Replica Instances',
-              description: 'Detailed information about each container instance',
-              content: (
-                <div className='space-y-4'>
-                  {data.replicas.instances.map((instance: any) => (
-                    <div key={instance.name} className='border rounded-lg p-4 hover:bg-muted/10 transition-colors'>
-                      <div className='flex items-center justify-between mb-3'>
-                        <div className='flex items-center gap-3'>
-                          <div className='flex items-center gap-2'>
-                            <div
-                              className={`w-3 h-3 rounded-full ${
-                                instance.status === 'running'
-                                  ? 'bg-chart-2'
-                                  : instance.status === 'starting'
-                                  ? 'bg-chart-4'
-                                  : 'bg-destructive'
-                              }`}
-                            >
-                            </div>
-                            <span className='font-medium'>{instance.name}</span>
-                          </div>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(instance.status)}`}
-                          >
-                            {instance.status}
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <button
-                            type='button'
-                            onClick={() =>
-                              navigator.clipboard.writeText(instance.name)}
-                            className='p-1 hover:bg-muted rounded'
-                            title='Copy instance ID'
-                          >
-                            <Copy className='h-4 w-4' />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
-                        <div>
-                          <div className='text-muted-foreground'>CPU</div>
-                          <div className='font-mono'>{instance.cpu}</div>
-                        </div>
-                        <div>
-                          <div className='text-muted-foreground'>Memory</div>
-                          <div className='font-mono'>{instance.memory}</div>
-                        </div>
-                      </div>
-
-                      <div className='mt-3 text-xs text-muted-foreground'>
-                        Created: {formatDate(instance.created)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ),
-            },
           ],
         },
         {
@@ -432,7 +358,6 @@ export function ContainersDetailScreen(props: {
           content: (
             <ContainerLogs
               containerName={data.name}
-              replicas={data.replicas.instances}
             />
           ),
         },

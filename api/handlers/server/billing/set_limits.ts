@@ -41,7 +41,7 @@ export type Output = void
 export default async function* (
   request: ServerRequest<Input>,
 ): ServerResponse<Output> {
-  const { ctx, input, signal } = request
+  const { ctx, input, abortSignal } = request
 
   const usageCtx: UsageContext = {
     kubeClient: ctx.kube.client['karmada'],
@@ -52,5 +52,5 @@ export default async function* (
     cpu: input.cpu,
     memory: input.memory,
     storage: input.storage,
-  }, signal)
+  }, abortSignal)
 }

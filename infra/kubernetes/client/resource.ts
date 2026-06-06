@@ -1,9 +1,10 @@
 import { match } from 'ts-pattern'
 import { KubeClient } from './mod.ts'
-import { JSONObject } from '@cloudydeno/kubernetes-apis/deps.ts'
 import { ObjectMeta } from '../mod.ts'
+import { DeepPartial } from '@trpc/server/unstable-core-do-not-import'
+import { JSONObject } from '@cloudydeno/kubernetes-apis/deps.ts'
 
-type Resource = {
+export type Resource = {
   apiVersion: string
   kind: string
   metadata: ObjectMeta
@@ -21,10 +22,10 @@ export function createEnsureResourceFunction<T extends Resource>(opts: { strateg
   }
 }
 
-export async function createDeleteResourceFunction<T extends Resource>() {
+export function createDeleteResourceFunction<T extends Resource>() {
   return async (
     kc: KubeClient,
-    resource: T,
+    resource: Resource,
     abortSignal: AbortSignal,
   ) => {
     const namespace = resource.metadata.namespace

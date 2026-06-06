@@ -103,7 +103,7 @@ async function dialSpdyTunnel(opts: {
   path: string
   streamProtocols: Array<string>
   querystring?: URLSearchParams
-  abortSignal?: AbortSignal
+  abortabortSignal?: AbortSignal
 }) {
   let path = opts.path || '/'
   if (opts.querystring) {

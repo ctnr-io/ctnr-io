@@ -1,9 +1,8 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ContainerName } from 'lib/api/schemas.ts'
-import { extractDeploymentCurrentResourceUsage } from 'core/rules/billing/resource.ts'
-import { deleteContainer, getDeployment } from 'core/data/compute/container.ts'
-import stop from './stop.ts'
+import { deleteContainer, getContainerPod } from 'core/data/compute/container.ts'
+import { convertPodToContainerStatus } from 'core/transform/container.ts'
 
 export const Meta = {
   aliases: {
@@ -20,32 +19,25 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* (request: ServerRequest<Input>): ServerResponse<void> {
-  const { ctx, input, signal } = request
-  const { name } = input
+export default async function* RemoveContainer(request: ServerRequest<Input>): ServerResponse<void> {
+  const { ctx, input, abortSignal } = request
+  const { name, force } = input
+
+  yield ctx.log.loader(`🗑️ Removing container ${name}...`)
 
   const containerCtx = {
     kubeClient: ctx.kube.client.karmada,
     namespace: ctx.project.namespace,
   }
 
-  // Check if deployment exists
-  const deployment = await getDeployment(containerCtx, name)
-  if (!deployment) {
-    yield `❌ Container ${name} not found`
-    return
+  // Check if pod exists
+  const pod = await getContainerPod(containerCtx, name)
+
+  const containerStatus = convertPodToContainerStatus(pod)
+  if (containerStatus === 'running' && !force) {
+    throw new Error('Container is still running. Use --force to stop and remove it.')
   }
 
-  const currentResources = extractDeploymentCurrentResourceUsage(deployment)
-  if (currentResources.replicas > 0 && !input.force) {
-    yield `⚠️ Container ${name} is currently running with ${currentResources.replicas} replicas. Use --force to stop and remove it.`
-    return
-  } else {
-    yield* stop(request)
-  }
-
-  // Delete the deployment
-  await deleteContainer(containerCtx, name, signal)
-
-  yield `🗑️  Container ${name} has been removed`
+  // Delete the pod
+  await deleteContainer(containerCtx, name, abortSignal)
 }

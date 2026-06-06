@@ -25,20 +25,20 @@ const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid2
  * Create a new project for the user.
  */
 export default async function* createProject(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<Project> {
-  const { input, ctx, signal } = request
+  const { input, ctx, abortSignal } = request
 
   // Generate new project ID
   const projectId = shortUUIDtranslator.new()
 
   try {
-    yield `Creating project ${input.name}...`
+    yield ctx.log.loader(`🆕 Creating project ${input.name}...`)
 
     // Create the project using ensureProject
     const project = await ensureProject(ctx.kube.client.karmada, {
       userId: ctx.auth.user.id,
       projectId,
       projectName: input.name,
-    }, signal)
+    }, abortSignal)
 
     yield `Project ${input.name} created successfully`
 

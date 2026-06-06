@@ -3,11 +3,13 @@ import { ensureFederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.t
 import { calculateTotalCost } from './cost.ts'
 import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
 import {
-  extractDeploymentCurrentResourceUsage,
+  extractPodResourceUsage,
   parseResourceToPrimitiveValue,
   parseResourceUsageToPrimitiveValues,
   ResourceUsage,
 } from './resource.ts'
+import { convertPodToContainerStatus } from 'core/transform/container.ts'
+import { TerminalOutputMessage } from 'lib/api/types.ts'
 
 /**
  * Represents the current status of the user's balance.
@@ -71,16 +73,16 @@ export async function getUsage(opts: {
   kubeClient: KubeClient
   namespace: string
   additionalResource?: ResourceUsage
-  signal: AbortSignal
+  abortSignal: AbortSignal
 }): Promise<Usage> {
-  const { kubeClient, namespace, additionalResource, signal } = opts
+  const { kubeClient, namespace, additionalResource, abortSignal } = opts
 
   // Default free tier limits (in proper units)
   let parsedLimits = { ...freeTierLimits }
 
   // Get namespace to check credits and tier
   const namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, {
-    abortSignal: signal,
+    abortSignal,
   })
 
   let balance = getNamespaceBalance(namespaceObj)
@@ -103,14 +105,14 @@ export async function getUsage(opts: {
           'requests.storage': FreeTier.storage,
         },
       },
-    }, signal)
+    }, abortSignal)
   } else {
     // For free tier users (credits = 0), always use free tier limits
     // For paid users, try to get limits from resource quota
     const resourceQuota = await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota(
       'ctnr-resource-quota',
       {
-        abortSignal: signal,
+        abortSignal,
       },
     )
     if (resourceQuota.spec?.overall) {
@@ -123,19 +125,24 @@ export async function getUsage(opts: {
   }
   // For free tier users (credits = 0), we keep the freeTierLimits as set above
 
-  // Get all deployments
-  const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
-    abortSignal: signal,
+  // Get all pods
+  const pods = await kubeClient.CoreV1.namespace(namespace).getPodList({
+    abortSignal,
   })
 
   let totalMilliCpuUsed = 0
   let totalMemoryUsed = 0
   let totalStorageUsed = 0
 
-  // Process each deployment
-  for (const deployment of deployments.items) {
+  // Process each pod
+  for (const pod of pods.items) {
+    // If pod is not started
+    const podStatus = convertPodToContainerStatus(pod)
+    if (podStatus !== 'running') {
+      continue
+    }
     const { cpu, memory, storage } = parseResourceUsageToPrimitiveValues(
-      extractDeploymentCurrentResourceUsage(deployment),
+      extractPodResourceUsage(pod),
     )
     totalMilliCpuUsed += cpu
     totalMemoryUsed += memory
@@ -145,7 +152,7 @@ export async function getUsage(opts: {
   // Get storage usage
   try {
     const pvcs = await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaimList({
-      abortSignal: signal,
+      abortSignal,
     })
 
     for (const pvc of pvcs.items) {
@@ -186,7 +193,7 @@ export async function getUsage(opts: {
       memory: resources.memory.used,
       storage: resources.storage.used,
     })
-    balance = await updateBalance(kubeClient, namespace, nextBalance, signal)
+    balance = await updateBalance(kubeClient, namespace, nextBalance, abortSignal)
   }
 
   const currentCost = calculateTotalCost(
@@ -219,8 +226,7 @@ export async function getUsage(opts: {
     resources.storage.percentage >= 100
 
   // Check if current usage is within free tier limits
-  const currentUsageWithinFreeTier =
-    parseResourceToPrimitiveValue(resources.cpu.used, 'cpu') <= freeTierLimits.cpu &&
+  const currentUsageWithinFreeTier = parseResourceToPrimitiveValue(resources.cpu.used, 'cpu') <= freeTierLimits.cpu &&
     parseResourceToPrimitiveValue(resources.memory.used, 'memory') <= freeTierLimits.memory &&
     parseResourceToPrimitiveValue(resources.storage.used, 'storage') <= freeTierLimits.storage
 
@@ -274,19 +280,14 @@ export async function* checkUsage(opts: {
   namespace: string
   additionalResource?: ResourceUsage
   force?: boolean
-  signal: AbortSignal
-}): AsyncGenerator<string, Usage> {
-  const { kubeClient, namespace, signal } = opts
+  abortSignal: AbortSignal
+}): AsyncGenerator<TerminalOutputMessage, Usage> {
+  const { kubeClient, namespace, abortSignal } = opts
 
-  const usage = await getUsage({ kubeClient, namespace, signal, additionalResource: opts.additionalResource })
+  const usage = await getUsage({ kubeClient, namespace, abortSignal, additionalResource: opts.additionalResource })
 
   // Default free tier limits (in proper units)
-  yield '🔎 Checking resource usage and credit balance...'
-
-  // Display current usage information
-  yield `${usage.tier === 'free' ? '🆓' : '⚡️'} Account Status: ${
-    usage.tier === 'free' ? 'Free Tier' : 'Paid'
-  } | Credits: ${usage.balance.credits}`
+  yield { type: 'load', value: 'Checking resource usage and credit balance...' }
 
   // Check status and provide appropriate messages
   switch (usage.status) {
@@ -297,7 +298,7 @@ export async function* checkUsage(opts: {
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits immediately.`
 
       // Retrieve last threshold breach time
-      let namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, { abortSignal: signal })
+      let namespaceObj = await kubeClient.CoreV1.getNamespace(namespace, { abortSignal })
       const thresholdDate = namespaceObj.metadata?.annotations?.['ctnr.io/credits-threshold-breach-datetime'] || null
       // If no breach time is set, it means this is the first time we hit the limit, so add one
       if (!thresholdDate) {
@@ -311,7 +312,7 @@ export async function* checkUsage(opts: {
               },
             },
           },
-          { abortSignal: signal },
+          { abortSignal },
         )
       }
       const hours = thresholdDate
@@ -322,16 +323,16 @@ export async function* checkUsage(opts: {
         // TODO: send notification to user email
       } else {
         yield `⏳ Grace period expired. Resources will be paused.`
-        // Get all deployments and scale to 0
-        const deployments = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
-          abortSignal: signal,
+        // Get all pods and scale to 0
+        const pods = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
+          abortSignal,
         })
 
         await Promise.allSettled(
-          deployments.items.map((deployment) => {
-            const name = deployment.metadata?.name
+          pods.items.map((pod) => {
+            const name = pod.metadata?.name
             if (!name) return Promise.resolve()
-            console.debug(`Scaling down deployment ${name} in namespace ${namespace} due to credit breach`)
+            console.debug(`Scaling down pod ${name} in namespace ${namespace} due to credit breach`)
             return kubeClient.AppsV1.namespace(namespace).patchDeployment(
               name,
               'json-merge',
@@ -342,9 +343,9 @@ export async function* checkUsage(opts: {
                   template: {},
                 },
               },
-              { abortSignal: signal },
+              { abortSignal },
             ).catch((error) => {
-              console.error(`Failed to scale down deployment ${name} in namespace ${namespace}:`, error)
+              console.error(`Failed to scale down pod ${name} in namespace ${namespace}:`, error)
             })
           }),
         )
@@ -380,28 +381,28 @@ export async function* checkUsage(opts: {
     }
 
     case 'resource_limits_reached_for_additional_resource': {
-      yield `⚠️  Resource limit would be exceeded with this additional provisioning!`
-      yield `📊 With additional: CPU ${usage.resources.cpu.next}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.next}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.next}/${usage.resources.storage.limit}`
-      yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
       if (!opts.force) {
+        yield `⚠️  Resource limit would be exceeded with this additional provisioning!`
+        // yield `📊 With additional: CPU ${usage.resources.cpu.next}/${usage.resources.cpu.limit}, Memory ${usage.resources.memory.next}/${usage.resources.memory.limit}, Storage ${usage.resources.storage.next}/${usage.resources.storage.limit}`
+        yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to increase your resource limits.`
         throw new Error('Resource limits would be exceeded with provisioning')
       }
       yield `🔥 Force flag enabled - proceeding despite resource limit warnings!`
-      yield `⚠️  Warning: This may cause resource contention and performance issues.`
+      // yield `⚠️  Warning: This may cause resource contention and performance issues.`
       break
     }
 
     // TODO: add low_balance case w/ notification only if credits < 5 * max daily cost
 
     case 'free_tier':
-      yield `✅ Free tier usage check passed`
-      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
+      // yield `✅ Free tier usage check passed`
+      // yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
       break
 
     case 'normal':
-      yield `✅ Usage and credit check passed`
-      yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
-      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.balance.credits} credits)`
+      // yield `✅ Usage and credit check passed`
+      // yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
+      // yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.balance.credits} credits)`
       break
 
     default:

@@ -26,7 +26,7 @@ export type Input = z.infer<typeof Input>
 export default async function* selectProject(
   request: ServerRequest<Input, ServerProjectContext>,
 ): ServerResponse<Project> {
-  const { ctx, input, signal } = request
+  const { ctx, input, abortSignal } = request
 
   // Find the project by name
   const projectName = input.name || ''
@@ -34,7 +34,7 @@ export default async function* selectProject(
   
   const namespaces = await ctx.kube.client.karmada.CoreV1.getNamespaceList({
     labelSelector,
-    abortSignal: signal,
+    abortSignal,
   })
   
   if (namespaces.items.length === 0) {
@@ -49,12 +49,12 @@ export default async function* selectProject(
     userId: ctx.auth.user.id,
     projectId,
     projectName,
-  }, signal)
+  }, abortSignal)
 
   // Update context
   request.ctx = {
     ...ctx,
-    ...createServerProjectContext(request.ctx, { id: project.id }, signal),
+    ...createServerProjectContext(request.ctx, { id: project.id }, abortSignal),
   }
 
   return {

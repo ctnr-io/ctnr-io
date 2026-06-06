@@ -5,6 +5,7 @@ import { createServerStdioContext } from './stdio.ts'
 import { createBillingContext } from './billing.ts'
 import { createServerProjectContext } from './project.ts'
 import { createVersionContext } from '../version.ts'
+import { createLoggerContext } from 'api/context/logger.ts'
 
 export async function createServerContext(opts: {
   auth: {
@@ -15,12 +16,14 @@ export async function createServerContext(opts: {
     id?: string
   }
   stdio: StdioContext['stdio']
-}, signal: AbortSignal): Promise<ServerContext> {
+}, abortSignal: AbortSignal): Promise<ServerContext> {
   const versionContext = await createVersionContext()
+  const loggerContext = createLoggerContext()
   const authContext = await createServerAuthContext(opts)
-  const kubeContext = await createServerKubeContext(authContext.auth.user.id, signal)
+  const kubeContext = await createServerKubeContext(authContext.auth.user.id, abortSignal)
   const projectContext = await createServerProjectContext(
     {
+      ...loggerContext,
       ...authContext,
       ...kubeContext,
     },
@@ -28,17 +31,18 @@ export async function createServerContext(opts: {
       // If project id is not provided, use user id as default project id
       id: opts.project.id ?? authContext.auth.user.id,
     },
-    signal,
+    abortSignal
   )
   const stdioContext = await createServerStdioContext(opts.stdio)
   const billingContext = await createBillingContext({
     ...kubeContext,
     ...authContext,
     ...projectContext
-  }, signal)
+  }, abortSignal)
 
   return {
     __type: 'server',
+    ...loggerContext,
     ...versionContext,
     ...authContext,
     ...kubeContext,

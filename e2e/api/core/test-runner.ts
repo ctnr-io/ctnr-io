@@ -1,3 +1,8 @@
+import { fromFileUrl } from '@std/path'
+
+// Repo root is 3 levels above this file (e2e/api/core/test-runner.ts)
+const repoRoot = fromFileUrl(new URL('../../../', import.meta.url))
+
 export interface TestResult {
   success: boolean
   stdout: string
@@ -19,7 +24,7 @@ export async function runCliCommand(args: string[], options?: {
     stdout: 'piped',
     stderr: 'piped',
     env,
-    cwd: '../ctnr',
+    cwd: repoRoot,
   })
 
   const process = command.spawn()
@@ -79,7 +84,7 @@ export async function waitForCondition(
 export async function cleanupContainer(name: string): Promise<void> {
   try {
     // Try to remove the container if it exists
-    const result = await runCliCommand(['run', '--name', name, '--force', 'busybox:1.35', 'echo', 'cleanup'])
+    const result = await runCliCommand(['run', '--name', name, '--force', 'busybox:1.35', 'echo cleanup'])
     console.log(`Cleanup attempt for ${name}: ${result.success ? 'success' : 'failed'}`)
   } catch (error) {
     console.log(`Cleanup error for ${name}:`, error)

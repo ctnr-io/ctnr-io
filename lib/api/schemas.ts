@@ -15,6 +15,8 @@ export const Name = z.string().regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, 'Name mu
   .max(63, 'Name cannot exceed 63 characters')
   .describe('Name conform to DNS-1123 label standard')
 
+export const Command = z.array(z.string()).describe('Command to run in container')
+
 export const ContainerName = Name
   .describe('Name of the container')
 

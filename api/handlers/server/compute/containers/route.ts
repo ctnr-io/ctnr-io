@@ -23,7 +23,7 @@ export const Input = z.object({
 
 export type Input = z.infer<typeof Input>
 
-export default async function* routeContainer(request: ServerRequest<Input>): ServerResponse<void> {
+export default async function* RouteContainer(request: ServerRequest<Input>): ServerResponse<void> {
   yield* createRoute({
     ...request,
     input: {

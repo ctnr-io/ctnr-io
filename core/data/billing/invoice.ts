@@ -49,7 +49,7 @@ export async function listInvoices(
 //   kubeClient: KubeClient
 //   namespace: string
 //   qontoClient: QontoClient
-//   abortSignal: AbortSignal
+//   abortabortSignal: AbortSignal
 //   invoiceClient: CreateClientRequest
 // }): Promise<string> {
 //   const { kubeClient: kc, namespace, qontoClient, abortSignal, invoiceClient } = opts

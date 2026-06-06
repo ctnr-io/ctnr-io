@@ -34,8 +34,8 @@ export type Output = {
   paymentId: string
 }
 
-export default async function* PurchaseCredits({ ctx, input, signal }: ServerRequest<Input>): ServerResponse<Output> {
-  yield `Initiating payment for ${input.amount} credits`
+export default async function* PurchaseCredits({ ctx, input, abortSignal }: ServerRequest<Input>): ServerResponse<Output> {
+  yield ctx.log.loader(`💳 Initiating payment for ${input.amount} credits`)
 
   /**
    * When using localhost, the expo ngrok will handle the call from *.exp.direct/api/*
@@ -68,7 +68,7 @@ export default async function* PurchaseCredits({ ctx, input, signal }: ServerReq
   }
 
   // Upsert the billing client with the provided info
-  await ensureBillingClient(billingClientCtx, input.client as BillingClientDTO, signal)
+  await ensureBillingClient(billingClientCtx, input.client as BillingClientDTO, abortSignal)
 
   const payment = await ctx.billing.client['mollie'].customerPayments.create({
     customerId: ctx.billing.mollieCustomerId,

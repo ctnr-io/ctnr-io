@@ -45,7 +45,7 @@ export type Output<T extends OutputType> = {
 // Keep ContainerData for backward compatibility
 export type ContainerData = Container
 
-export default async function* listContainersApiHandler<T extends OutputType = 'raw'>(
+export default async function* ListContainer<T extends OutputType = 'raw'>(
   request: ServerRequest<Input<T>>,
 ): ServerResponse<Output<T>> {
   const { ctx, input } = request
@@ -57,7 +57,7 @@ export default async function* listContainersApiHandler<T extends OutputType = '
 
   // Create container context
   const containerCtx: ContainerContext = {
-    kubeClient: ctx.kube.client['karmada'],
+    kubeClient: ctx.kube.client[ctx.project.cluster],
     namespace: ctx.project.namespace,
   }
 
@@ -66,7 +66,6 @@ export default async function* listContainersApiHandler<T extends OutputType = '
     name,
     includeMetrics: fetchAll || requestedFields.has('metrics'),
     includeRoutes: fetchAll || requestedFields.has('routes'),
-    includePods: fetchAll || requestedFields.has('replicas'),
   })
 
   // Handle output formats
@@ -89,7 +88,6 @@ export default async function* listContainersApiHandler<T extends OutputType = '
       yield 'NAME'.padEnd(26) +
         'IMAGE'.padEnd(25) +
         'STATUS'.padEnd(15) +
-        'REPLICAS'.padEnd(12) +
         'CPU'.padEnd(8) +
         'MEMORY'.padEnd(10) +
         'AGE'.padEnd(12) +
@@ -100,13 +98,12 @@ export default async function* listContainersApiHandler<T extends OutputType = '
         const name = container.name.padEnd(26)
         const image = (container.image || '').substring(0, 24).padEnd(25)
         const status = container.status.padEnd(15)
-        const replicas = `${container.replicas?.current ?? 0}`.padEnd(12)
         const cpu = (container.resources?.requests?.cpu || '').padEnd(8)
         const memory = (container.resources?.requests?.memory || '').padEnd(10)
         const age = formatAge(container.createdAt).padEnd(12)
         const ports = (container.ports?.map((p) => `${p.name || p.number}:${p.number}/${p.protocol}`).join(', ') || '').padEnd(20)
 
-        yield name + image + status + replicas + cpu + memory + age + ports
+        yield name + image + status + cpu + memory + age + ports
       }
       return (void 0) as Output<T>
   }

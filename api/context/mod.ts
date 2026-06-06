@@ -3,6 +3,9 @@ import { KubeClient } from 'infra/kubernetes/mod.ts'
 import { Session, SupabaseClient } from '@supabase/supabase-js'
 import { QontoClient } from 'infra/qonto/mod.ts'
 import { ClusterName } from 'core/schemas/common.ts'
+import { LoggerContext } from 'api/context/logger.ts'
+
+export type { LoggerContext } from 'api/context/logger.ts'
 
 export type Signals =
   | 'SIGINT'
@@ -24,10 +27,12 @@ export type StdioContext = {
   }
 }
 
-type KubeCluster = 'karmada' | 'eu-1'
+export const KubeClusters = ['karmada', 'eu-1'] as const
+export type KubeCluster = typeof KubeClusters[number]
 
 export type ServerKubeContext = {
   kube: {
+    // Change to writer/readers
     client: Record<KubeCluster, KubeClient>
   }
 }
@@ -78,7 +83,7 @@ export type ClientAuthContext =
 /**
  * Project context for managing projects.
  */
-export type ServerProjectContext = ServerAuthContext & ServerKubeContext & {
+export type ServerProjectContext = LoggerContext & ServerAuthContext & ServerKubeContext & {
   project: {
     id: string
     namespace: string
@@ -115,6 +120,7 @@ export type WorkerBillingContext = WebhookBillingContext
 export type ServerContext =
   & VersionContext
   & StdioContext
+  & LoggerContext
   & ServerKubeContext
   & ServerAuthContext
   & ServerProjectContext
@@ -128,4 +134,6 @@ export type WebhookContext = VersionContext & WebhookKubeContext & WebhookBillin
 export type WorkerContext = VersionContext & WorkerKubeContext & WorkerBillingContext & {
   __type: 'worker'
 }
-export type ClientContext = VersionContext & StdioContext & ClientAuthContext & { __type: 'client' }
+export type ClientContext = VersionContext & StdioContext & LoggerContext & ClientAuthContext & { __type: 'client' }
+
+export type ClientTerminalContext = ClientContext

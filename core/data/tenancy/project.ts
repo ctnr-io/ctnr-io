@@ -28,10 +28,10 @@ export function getNamespaceName(projectId: string, userId: string): string {
 export async function deleteProject(
   kubeClient: KubeClient,
   input: { userId: string; projectId: string },
-  signal: AbortSignal
+  abortSignal: AbortSignal
 ): Promise<void> {
   const namespaceName = getNamespaceName(input.projectId, input.userId)
-  await kubeClient.CoreV1.deleteNamespace(namespaceName, { abortSignal: signal })
+  await kubeClient.CoreV1.deleteNamespace(namespaceName, { abortSignal })
 }
 
 /**
@@ -50,7 +50,7 @@ export async function ensureProject(kubeClient: KubeClient, input: {
 	userId: string,
 	projectId: string,
 	projectName?: string,
-}, signal: AbortSignal): Promise<Project> {
+}, abortSignal: AbortSignal): Promise<Project> {
 const { userId, projectId } = input
 
   // 0. Determine resources names like namespace, propagation policy, network policies, etc.
@@ -58,7 +58,7 @@ const { userId, projectId } = input
   const namespaceName = getNamespaceName(projectId, userId)
 
   // Get namespace if exists
-  let namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal }).catch(() => null)
+  let namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal }).catch(() => null)
 
   // Retrieve project name
   const projectName = input.projectName || namespaceObj?.metadata?.labels?.[ProjectNamespaceLabels.Name] || 'default'
@@ -88,7 +88,7 @@ const { userId, projectId } = input
       name: namespaceName,
       labels,
     },
-  }, signal)
+  }, abortSignal)
 
   // 2. Ensure propagation policy to the cluster.
   await ensureClusterPropagationPolicy(kubeClient, {
@@ -109,7 +109,7 @@ const { userId, projectId } = input
         },
       },
     },
-  }, signal)
+  }, abortSignal)
   await ensurePropagationPolicy(kubeClient, {
     apiVersion: 'policy.karmada.io/v1alpha1',
     kind: 'PropagationPolicy',
@@ -158,7 +158,7 @@ const { userId, projectId } = input
         },
       },
     },
-  }, signal)
+  }, abortSignal)
 
   // 2. Ensure network policies to the namespace.
   // Est-West traffic only within namespace, allow from ctnr-api and traefik, allow to world.
@@ -218,11 +218,11 @@ const { userId, projectId } = input
           - toEntities:
               - world
   `.parse<CiliumNetworkPolicy>(YAML.parse as any).data!,
-    signal,
+    abortSignal,
   )
 
   // 3. Check project balance, set limits to Free Tier if no credits.
-  namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal })
+  namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal })
   const balance = getNamespaceBalance(namespaceObj)
   if (balance.credits === 0) {
     await ensureFederatedResourceQuota(kubeClient, {
@@ -239,7 +239,7 @@ const { userId, projectId } = input
           'requests.storage': FreeTier.storage,
         },
       },
-    }, signal)
+    }, abortSignal)
   }
 
   return {
@@ -259,13 +259,13 @@ const { userId, projectId } = input
 export async function getProject(
 	kubeClient: KubeClient,
 	input: { userId: string; projectId: string },
-	signal?: AbortSignal
+	abortSignal?: AbortSignal
 ): Promise<Project | null> {
 	const { userId, projectId } = input
 	const namespaceName = getNamespaceName(projectId, userId)
 
 	try {
-		const ns = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal })
+		const ns = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal })
 		if (!ns.metadata?.labels?.[ProjectNamespaceLabels.Id]) {
 			return null
 		}

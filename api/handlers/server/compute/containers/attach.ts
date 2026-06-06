@@ -2,56 +2,47 @@ import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { handleStreams, setupSignalHandling, setupTerminalHandling } from 'lib/api/streams.ts'
 import { ContainerName } from 'lib/api/schemas.ts'
+import { getContainer } from 'core/data/compute/container.ts'
 
 export const Meta = {
   aliases: {
     options: {
-      interactive: 'i',
-      terminal: 't',
     },
   },
 }
 
 export const Input = z.object({
   name: ContainerName.meta({ positional: true }),
-  interactive: z.boolean().optional().default(false).describe('Run interactively'),
-  terminal: z.boolean().optional().default(false).describe('Run in a terminal'),
-  replica: z.string().optional().describe(
-    'Specific replica name to attach to. If not provided, will attach to the first available replica',
-  ),
+  // TODO: AttachContainer detachKeys flag
+  detachKeys: z.string().optional().describe('Override the key sequence for detaching a container').describe('not implemented'),
+  noStdin: z.boolean().optional().describe('Do not attach STDIN'),
+  // TODO: AttachContainer sigProxy flag
+  sigProxy: z.boolean().optional().describe('Proxy all received signals to the process').describe('not implemented'),
 })
 
 export type Input = z.infer<typeof Input>
 
-export default async function* ({ ctx, input, signal, defer }: ServerRequest<Input>): ServerResponse<void> {
-  const { name, interactive = false, terminal = false, replica } = input
+export default async function* AttachContainer({ ctx, input, abortSignal, defer }: ServerRequest<Input>): ServerResponse<void> {
+  const { name, noStdin = false } = input
 
-  const clusterClient = ctx.kube.client[ctx.project.cluster]
+  const interactive = !noStdin
 
-  const pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
-    labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: signal,
-  }).then(list => list.items)
+  const kubeClient = ctx.kube.client[ctx.project.cluster]
 
-  if (pods.length === 0) {
-    throw new Error(`No replicas found for container ${name}`)
-  }
+  const container = await getContainer({
+    kubeClient,
+    namespace: ctx.project.namespace,
+  }, name)
 
-  // Filter by replica if specified
-  const [pod] = replica
-    ? pods.filter((pod) => replica.includes(pod.metadata?.name || ''))
-    : pods
+  const { terminal } = container
 
-  const podName = pod.metadata?.name!
-  const containerName = pod.spec?.containers?.[0]?.name!
-
-  const tunnel = await clusterClient.CoreV1.namespace(ctx.project.namespace).tunnelPodAttach(podName, {
+  const tunnel = await kubeClient.CoreV1.namespace(ctx.project.namespace).tunnelPodAttach(name, {
     stdin: interactive,
     tty: terminal,
     stdout: true,
     stderr: true,
-    abortSignal: signal,
-    container: containerName,
+    abortSignal,
+    container: container.name,
   })
 
   setupSignalHandling({ ctx, defer, tunnel, terminal, interactive })
@@ -69,7 +60,7 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
 
   await handleStreams({
     ctx,
-    signal,
+    abortSignal,
     defer,
     interactive,
     terminal,

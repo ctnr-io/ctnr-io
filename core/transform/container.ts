@@ -1,42 +1,40 @@
 /**
  * Container Transformer
- * Converts Kubernetes Deployment resources to Container DTOs
- * and Container input to Deployment resources
+ * Converts Kubernetes Pod resources to Container DTOs
+ * and Container input to Pod resources
  */
-import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
-import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
-import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
-import type { Container, ContainerInstance, ContainerPort, ContainerReplicas, ContainerStatus, ContainerSummary } from 'core/schemas/compute/container.ts'
+import { Container, ContainerPort, ContainerState, ContainerStatus, ContainerSummary } from 'core/schemas/compute/container.ts'
 import type { PodMetrics } from 'infra/kubernetes/types/metrics.ts'
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
 import { normalizeQuantity } from './resources.ts'
+import { match, P } from 'ts-pattern'
+import { Pod } from 'infra/kubernetes/types/core.ts'
 
 /**
- * Input for creating a container (deployment)
+ * Input for creating a container (pod)
  */
 export interface ContainerInput {
   name: string
   namespace: string
   image: string
+  desiredStatus?: ContainerStatus
   env?: string[]
   publish?: Array<{ name: string; port: number; protocol?: string }>
   volume?: Array<{ name: string; mountPath: string; size: string }>
   interactive?: boolean
   terminal?: boolean
-  command?: string
-  replicas?: number | string
+  command?: string[]
   cpu?: string
   memory?: string
   ephemeralStorage?: string
-  restart?: 'always' | 'on-failure' | 'never'
+  restart?: 'no' | 'always' | 'on-failure' | 'unless-stopped'
 }
 
 /**
- * Options for transforming a deployment to a container
+ * Options for transforming a pod to a container
  */
-export interface TransformContainerOptions {
-  pods?: Pod[]
+export type TransformContainerOptions = {
   metrics?: PodMetrics[]
   routes?: {
     http: HTTPRoute[]
@@ -45,13 +43,12 @@ export interface TransformContainerOptions {
 }
 
 /**
- * Transform a Kubernetes Deployment to a ContainerSummary DTO (lightweight)
+ * Transform a Kubernetes Pod to a ContainerSummary DTO (lightweight)
  */
-export function deploymentToContainerSummary(deployment: Deployment): ContainerSummary {
-  const metadata = deployment.metadata ?? {}
-  const spec = deployment.spec
-  const status = deployment.status ?? {}
-  const container = spec?.template?.spec?.containers?.[0]
+export function podToContainerSummary(pod: Pod): ContainerSummary {
+  const metadata = pod.metadata ?? {}
+  const spec = pod.spec
+  const container = spec?.containers?.[0]
 
   // Extract resource info
   const resources = container?.resources ?? {}
@@ -64,29 +61,23 @@ export function deploymentToContainerSummary(deployment: Deployment): ContainerS
   return {
     name: metadata.name ?? '',
     image: extractImageName(container?.image ?? ''),
-    status: mapDeploymentStatus(status),
+    status: convertPodToContainerStatus(pod),
     createdAt: new Date(metadata.creationTimestamp ?? Date.now()),
     cpu: cpuLimit,
     memory: memoryLimit,
-    replicas: {
-      current: status.readyReplicas ?? 0,
-      desired: spec?.replicas ?? 1,
-    },
   }
 }
 
 /**
- * Transform a Kubernetes Deployment to a Container DTO
+ * Transform a Kubernetes Pod to a Container DTO
  */
-export function deploymentToContainer(
-  deployment: Deployment,
+export function podToContainer(
+  pod: Pod,
   options: TransformContainerOptions = {},
 ): Container {
-  const metadata = deployment.metadata ?? {}
-  const spec = deployment.spec
-  const status = deployment.status ?? {}
-  const podSpec = spec?.template?.spec
-  const container = podSpec?.containers?.[0]
+  const metadata = pod.metadata ?? {}
+  const spec = pod.spec
+  const container = spec?.containers?.[0]
   const labels = metadata.labels ?? {}
   const annotations = metadata.annotations ?? {}
 
@@ -100,9 +91,6 @@ export function deploymentToContainer(
   const memoryLimit = normalizeQuantity(limits.memory) || normalizeQuantity(requests.memory) || '512Mi'
   const storageLimit = normalizeQuantity(limits['ephemeral-storage']) ||
     normalizeQuantity(requests['ephemeral-storage']) || '1Gi'
-
-  // Extract replicas info
-  const replicas = extractReplicas(deployment, options.pods, options.metrics)
 
   // Extract routes
   const routes = options.routes
@@ -121,10 +109,12 @@ export function deploymentToContainer(
     name: metadata.name ?? '',
     image: extractImageName(container?.image ?? ''),
     tag: extractImageTag(container?.image ?? ''),
-    status: mapDeploymentStatus(status),
+    status: convertPodToContainerStatus(pod),
+    state: extractContainerState(pod),
     createdAt: new Date(metadata.creationTimestamp ?? Date.now()),
     ports: extractPorts(container?.ports as Array<{ name?: string; containerPort?: number; protocol?: string }> ?? []),
     routes,
+    terminal: container?.tty ?? false,
     cpu: cpuLimit,
     memory: memoryLimit,
     storage: storageLimit,
@@ -144,8 +134,14 @@ export function deploymentToContainer(
         }
         : undefined,
     },
-    replicas,
-    restartPolicy: (podSpec?.restartPolicy as 'Always' | 'OnFailure' | 'Never') ?? 'Always',
+    restartPolicy: match(spec?.restartPolicy)
+      .with('Never', () => 'no' as const)
+      .with('OnFailure', () => 'on-failure' as const)
+      .with(
+        P.union('Always', undefined),
+        () => (annotations['ctnr.io/restart-policy'] || 'always') as 'always' | 'unless-stopped',
+      )
+      .exhaustive(),
     command: container?.command ?? [],
     args: container?.args ?? undefined,
     workingDir: container?.workingDir ?? '',
@@ -161,51 +157,11 @@ export function deploymentToContainer(
 }
 
 /**
- * Map Kubernetes Deployment status to ContainerStatus
- */
-export function mapDeploymentStatus(status: Deployment['status']): ContainerStatus {
-  if (!status) return 'unknown'
-
-  const { replicas = 0, readyReplicas = 0, availableReplicas = 0, unavailableReplicas = 0 } = status
-
-  // Check conditions for more detailed status
-  const conditions = status.conditions ?? []
-  const progressingCondition = conditions.find((c) => c.type === 'Progressing')
-  const availableCondition = conditions.find((c) => c.type === 'Available')
-
-  // Deployment is scaling up
-  if (progressingCondition?.reason === 'NewReplicaSetCreated' ||
-    progressingCondition?.reason === 'ReplicaSetUpdated') {
-    return 'starting'
-  }
-
-  // Deployment is scaling down
-  if (replicas === 0) {
-    return 'stopped'
-  }
-
-  // All replicas ready
-  if (readyReplicas === replicas && availableReplicas === replicas) {
-    return 'running'
-  }
-
-  // Some replicas not ready
-  if ((unavailableReplicas ?? 0) > 0) {
-    return 'pending'
-  }
-
-  // Check for errors in conditions
-  if (availableCondition?.status === 'False') {
-    return 'error'
-  }
-
-  return 'pending'
-}
-
-/**
  * Extract port mappings from container ports
  */
-export function extractPorts(ports: Array<{ name?: string; containerPort?: number; protocol?: string }>): ContainerPort[] {
+export function extractPorts(
+  ports: Array<{ name?: string; containerPort?: number; protocol?: string }>,
+): ContainerPort[] {
   return ports.map((port) => ({
     name: port.name,
     number: port.containerPort ?? 0,
@@ -214,75 +170,230 @@ export function extractPorts(ports: Array<{ name?: string; containerPort?: numbe
 }
 
 /**
- * Extract replicas information including pod instances
+ * Extract container state from Kubernetes pod
  */
-export function extractReplicas(
-  deployment: Deployment,
-  pods?: Pod[],
-  metrics?: PodMetrics[],
-): ContainerReplicas {
-  const annotations = deployment.metadata?.annotations ?? {}
-  const status = deployment.status ?? {}
+export function extractContainerState(pod: Pod): ContainerState {
+  const desiredStatus = pod.metadata?.annotations?.['ctnr.io/desired-status'] as ContainerStatus | undefined
+  const containerStatuses = pod.status?.containerStatuses ?? []
+  const mainContainer = containerStatuses[0]
+  const restartPolicy = pod.spec?.restartPolicy
+  const restartCount = mainContainer?.restartCount ?? 0
 
-  const minReplicas = parseInt(annotations['ctnr.io/min-replicas'] ?? '1', 10)
-  const maxReplicas = parseInt(annotations['ctnr.io/max-replicas'] ?? '1', 10)
-  const currentReplicas = status.readyReplicas ?? status.availableReplicas ?? 0
+  // Initialize state flags
+  let running = false
+  let paused = false
+  let restarting = false
+  let oomKilled = false
+  let dead = false
+  let exitCode: number | undefined
+  let error: string | undefined
+  let reason: string | undefined
+  let message: string | undefined
+  let startedAt: string | undefined
+  let finishedAt: string | undefined
 
-  // Extract pod instances
-  const deploymentName = deployment.metadata?.name ?? ''
-  const instances: ContainerInstance[] = []
+  // Determine status (reuse existing logic)
+  const status = convertPodToContainerStatus(pod)
 
-  if (pods) {
-    const deploymentPods = pods.filter((pod) => {
-      const ownerRefs = pod.metadata?.ownerReferences ?? []
-      const labels = pod.metadata?.labels ?? {}
-      // Match by owner reference or by label
-      return ownerRefs.some((ref) => ref.name?.startsWith(deploymentName)) ||
-        labels['ctnr.io/name'] === deploymentName
-    })
+  // Extract detailed state from container status
+  if (mainContainer) {
+    if (mainContainer.state?.waiting) {
+      reason = mainContainer.state.waiting.reason ?? undefined
+      message = mainContainer.state.waiting.message ?? undefined
+      
+      // Check if restarting
+      if (reason === 'CrashLoopBackOff' || reason === 'RunContainerError' || restartCount > 0) {
+        restarting = true
+      }
+      
+      // Set error for failed states
+      if (reason && ['CreateContainerError', 'InvalidImageName', 'CreateContainerConfigError', 'ErrImagePull', 'ImagePullBackOff'].includes(reason)) {
+        error = message || reason
+        if (['CreateContainerError', 'InvalidImageName', 'CreateContainerConfigError'].includes(reason)) {
+          dead = true
+        }
+      }
+    }
 
-    for (const pod of deploymentPods) {
-      const podName = pod.metadata?.name ?? ''
-      const podMetrics = metrics?.find((m) => m.metadata.name === podName)
+    if (mainContainer.state?.running) {
+      running = true
+      startedAt = mainContainer.state.running.startedAt ? 
+        (mainContainer.state.running.startedAt instanceof Date ? 
+          mainContainer.state.running.startedAt.toISOString() : 
+          mainContainer.state.running.startedAt) : undefined
+    }
 
-      instances.push({
-        name: podName,
-        status: mapPodStatus(pod),
-        createdAt: new Date(pod.metadata?.creationTimestamp ?? Date.now()),
-        cpu: podMetrics?.containers?.[0]?.usage?.cpu ?? '0m',
-        memory: podMetrics?.containers?.[0]?.usage?.memory ?? '0Mi',
-        restarts: pod.status?.containerStatuses?.[0]?.restartCount,
-        node: pod.spec?.nodeName ?? undefined,
-      })
+    if (mainContainer.state?.terminated) {
+      exitCode = mainContainer.state.terminated.exitCode ?? 0
+      reason = mainContainer.state.terminated.reason ?? undefined
+      message = mainContainer.state.terminated.message ?? undefined
+      startedAt = mainContainer.state.terminated.startedAt ? 
+        (mainContainer.state.terminated.startedAt instanceof Date ? 
+          mainContainer.state.terminated.startedAt.toISOString() : 
+          mainContainer.state.terminated.startedAt) : undefined
+      finishedAt = mainContainer.state.terminated.finishedAt ? 
+        (mainContainer.state.terminated.finishedAt instanceof Date ? 
+          mainContainer.state.terminated.finishedAt.toISOString() : 
+          mainContainer.state.terminated.finishedAt) : undefined
+      
+      // Check for OOMKilled
+      if (reason === 'OOMKilled') {
+        oomKilled = true
+        dead = true
+        error = 'Container killed due to out of memory'
+      }
+      
+      // Check if container will restart
+      const willRestart = restartPolicy === 'Always' ||
+        (restartPolicy === 'OnFailure' && exitCode !== 0)
+      
+      if (willRestart && restartCount > 0) {
+        restarting = true
+      } else if (exitCode !== 0 && !oomKilled) {
+        dead = true
+        error = message || reason || `Container exited with code ${exitCode}`
+      }
     }
   }
 
+  // Handle paused state
+  if (desiredStatus === 'paused' && pod.spec?.nodeSelector?.['hack.ctnr.io'] === 'paused') {
+    paused = true
+    running = false
+  }
+
+  // Handle removing state
+  if (desiredStatus === 'removing') {
+    dead = true
+  }
+
   return {
-    min: minReplicas,
-    max: maxReplicas,
-    current: currentReplicas,
-    instances,
+    status,
+    running,
+    paused,
+    restarting,
+    oomKilled,
+    dead,
+    exitCode,
+    error,
+    startedAt,
+    finishedAt,
+    reason,
+    message,
   }
 }
 
 /**
- * Map pod status to a simple string
+ * Convert pod status to a container status
+ * 
+ * Priority hierarchy (highest to lowest):
+ * 1. Check for removal intent (desiredStatus annotation)
+ * 2. Container actual state (waiting/running/terminated)
+ * 3. Paused state (desired status + node selector)
+ * 4. Desired status for newly created containers
+ * 5. Pod phase fallback
  */
-function mapPodStatus(pod: Pod): string {
-  const phase = pod.status?.phase ?? 'Unknown'
+export function convertPodToContainerStatus(pod: Pod): ContainerStatus {
+  const desiredStatus = pod.metadata?.annotations?.['ctnr.io/desired-status'] as ContainerStatus | undefined
+  const podPhase = pod.status?.phase
   const containerStatuses = pod.status?.containerStatuses ?? []
+  const mainContainer = containerStatuses[0]
+  const restartPolicy = pod.spec?.restartPolicy
+  const restartCount = mainContainer?.restartCount ?? 0
 
-  // Check for container-level issues
-  for (const cs of containerStatuses) {
-    if (cs.state?.waiting?.reason) {
-      return cs.state.waiting.reason
+  // Priority 1: Check if container is being removed
+  if (desiredStatus === 'removing') {
+    return 'removing'
+  }
+
+  // Priority 2: Check actual container state (most reliable indicator)
+  if (mainContainer) {
+    // Container is waiting (startup, image pull, crash loop, etc.)
+    if (mainContainer.state?.waiting) {
+      const reason = mainContainer.state.waiting.reason
+      
+      // Check if container has restarted before - if so, it's restarting
+      if (restartCount > 0) {
+        return 'restarting'
+      }
+      
+      // Map waiting reasons to statuses based on recoverability
+      return match(reason)
+        // Restarting: Container crashed and restart policy will retry
+        .with('CrashLoopBackOff', 'RunContainerError', () => 'restarting' as const)
+        
+        // Dead: Unrecoverable errors that prevent container from starting
+        .with('CreateContainerError', 'InvalidImageName', 'CreateContainerConfigError', () => 'dead' as const)
+        
+        // Created: Normal startup states or recoverable errors
+        .with(
+          'ContainerCreating',
+          'PodInitializing',
+          'ImagePullBackOff',
+          'ErrImagePull',
+          'ImageInspectError',
+          P.nullish,
+          () => 'created' as const,
+        )
+        
+        // Default to created for unknown waiting reasons
+        .otherwise(() => 'created' as const)
     }
-    if (cs.state?.terminated?.reason) {
-      return cs.state.terminated.reason
+
+    // Container is actively running
+    if (mainContainer.state?.running) {
+      return 'running'
+    }
+
+    // Container has terminated
+    if (mainContainer.state?.terminated) {
+      const exitCode = mainContainer.state.terminated.exitCode ?? 0
+      const reason = mainContainer.state.terminated.reason
+
+      // Check for OOMKilled
+      if (reason === 'OOMKilled') {
+        return 'dead'
+      }
+
+      // Check if container is restarting (terminated but will restart)
+      // Kubernetes only restarts if restartPolicy allows and within backoff limits
+      const willRestart = restartPolicy === 'Always' ||
+        (restartPolicy === 'OnFailure' && exitCode !== 0)
+
+      // If container has restarted before and will restart again, it's restarting
+      if (willRestart && restartCount > 0) {
+        return 'restarting'
+      }
+
+      // Otherwise, map based on exit code
+      return exitCode === 0 ? 'exited' : 'dead'
     }
   }
 
-  return phase
+  // Priority 3: Check if intentionally paused (after checking actual state)
+  // Paused containers have desiredStatus='paused' AND the special nodeSelector
+  // We check this after container state to handle start-in-progress scenarios
+  if (desiredStatus === 'paused' && pod.spec?.nodeSelector?.['hack.ctnr.io'] === 'paused') {
+    // Extra safety: if container is actually running, respect actual state
+    // (this handles the case where start was called but pod hasn't updated yet)
+    if (mainContainer?.state?.running) {
+      return 'running'
+    }
+    return 'paused'
+  }
+
+  // Priority 4: Check desiredStatus for newly created containers (no container state yet)
+  if (desiredStatus === 'created' && !mainContainer) {
+    return 'created'
+  }
+
+  // Priority 5: Fallback to pod phase when no container state is available
+  return match(podPhase)
+    .with('Pending', () => 'created' as const)
+    .with('Running', () => 'running' as const)
+    .with('Succeeded', () => 'exited' as const)
+    .with('Failed', 'Unknown', () => 'dead' as const)
+    .otherwise(() => 'created' as const)
 }
 
 /**
@@ -390,12 +501,13 @@ function extractImageTag(image: string): string | undefined {
 }
 
 /**
- * Transform Container input to a Kubernetes Deployment resource
+ * Transform Container input to a Kubernetes Pod resource
  */
-export function containerInputToDeployment(input: ContainerInput): Deployment {
+export function containerInputToPod(input: ContainerInput): Pod {
   const {
     name,
     namespace,
+    desiredStatus = 'created',
     image,
     env = [],
     publish = [],
@@ -403,44 +515,31 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
     interactive = false,
     terminal = false,
     command,
-    replicas = 1,
     cpu = '250m',
     memory = '256Mi',
     ephemeralStorage = '1Gi',
   } = input
 
-  // Parse replicas parameter
-  let replicaCount: number
-  let minReplicas: number
-  let maxReplicas: number
-
-  if (typeof replicas === 'string') {
-    // Range format: "1-5"
-    const [min, max] = replicas.split('-').map(Number)
-    minReplicas = min
-    maxReplicas = max
-    replicaCount = min // Start with minimum
-  } else {
-    // Single number
-    replicaCount = replicas as number
-    minReplicas = replicaCount
-    maxReplicas = replicaCount
-  }
-
   const labels: Record<string, string> = {
     'ctnr.io/name': name,
+    'ctnr.io/type': 'container',
   }
 
   const annotations: Record<string, string> = {
-    'ctnr.io/min-replicas': minReplicas.toString(),
-    'ctnr.io/max-replicas': maxReplicas.toString(),
+    'ctnr.io/desired-status': desiredStatus,
+    'ctnr.io/restart-policy': input.restart ?? 'no',
     'kubernetes.io/ingress-bandwidth': '100M',
     'kubernetes.io/egress-bandwidth': '100M',
   }
+  const restartPolicy = match(input.restart)
+    .with(P.union('no', undefined), () => 'Never' as const)
+    .with(P.union('always', 'unless-stopped'), () => 'Always' as const)
+    .with('on-failure', () => 'OnFailure' as const)
+    .exhaustive()
 
-  const deploymentResource: Deployment = {
-    apiVersion: 'apps/v1',
-    kind: 'Deployment',
+  const podResource: Pod = {
+    apiVersion: 'v1',
+    kind: 'Pod',
     metadata: {
       name,
       namespace,
@@ -448,106 +547,100 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
       annotations,
     },
     spec: {
-      replicas: replicaCount,
-      selector: {
-        matchLabels: {
-          'ctnr.io/name': name,
-          'ctnr.io/type': 'container',
-        },
-      },
-      template: {
-        metadata: {
-          labels: {
-            'ctnr.io/name': name,
-            'ctnr.io/type': 'container',
+      restartPolicy,
+      hostNetwork: false,
+      hostPID: false,
+      hostIPC: false,
+      hostUsers: false,
+      automountServiceAccountToken: false,
+      containers: [
+        {
+          name,
+          image,
+          stdin: interactive,
+          tty: terminal,
+          command,
+          env: env.length === 0 ? [] : env.map((e) => {
+            const [name, value] = e.split('=')
+            return { name, value }
+          }),
+          ports: publish.map((p) => ({
+            name: p.name,
+            containerPort: Number(p.port),
+            protocol: (p.protocol?.toUpperCase() || 'TCP') as 'TCP' | 'UDP',
+          })),
+          volumeMounts: volume.map((vol) => ({
+            name: vol.name,
+            mountPath: vol.mountPath,
+          })),
+          readinessProbe: {
+            exec: {
+              command: ['true'],
+            },
+          },
+          livenessProbe: {
+            exec: {
+              command: ['true'],
+            },
+          },
+          startupProbe: {
+            exec: {
+              command: ['true'],
+            },
+          },
+          securityContext: {
+            allowPrivilegeEscalation: false,
+            privileged: false,
+            // When `hostUsers: false`, we can use all capabilities because root in container is isolated as an user namespace on the host.
+            // capabilities: {
+            //   drop: ['ALL'],
+            //   add: [
+            //     'CHOWN',
+            //     'DAC_OVERRIDE',
+            //     'FOWNER',
+            //     'FSETID',
+            //     'KILL',
+            //     'NET_BIND_SERVICE',
+            //     'SETGID',
+            //     'SETUID',
+            //     'AUDIT_WRITE',
+            //   ],
+            // },
+          },
+          resources: {
+            limits: {
+              cpu: cpu,
+              memory: memory,
+              'ephemeral-storage': ephemeralStorage,
+            },
+            requests: {
+              cpu: cpu,
+              memory: memory,
+              'ephemeral-storage': ephemeralStorage,
+            },
           },
         },
-        spec: {
-          restartPolicy: 'Always',
-          hostNetwork: false,
-          hostPID: false,
-          hostIPC: false,
-          hostUsers: false,
-          automountServiceAccountToken: false,
-          containers: [
-            {
-              name,
-              image,
-              stdin: interactive,
-              tty: terminal,
-              command: command ? ['sh', '-c', command] : undefined,
-              env: env.length === 0 ? [] : env.map((e) => {
-                const [name, value] = e.split('=')
-                return { name, value }
-              }),
-              ports: publish.map((p) => ({
-                name: p.name,
-                containerPort: Number(p.port),
-                protocol: (p.protocol?.toUpperCase() || 'TCP') as 'TCP' | 'UDP',
-              })),
-              volumeMounts: volume.map((vol) => ({
-                name: vol.name,
-                mountPath: vol.mountPath,
-              })),
-              readinessProbe: {
-                exec: {
-                  command: ['true'],
-                },
-              },
-              livenessProbe: {
-                exec: {
-                  command: ['true'],
-                },
-              },
-              startupProbe: {
-                exec: {
-                  command: ['true'],
-                },
-              },
-              securityContext: {
-                allowPrivilegeEscalation: false,
-                privileged: false,
-                // When `hostUsers: false`, we can use all capabilities because root in container is isolated as an user namespace on the host.
-                // capabilities: {
-                //   drop: ['ALL'],
-                //   add: [
-                //     'CHOWN',
-                //     'DAC_OVERRIDE',
-                //     'FOWNER',
-                //     'FSETID',
-                //     'KILL',
-                //     'NET_BIND_SERVICE',
-                //     'SETGID',
-                //     'SETUID',
-                //     'AUDIT_WRITE',
-                //   ],
-                // },
-              },
-              resources: {
-                limits: {
-                  cpu: toQuantity(cpu),
-                  memory: toQuantity(memory),
-                  'ephemeral-storage': toQuantity(ephemeralStorage),
-                },
-                requests: {
-                  cpu: toQuantity(cpu),
-                  memory: toQuantity(memory),
-                  'ephemeral-storage': toQuantity(ephemeralStorage),
-                },
-              },
-            },
-          ],
-          volumes: volume.map((vol) => ({
-            name: vol.name,
-            persistentVolumeClaim: {
-              claimName: vol.name,
-            },
-          })),
-          dnsPolicy: 'ClusterFirst',
+      ],
+      nodeSelector: desiredStatus === 'paused'
+        ? {
+          'hack.ctnr.io': 'paused',
+        }
+        : {},
+      volumes: volume.map((vol) => ({
+        name: vol.name,
+        persistentVolumeClaim: {
+          claimName: vol.name,
         },
-      },
+      })),
+      dnsPolicy: 'ClusterFirst',
     },
   }
 
-  return deploymentResource
+  console.log({
+    tty: podResource.spec?.containers[0].tty,
+    stdin: podResource.spec?.containers[0].stdin,
+    command: podResource.spec?.containers[0].command,
+  })
+
+  return podResource
 }

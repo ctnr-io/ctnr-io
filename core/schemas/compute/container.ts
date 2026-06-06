@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ResourceQuantities } from '../common.ts'
+import { Command } from 'lib/api/schemas.ts'
 
 /**
  * Container port configuration
@@ -26,29 +27,47 @@ export const ContainerInstance = z.object({
 export type ContainerInstance = z.infer<typeof ContainerInstance>
 
 /**
- * Container replica configuration and status
- */
-export const ContainerReplicas = z.object({
-  min: z.number().min(0),
-  max: z.number().min(1),
-  current: z.number().min(0),
-  instances: z.array(ContainerInstance),
-})
-export type ContainerReplicas = z.infer<typeof ContainerReplicas>
-
-/**
- * Container status enum matching deployment states
+ * Container status enum matching Docker states
  */
 export const ContainerStatus = z.enum([
+  'created',
+  'restarting',
   'running',
-  'stopped',
-  'pending',
-  'error',
-  'unknown',
-  'starting',
-  'stopping',
+  'removing',
+  'paused',
+  'exited',
+  'dead',
 ])
 export type ContainerStatus = z.infer<typeof ContainerStatus>
+
+/**
+ * Container state object matching Docker's State structure
+ * Provides detailed runtime state information compatible with dockerode
+ */
+export const ContainerState = z.object({
+  // Status string (matches ContainerStatus enum)
+  status: ContainerStatus,
+  
+  // State flags (Docker-compatible)
+  running: z.boolean(),
+  paused: z.boolean(),
+  restarting: z.boolean(),
+  oomKilled: z.boolean(),
+  dead: z.boolean(),
+  
+  // Exit information
+  exitCode: z.number().optional(),
+  error: z.string().optional(),
+  
+  // Timestamps
+  startedAt: z.string().optional(),
+  finishedAt: z.string().optional(),
+  
+  // Additional Kubernetes-specific information
+  reason: z.string().optional().describe('Kubernetes waiting/termination reason'),
+  message: z.string().optional().describe('Kubernetes state message'),
+})
+export type ContainerState = z.infer<typeof ContainerState>
 
 /**
  * Environment variable configuration
@@ -84,31 +103,32 @@ export type ContainerResources = z.infer<typeof ContainerResources>
 export const Container = z.object({
   // Identity
   name: z.string(),
-  
+
   // Image configuration
   image: z.string(),
   tag: z.string().optional(),
-  
+
   // Status
   status: ContainerStatus,
+  state: ContainerState.optional().describe('Docker-compatible detailed state'),
   createdAt: z.date(),
-  
+
   // Networking
   ports: z.array(ContainerPort),
   routes: z.array(z.string()),
-  
+
+  // Terminal
+  terminal: z.boolean(),
+
   // Resources
   cpu: z.string(),
   memory: z.string(),
   storage: z.string(),
   resources: ContainerResources.optional(),
-  
-  // Scaling
-  replicas: ContainerReplicas,
-  
+
   // Configuration
-  restartPolicy: z.enum(['Always', 'OnFailure', 'Never']).default('Always'),
-  command: z.array(z.string()),
+  restartPolicy: z.enum(['no', 'on-failure', 'always', 'unless-stopped']).default('no'),
+  command: Command.optional(),
   args: z.array(z.string()).optional(),
   workingDir: z.string(),
   environment: z.record(z.string(), z.string()),
@@ -117,7 +137,7 @@ export const Container = z.object({
     mountPath: z.string(),
     readOnly: z.boolean().optional(),
   })).optional(),
-  
+
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),
   annotations: z.record(z.string(), z.string()).optional(),
@@ -134,10 +154,6 @@ export const ContainerSummary = z.object({
   createdAt: z.date(),
   cpu: z.string(),
   memory: z.string(),
-  replicas: z.object({
-    current: z.number(),
-    desired: z.number(),
-  }),
 })
 export type ContainerSummary = z.infer<typeof ContainerSummary>
 
@@ -156,7 +172,7 @@ export const CreateContainerInput = z.object({
     max: z.number().min(1).optional().default(1),
   }).optional(),
   environment: z.record(z.string(), z.string()).optional(),
-  command: z.array(z.string()).optional(),
+  command: Command.optional(),
   args: z.array(z.string()).optional(),
   workingDir: z.string().optional(),
   cluster: z.enum(['eu-1']).optional(),

@@ -4,14 +4,14 @@ import { getQontoClient } from 'infra/qonto/mod.ts'
 
 export async function createBillingContext(
   ctx: ServerKubeContext & ServerAuthContext & ServerProjectContext,
-  signal: AbortSignal,
+  abortSignal: AbortSignal,
 ): Promise<ServerBillingContext> {
   // Retrieve billing mollieCustomerId from namespace label or create customer
   const mollieClient = getMollieClient()
   const qontoClient = getQontoClient()
 
   const namespace = await ctx.kube.client['karmada'].CoreV1.getNamespace(`ctnr-user-${ctx.project.ownerId}`, {
-    abortSignal: signal,
+    abortSignal,
   })
 
   const mollieCustomerId = await ensureMollieCustormerId({
@@ -20,7 +20,7 @@ export async function createBillingContext(
     namespaceObj: namespace,
     email: ctx.auth.user.email,
     userId: ctx.auth.user.id,
-    signal,
+    abortSignal,
   })
 
   // The qonto client id can change over time due to invoicing

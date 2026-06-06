@@ -20,24 +20,24 @@ export type Input = z.infer<typeof Input>
  * Delete the whole project and its resources by deleting the namespace.
  */
 export default async function* deleteProjectHandler(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<void> {
-  const { ctx, input, signal } = request
+  const { ctx, input, abortSignal } = request
 
   // Check if project exists
   const namespaceName = getNamespaceName(input.id, ctx.auth.user.id)
   try {
-    await ctx.kube.client.karmada.CoreV1.getNamespace(namespaceName, { abortSignal: signal })
+    await ctx.kube.client.karmada.CoreV1.getNamespace(namespaceName, { abortSignal })
   } catch {
     throw new Error(`Project with id ${input.id} not found`)
   }
 
-  yield `Deleting project ${input.id}...`
+  yield ctx.log.loader(`🗑️ Deleting project ${input.id}...`)
 
   // Delete project
   try {
     await deleteProject(ctx.kube.client.karmada, {
       userId: ctx.auth.user.id,
       projectId: input.id,
-    }, signal)
+    }, abortSignal)
     yield `Project ${input.id} deleted successfully`
   } catch (error) {
     console.error(error)

@@ -30,7 +30,7 @@ export type Output<T extends OutputType> = {
   'wide': void
 }[T]
 
-export default async function* getContainer<T extends OutputType = 'raw'>(
+export default async function* GetContainer<T extends OutputType = 'raw'>(
   request: ServerRequest<Input<T>>,
 ): ServerResponse<Output<T>> {
   const containers = yield* listContainers<T>(request)

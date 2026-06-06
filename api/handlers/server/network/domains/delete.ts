@@ -32,7 +32,7 @@ export default async function* (
   }
 
   try {
-    yield `Deleting domain ${name}...`
+    yield ctx.log.loader(`🗑️ Deleting domain ${name}...`)
 
     // Check if domain exists
     const exists = await domainExists(domainCtx, name)

@@ -178,7 +178,7 @@ export async function getDomainVerificationStatus(
 
 export interface ListDomainsOptions {
   name?: string
-  signal?: AbortSignal
+  abortSignal?: AbortSignal
 }
 
 /**
@@ -252,7 +252,7 @@ import { deleteRoute, listRoutes } from './route.ts'
 export interface DomainVerificationOptions {
   domain: string
   projectId: string
-  signal?: AbortSignal
+  abortSignal?: AbortSignal
 }
 
 export interface DomainVerificationResult {

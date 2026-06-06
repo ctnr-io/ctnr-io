@@ -12,9 +12,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
         '--name',
         containerName,
         '--detach',
-        '--image',
         'busybox:1.35',
-        '--command',
         'sh -c "while true; do echo \'Integration test container\'; sleep 5; done"',
       ], { timeout: 10000 })
 
@@ -51,9 +49,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
         '--name',
         containerName,
         '--detach',
-        '--image',
         'busybox:1.35',
-        '--command',
         "sh -c \"echo 'Starting container'; sleep 3; echo 'Container completing'\"",
       ], { timeout: 10000 })
 
@@ -80,9 +76,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
         '--name',
         containerName1,
         '--detach',
-        '--image',
         'busybox:1.35',
-        '--command',
         'sleep 20',
       ], { timeout: 10000 })
       assert(run1Result.code === 0, 'Should have exit code 0')
@@ -94,9 +88,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
         '--detach',
         '--env',
         'TEST_ENV=integration_test',
-        '--image',
         'alpine:3.18',
-        '--command',
         "sh -c 'echo $TEST_ENV; sleep 20'",
       ], { timeout: 10000 })
       assert(run2Result.code === 0, 'Should have exit code 0')
@@ -108,9 +100,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
         '--detach',
         '--port',
         '8080',
-        '--image',
         'busybox:1.35',
-        '--command',
         'sleep 20',
       ], { timeout: 10000 })
       assert(run3Result.code === 0, 'Should have exit code 0')
@@ -151,9 +141,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
         'run',
         '--name',
         'INVALID_NAME_123',
-        '--image',
         'busybox:1.35',
-        '--command',
         'echo test',
       ], { timeout: 30000 })
 
@@ -188,9 +176,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
         '--detach',
         '--interactive',
         '--terminal',
-        '--image',
         'busybox:1.35',
-        '--command',
         'sh',
       ], { timeout: 10000 })
 

@@ -37,6 +37,16 @@ export const ContainerReplicas = z.object({
 export type ContainerReplicas = z.infer<typeof ContainerReplicas>
 
 /**
+ * Container runtime selection.
+ * - 'kata': per-pod VM/kernel isolation via the 'kata-qemu' runtimeClass, for untrusted
+ *   tenant workloads. Requires nested-virt on the node and at least 1 CPU.
+ * - 'containerd': the default shared-kernel runtime (no runtimeClass). Runs everywhere,
+ *   including cheap edge nodes without nested-virt.
+ */
+export const ContainerRuntime = z.enum(['kata', 'containerd'])
+export type ContainerRuntime = z.infer<typeof ContainerRuntime>
+
+/**
  * Container status enum matching deployment states
  */
 export const ContainerStatus = z.enum([
@@ -84,28 +94,28 @@ export type ContainerResources = z.infer<typeof ContainerResources>
 export const Container = z.object({
   // Identity
   name: z.string(),
-  
+
   // Image configuration
   image: z.string(),
   tag: z.string().optional(),
-  
+
   // Status
   status: ContainerStatus,
   createdAt: z.date(),
-  
+
   // Networking
   ports: z.array(ContainerPort),
   routes: z.array(z.string()),
-  
+
   // Resources
   cpu: z.string(),
   memory: z.string(),
   storage: z.string(),
   resources: ContainerResources.optional(),
-  
+
   // Scaling
   replicas: ContainerReplicas,
-  
+
   // Configuration
   restartPolicy: z.enum(['Always', 'OnFailure', 'Never']).default('Always'),
   command: z.array(z.string()),
@@ -117,7 +127,7 @@ export const Container = z.object({
     mountPath: z.string(),
     readOnly: z.boolean().optional(),
   })).optional(),
-  
+
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),
   annotations: z.record(z.string(), z.string()).optional(),
@@ -160,5 +170,6 @@ export const CreateContainerInput = z.object({
   args: z.array(z.string()).optional(),
   workingDir: z.string().optional(),
   cluster: z.enum(['eu-1']).optional(),
+  runtime: ContainerRuntime.optional().default('containerd'),
 })
 export type CreateContainerInput = z.infer<typeof CreateContainerInput>

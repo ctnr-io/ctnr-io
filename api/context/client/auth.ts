@@ -1,10 +1,19 @@
 import { getSupabaseClient } from 'infra/supabase/mod.ts'
 import type { ClientAuthContext } from '../mod.ts'
+import { getAuthProvider } from '../auth-provider.ts'
+import { createClientAuthContextZitadel } from './auth.zitadel.ts'
 import * as shortUUID from '@opensrc/short-uuid'
 
 const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
 
-export async function createClientAuthContext(
+/** Dispatches to the auth adapter selected by AUTH_PROVIDER (default: supabase). */
+export function createClientAuthContext(
+  opts: { storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> },
+): Promise<ClientAuthContext> {
+  return getAuthProvider() === 'zitadel' ? createClientAuthContextZitadel(opts) : createClientAuthContextSupabase(opts)
+}
+
+export async function createClientAuthContextSupabase(
   { storage }: { storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> },
 ): Promise<ClientAuthContext> {
   const supabase = getSupabaseClient({

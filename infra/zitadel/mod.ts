@@ -9,7 +9,14 @@
  * Everything is config-driven from env (issuer / client id), never hardcoded.
  */
 import process from 'node:process'
-import { encodeBase64Url } from '@std/encoding'
+
+// base64url of raw bytes, without the @std/encoding (JSR) dep so this file also bundles for the Expo web
+// build (Metro can't resolve JSR specifiers). btoa exists in both Deno and the browser.
+function encodeBase64Url(bytes: Uint8Array): string {
+  let bin = ''
+  for (const b of bytes) bin += String.fromCharCode(b)
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
 
 export interface ZitadelConfig {
   /** OIDC issuer URL, e.g. https://iam.mk8s.eu */

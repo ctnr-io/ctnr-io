@@ -10,6 +10,9 @@ permissions:
 
 jobs:
   test:
+    needs: [publish-api-image, publish-app-image]
+    if: ${{ always() }}
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -58,7 +61,7 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
   build-cli:
-    needs: [test, compute-tags]
+    needs: [compute-tags]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -129,7 +132,7 @@ jobs:
             dist/ctnr-cli-${{ needs.compute-tags.outputs.short_sha }}-${{ matrix.os }}-${{ matrix.arch }}.*
 
   build-app:
-    needs: [test, compute-tags]
+    needs: [compute-tags]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

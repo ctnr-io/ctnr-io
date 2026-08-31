@@ -24,6 +24,15 @@ export function getMollieClient(): ReturnType<typeof createMollieClient> {
   })
 }
 
+/**
+ * Billing is inert until a real Mollie key is configured (free-tier / pre-revenue default): a placeholder
+ * key means no customer is created and tenant provisioning proceeds without a Mollie round-trip.
+ */
+export function isBillingEnabled(): boolean {
+  const key = env.MOLLIE_API_KEY ?? ''
+  return key !== '' && !key.includes('placeholder')
+}
+
 export async function ensureMollieCustormerId(opts: {
   kubeClient: KubeClient
   mollieClient: MollieClient
@@ -37,7 +46,7 @@ export async function ensureMollieCustormerId(opts: {
   const mollieCustomerIdLabel = `ctnr.io/mollie-${Deno.env.get('MOLLIE_MODE')}-customer-id`
 
   let mollieCustomerId = namespaceObj.metadata?.labels?.[mollieCustomerIdLabel]
-  if (!mollieCustomerId) {
+  if (!mollieCustomerId && isBillingEnabled()) {
     // Create a new customer in Mollie
     const { id } = await mollieClient.customers.create({
       email: email,
@@ -56,5 +65,6 @@ export async function ensureMollieCustormerId(opts: {
       abortSignal: signal,
     })
   }
-  return mollieCustomerId
+  // '' when billing is disabled and no customer exists yet - callers treat it as "no billing customer".
+  return mollieCustomerId ?? ''
 }

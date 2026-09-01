@@ -1,0 +1,12 @@
+{
+  "name": "ctnr-e2e-web",
+  "private": true,
+  "description": "Playwright e2e for the ctnr.io web app. Run against any deployment: BASE_URL=https://app-pr123.ctnr.mk8s.eu npm test",
+  "scripts": {
+    "test": "playwright test",
+    "install-browser": "playwright install chromium --with-deps"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

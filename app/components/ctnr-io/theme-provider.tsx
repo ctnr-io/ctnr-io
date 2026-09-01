@@ -15,14 +15,20 @@ type ThemeProviderState = {
   isLight: boolean
 }
 
+// matchMedia is undefined during the Expo Router static prerender (Node). Guard it so the
+// default context value is SSR-safe; a consumer outside the provider then reads false, not a throw.
+const prefersDark = () =>
+  typeof globalThis.matchMedia === 'function' &&
+  globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+
 const initialState: ThemeProviderState = {
   theme: 'system',
   setTheme: () => null,
   get isDark() {
-    return globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+    return prefersDark()
   },
   get isLight() {
-    return globalThis.matchMedia('(prefers-color-scheme: light)').matches
+    return !prefersDark()
   },
 }
 
@@ -34,9 +40,21 @@ export function ThemeProvider({
   storageKey = 'ui-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-  )
+  // Seed deterministically: localStorage/matchMedia don't exist in the SSR prerender, so reading them
+  // during render throws inside the root Suspense boundary (React #419). Hydrate them in effects instead.
+  const [theme, setTheme] = useState<Theme>(defaultTheme)
+  const [systemDark, setSystemDark] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem(storageKey) as Theme | null
+    if (stored) setTheme(stored)
+
+    const media = globalThis.matchMedia('(prefers-color-scheme: dark)')
+    setSystemDark(media.matches)
+    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [storageKey])
 
   useEffect(() => {
     const root = globalThis.document.documentElement
@@ -44,17 +62,12 @@ export function ThemeProvider({
     root.classList.remove('light', 'dark')
 
     if (theme === 'system') {
-      const systemTheme = globalThis.matchMedia('(prefers-color-scheme: dark)')
-          .matches
-        ? 'dark'
-        : 'light'
-
-      root.classList.add(systemTheme)
+      root.classList.add(systemDark ? 'dark' : 'light')
       return
     }
 
     root.classList.add(theme)
-  }, [theme])
+  }, [theme, systemDark])
 
   const value = {
     theme,
@@ -62,9 +75,8 @@ export function ThemeProvider({
       localStorage.setItem(storageKey, theme)
       setTheme(theme)
     },
-    isDark: theme === 'dark' || (theme === 'system' && globalThis.matchMedia('(prefers-color-scheme: dark)').matches),
-    isLight: theme === 'light' ||
-      (theme === 'system' && globalThis.matchMedia('(prefers-color-scheme: light)').matches),
+    isDark: theme === 'dark' || (theme === 'system' && systemDark),
+    isLight: theme === 'light' || (theme === 'system' && !systemDark),
   }
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

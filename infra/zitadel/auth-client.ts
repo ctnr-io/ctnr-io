@@ -59,6 +59,9 @@ export interface AuthClient {
   ): Promise<AuthResult<{ url: string | null; provider: string }>>
   exchangeCodeForSession(code: string): Promise<AuthResult<{ session: AuthSession | null }>>
   signOut(): Promise<AuthResult<Record<never, never>>>
+  onAuthStateChange(
+    callback: (event: string, session: AuthSession | null) => void,
+  ): { data: { subscription: { unsubscribe: () => void } } }
 }
 
 const SESSION_KEY = 'ctnr.zitadel.session'
@@ -162,6 +165,15 @@ export class ZitadelAuthClient implements AuthClient {
     } catch (error) {
       return { data: {}, error: toError(error) }
     }
+  }
+
+  // Supabase-compatible surface the ctnr client subscribes to. Zitadel has no live auth-event stream
+  // (session lives in storage), so there is nothing to push; return an inert unsubscribe handle so the
+  // caller's `data.subscription.unsubscribe()` cleanup works. Auth changes are picked up on next reload.
+  onAuthStateChange(
+    _callback: (event: string, session: AuthSession | null) => void,
+  ): { data: { subscription: { unsubscribe: () => void } } } {
+    return { data: { subscription: { unsubscribe: () => {} } } }
   }
 
   async #loadSession(): Promise<AuthSession | null> {

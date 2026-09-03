@@ -1,11 +1,20 @@
 import { getSupabaseConfig } from 'infra/supabase/mod.ts'
 import { createClient } from '@supabase/supabase-js'
 import { ServerAuthContext } from '../mod.ts'
+import { getAuthProvider } from '../auth-provider.ts'
+import { createServerAuthContextZitadel } from './auth.zitadel.ts'
 import * as shortUUID from '@opensrc/short-uuid'
 
 const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
 
-export async function createServerAuthContext(
+/** Dispatches to the auth adapter selected by AUTH_PROVIDER (default: supabase). */
+export function createServerAuthContext(
+  opts: { auth: { accessToken: string | undefined; refreshToken: string | undefined } },
+): Promise<ServerAuthContext> {
+  return getAuthProvider() === 'zitadel' ? createServerAuthContextZitadel(opts) : createServerAuthContextSupabase(opts)
+}
+
+export async function createServerAuthContextSupabase(
   opts: { auth: { accessToken: string | undefined; refreshToken: string | undefined } },
 ): Promise<ServerAuthContext> {
   const config = getSupabaseConfig()

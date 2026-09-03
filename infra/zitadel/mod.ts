@@ -9,7 +9,12 @@
  * Everything is config-driven from env (issuer / client id), never hardcoded.
  */
 import process from 'node:process'
-import { encodeBase64Url } from '@std/encoding'
+
+function encodeBase64Url(bytes: Uint8Array): string {
+  let bin = ''
+  for (const b of bytes) bin += String.fromCharCode(b)
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
 
 export interface ZitadelConfig {
   /** OIDC issuer URL, e.g. https://iam.mk8s.eu */

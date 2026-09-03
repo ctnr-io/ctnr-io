@@ -30,7 +30,6 @@
     "@std/testing": "jsr:@std/testing@^1.0.10",
     "@std/uuid": "jsr:@std/uuid@^1.0.6",
     "@std/yaml": "jsr:@std/yaml@^1.0.8",
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.45.4",
     "@tanstack/react-query": "npm:@tanstack/react-query@^5.85.9",
     "@tmpl/core": "jsr:@tmpl/core@^0.6.3",
     "@tmpl/gen": "jsr:@tmpl/gen@^0.6.0",

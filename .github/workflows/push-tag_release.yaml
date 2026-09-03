@@ -18,8 +18,9 @@ env:
   CTNR_VERSION: ${{ github.event.inputs.version }}
   CTNR_API_URL: https://api.ctnr.io
   CTNR_APP_URL: https://app.ctnr.io
-  SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-  SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+  ZITADEL_ISSUER: ${{ vars.ZITADEL_ISSUER }}
+  ZITADEL_CLIENT_ID: ${{ vars.ZITADEL_CLIENT_ID }}
+  ZITADEL_IDP_ID: ${{ vars.ZITADEL_IDP_ID }}
 
 jobs:
   test:
@@ -165,8 +166,9 @@ jobs:
           CTNR_VERSION: ${{ steps.version.outputs.version }}
           CTNR_API_URL: https://api.ctnr.io
           CTNR_APP_URL: https://app.ctnr.io
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          ZITADEL_ISSUER: ${{ vars.ZITADEL_ISSUER }}
+          ZITADEL_CLIENT_ID: ${{ vars.ZITADEL_CLIENT_ID }}
+          ZITADEL_IDP_ID: ${{ vars.ZITADEL_IDP_ID }}
         run: |
           cd app
 

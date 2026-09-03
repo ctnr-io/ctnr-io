@@ -1,12 +1,11 @@
 /**
  * @file infra/zitadel/auth-client.ts
- * @description Stateful OIDC auth client for Zitadel that exposes the same surface the ctnr
- * handlers already call on the Supabase auth client (`getSession`, `getUser`, `setSession`,
- * `signInWithOAuth`, `signOut`, `exchangeCodeForSession`). Session + PKCE state persist in the
- * caller-provided Storage, exactly like `@supabase/supabase-js` does.
+ * @description Stateful OIDC auth client for Zitadel. Exposes the auth surface the ctnr handlers
+ * call (`getSession`, `getUser`, `setSession`, `signInWithOAuth`, `exchangeCodeForSession`,
+ * `signOut`, `onAuthStateChange`). Session + PKCE state persist in the caller-provided Storage.
  *
- * The `AuthClient` interface here is the auth port both adapters conform to; the Supabase auth
- * client satisfies it structurally, and this class implements it for Zitadel.
+ * The `AuthClient` interface here is the auth port the app depends on; this class is the sole
+ * implementation.
  */
 import {
   buildAuthorizeUrl,
@@ -47,6 +46,14 @@ export interface AuthResult<T> {
   error: { message: string } | null
 }
 
+export type AuthChangeEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED'
+
+export type AuthStateChangeCallback = (event: AuthChangeEvent, session: AuthSession | null) => void
+
+export interface AuthSubscription {
+  data: { subscription: { unsubscribe: () => void } }
+}
+
 /** The subset of the auth client surface the ctnr handlers depend on. */
 export interface AuthClient {
   getSession(): Promise<AuthResult<{ session: AuthSession | null }>>
@@ -59,6 +66,7 @@ export interface AuthClient {
   ): Promise<AuthResult<{ url: string | null; provider: string }>>
   exchangeCodeForSession(code: string): Promise<AuthResult<{ session: AuthSession | null }>>
   signOut(): Promise<AuthResult<Record<never, never>>>
+  onAuthStateChange(callback: AuthStateChangeCallback): AuthSubscription
 }
 
 const SESSION_KEY = 'ctnr.zitadel.session'
@@ -67,10 +75,22 @@ const PKCE_KEY = 'ctnr.zitadel.pkce'
 export class ZitadelAuthClient implements AuthClient {
   #storage: Storage
   #config: ZitadelConfig
+  #listeners = new Set<AuthStateChangeCallback>()
 
   constructor(storage: Storage, config: ZitadelConfig = getZitadelConfig()) {
     this.#storage = storage
     this.#config = config
+  }
+
+  onAuthStateChange(callback: AuthStateChangeCallback): AuthSubscription {
+    this.#listeners.add(callback)
+    return { data: { subscription: { unsubscribe: () => void this.#listeners.delete(callback) } } }
+  }
+
+  #emit(event: AuthChangeEvent, session: AuthSession | null): void {
+    for (const listener of this.#listeners) {
+      listener(event, session)
+    }
   }
 
   async getSession(): Promise<AuthResult<{ session: AuthSession | null }>> {
@@ -100,6 +120,7 @@ export class ZitadelAuthClient implements AuthClient {
         expires_in: 0,
       }, info)
       this.#storage.setItem(SESSION_KEY, JSON.stringify(session))
+      this.#emit('SIGNED_IN', session)
       return { data: { session, user: session.user }, error: null }
     } catch (error) {
       return { data: { session: null, user: null }, error: toError(error) }
@@ -143,6 +164,7 @@ export class ZitadelAuthClient implements AuthClient {
       const session = this.#toSession(tokens, info)
       this.#storage.setItem(SESSION_KEY, JSON.stringify(session))
       this.#storage.removeItem(PKCE_KEY)
+      this.#emit('SIGNED_IN', session)
       return { data: { session }, error: null }
     } catch (error) {
       return { data: { session: null }, error: toError(error) }
@@ -158,6 +180,7 @@ export class ZitadelAuthClient implements AuthClient {
         const discovery = await discoverOidc(this.#config.issuer)
         await endSession(discovery, {})
       }
+      this.#emit('SIGNED_OUT', null)
       return { data: {}, error: null }
     } catch (error) {
       return { data: {}, error: toError(error) }
@@ -182,6 +205,7 @@ export class ZitadelAuthClient implements AuthClient {
     const info = await getUserInfo(discovery, tokens.access_token)
     const session = this.#toSession(tokens, info)
     this.#storage.setItem(SESSION_KEY, JSON.stringify(session))
+    this.#emit('TOKEN_REFRESHED', session)
     return session
   }
 

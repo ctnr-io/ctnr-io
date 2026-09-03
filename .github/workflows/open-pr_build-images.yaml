@@ -268,6 +268,55 @@ jobs:
           build-args: |
             CTNR_VERSION=${{ needs.compute-tags.outputs.short_sha }}
 
+  preview-e2e:
+    needs: [compute-tags, publish-app-image, publish-api-image]
+    runs-on: ubuntu-latest
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      SHA: ${{ needs.compute-tags.outputs.short_sha }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for the PR preview to serve this SHA
+        run: |
+          # ArgoCD's pullRequest generator requeues every 300s (mk8s.eu ctnr-preview appset) and then
+          # Knative cold-starts the ksvc, so poll the preview API /version until it reports THIS build's
+          # sha - otherwise Playwright runs against the previous revision and false-fails the
+          # client/server version-match test.
+          api="https://pr${PR}.api.ctnr.io/version"
+          deadline=$(( $(date +%s) + 900 ))
+          until [ "$(date +%s)" -ge "$deadline" ]; do
+            got="$(curl -fsS --max-time 15 "$api" 2>/dev/null || true)"
+            echo "preview /version -> ${got:-<unreachable>} (want ${SHA})"
+            case "$got" in *"${SHA}"*) echo "preview serving ${SHA}"; exit 0 ;; esac
+            sleep 20
+          done
+          echo "::error::pr${PR} preview did not serve ${SHA} within 15m"
+          exit 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Playwright smoke suite against the preview
+        working-directory: e2e/web
+        env:
+          BASE_URL: https://pr${{ github.event.pull_request.number }}.app.ctnr.io
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+          npm test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr${{ github.event.pull_request.number }}
+          path: e2e/web/playwright-report/
+          if-no-files-found: ignore
+
   rollback-release:
     needs: [compute-tags, publish-app-image, publish-api-image]
     if: failure()

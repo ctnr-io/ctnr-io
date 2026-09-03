@@ -19,7 +19,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-    image: z.string()
+  image: z.string()
     .min(1, 'Containers image cannot be empty')
     // TODO: Add image tag validation when stricter security is needed
     // .regex(/^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$/, "Container image must include a tag for security")
@@ -62,6 +62,9 @@ export const Input = z.object({
   restart: z.enum(['always', 'on-failure', 'never']).optional().default('never').describe(
     'Restart policy for the container',
   ),
+  runtime: z.enum(['kata', 'containerd']).optional().default('containerd').describe(
+    "Container runtime: 'kata' for VM-isolated untrusted workloads (needs nested-virt and >= 1 CPU), 'containerd' otherwise",
+  ),
 })
 
 export type Input = z.infer<typeof Input>
@@ -71,7 +74,8 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
 
   const {
     image,
-    name = image.split(':')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-' + hash("sha256", crypto.randomUUID()).substring(0, 6),
+    name = image.split(':')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-' +
+      hash('sha256', crypto.randomUUID()).substring(0, 6),
     env = [],
     publish,
     volume = [],
@@ -82,6 +86,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     replicas,
     cpu,
     memory,
+    runtime,
   } = input
 
   const ephemeralStorage = '1G'
@@ -131,6 +136,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     cpu,
     memory,
     ephemeralStorage,
+    runtime,
   })
 
   // Start with 0 replicas, will be updated when starting
@@ -140,7 +146,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
 
   // Check if the deployment already exists
   let deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).getDeployment(name).catch(
-    () => null
+    () => null,
   )
   if (deployment) {
     if (force) {
@@ -165,7 +171,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     }
   }
 
-	  // Initialize the deployment
+  // Initialize the deployment
   yield `✍️  Initializing containers ${name}...`
   await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).createDeployment(deploymentResource, {
     abortSignal: signal,
@@ -212,10 +218,11 @@ async function waitForDeployment({ ctx, name, predicate, signal }: {
   predicate: (deployment: Deployment) => boolean | Promise<boolean>
   signal: AbortSignal
 }): Promise<Deployment> {
-  const deploymentWatcher = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).watchDeploymentList({
-    labelSelector: `ctnr.io/name=${name}`,
-    abortSignal: signal,
-  })
+  const deploymentWatcher = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace)
+    .watchDeploymentList({
+      labelSelector: `ctnr.io/name=${name}`,
+      abortSignal: signal,
+    })
   const reader = deploymentWatcher.getReader()
   while (true) {
     const { done, value } = await reader.read()

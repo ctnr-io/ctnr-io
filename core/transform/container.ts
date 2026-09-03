@@ -6,7 +6,16 @@
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
-import type { Container, ContainerInstance, ContainerPort, ContainerReplicas, ContainerStatus, ContainerSummary } from 'core/schemas/compute/container.ts'
+import type {
+  Container,
+  ContainerInstance,
+  ContainerPort,
+  ContainerReplicas,
+  ContainerRuntime,
+  ContainerStatus,
+  ContainerSummary,
+} from 'core/schemas/compute/container.ts'
+import { assertKataCpuMinimum, runtimeClassNameFor } from 'core/rules/compute/runtime.ts'
 import type { PodMetrics } from 'infra/kubernetes/types/metrics.ts'
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
@@ -30,6 +39,7 @@ export interface ContainerInput {
   memory?: string
   ephemeralStorage?: string
   restart?: 'always' | 'on-failure' | 'never'
+  runtime?: ContainerRuntime
 }
 
 /**
@@ -174,8 +184,10 @@ export function mapDeploymentStatus(status: Deployment['status']): ContainerStat
   const availableCondition = conditions.find((c) => c.type === 'Available')
 
   // Deployment is scaling up
-  if (progressingCondition?.reason === 'NewReplicaSetCreated' ||
-    progressingCondition?.reason === 'ReplicaSetUpdated') {
+  if (
+    progressingCondition?.reason === 'NewReplicaSetCreated' ||
+    progressingCondition?.reason === 'ReplicaSetUpdated'
+  ) {
     return 'starting'
   }
 
@@ -205,7 +217,9 @@ export function mapDeploymentStatus(status: Deployment['status']): ContainerStat
 /**
  * Extract port mappings from container ports
  */
-export function extractPorts(ports: Array<{ name?: string; containerPort?: number; protocol?: string }>): ContainerPort[] {
+export function extractPorts(
+  ports: Array<{ name?: string; containerPort?: number; protocol?: string }>,
+): ContainerPort[] {
   return ports.map((port) => ({
     name: port.name,
     number: port.containerPort ?? 0,
@@ -407,7 +421,10 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
     cpu = '250m',
     memory = '256Mi',
     ephemeralStorage = '1Gi',
+    runtime = 'containerd',
   } = input
+
+  assertKataCpuMinimum(runtime, cpu)
 
   // Parse replicas parameter
   let replicaCount: number
@@ -464,6 +481,7 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
         },
         spec: {
           restartPolicy: 'Always',
+          runtimeClassName: runtimeClassNameFor(runtime),
           hostNetwork: false,
           hostPID: false,
           hostIPC: false,

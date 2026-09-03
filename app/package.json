@@ -43,7 +43,6 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "@std/yaml": "npm:@jsr/std__yaml",
-    "@supabase/supabase-js": "^2.55.0",
     "@tabler/icons-react": "^3.34.1",
     "@tanstack/react-query": "^5.85.5",
     "@tanstack/react-table": "^8.21.3",

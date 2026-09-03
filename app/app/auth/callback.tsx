@@ -4,10 +4,12 @@ import { Text, View } from 'react-native'
 import { Platform } from 'react-native'
 import * as Linking from 'expo-linking'
 import { handleAuthCallback } from 'api/handlers/client/auth/login_from_app.ts'
+import { useExpoTrpcClientContext } from 'api/drivers/trpc/client/expo/mod.tsx'
 
 export default function AuthCallback() {
   const router = useRouter()
   const params = useLocalSearchParams()
+  const ctx = useExpoTrpcClientContext()
 
   useEffect(() => {
     const processCallback = async () => {
@@ -19,24 +21,24 @@ export default function AuthCallback() {
 
         if (error) {
           console.error('OAuth error:', error)
-          // Redirect to login with error
           router.replace('/(auth)/login')
           return
         }
 
         if (code) {
-          // Notify the login-from-app handler about the callback
-          const callbackUrl = `ctnr-io://auth/callback?code=${code}`
-          handleAuthCallback(callbackUrl)
-
-          // Store the code temporarily and redirect to main app
-          // The auth handler will pick this up
-          sessionStorage.setItem('oauth_code', code)
+          // Complete the PKCE exchange on the mounted client (same storage that holds the
+          // verifier). This establishes the session and fires onAuthStateChange, which refreshes
+          // the app context.
+          const { error: exchangeError } = await ctx.auth.client.exchangeCodeForSession(code)
+          if (exchangeError) {
+            console.error('Failed to exchange code for session:', exchangeError.message)
+            router.replace('/(auth)/login')
+            return
+          }
           router.replace('/(main)/containers')
           return
         }
 
-        // No code or error, redirect to login
         router.replace('/(auth)/login')
       } else {
         // React Native environment (including Expo Go) - handle deep-link callback
@@ -50,11 +52,8 @@ export default function AuthCallback() {
         }
 
         if (code) {
-          // Construct the callback URL for the handler
           const callbackUrl = `ctnr-io://auth/callback?code=${code}`
           handleAuthCallback(callbackUrl)
-
-          // Redirect to the main app
           router.replace('/(main)/containers')
           return
         }
@@ -85,13 +84,12 @@ export default function AuthCallback() {
           console.warn('Could not parse initial URL:', err)
         }
 
-        // No valid callback data found, redirect to login
         router.replace('/(auth)/login')
       }
     }
 
     processCallback()
-  }, [router, params])
+  }, [router, params, ctx])
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

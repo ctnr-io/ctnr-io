@@ -44,7 +44,7 @@
 │  • Tenancy       │                  │                      │
 ├─────────────────────────────────────────────────────────────┤
 │                   Infrastructure Layer                      │
-│   Kubernetes  │  Supabase  │  Mollie  │  DNS Provider      │
+│   Kubernetes  │  Zitadel   │  Mollie  │  DNS Provider      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -190,7 +190,7 @@ ctnr/
 │   ├── dns/          # DNS provider
 │   ├── kubernetes/   # Kubernetes client
 │   ├── mollie/       # Payment processing
-│   └── supabase/     # Authentication & database
+│   └── zitadel/      # Authentication (OIDC IdP)
 └── lib/              # Shared utilities
 ```
 

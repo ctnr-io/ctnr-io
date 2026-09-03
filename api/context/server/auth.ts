@@ -1,53 +1,50 @@
-import { getSupabaseConfig } from 'infra/supabase/mod.ts'
-import { createClient } from '@supabase/supabase-js'
-import { ServerAuthContext } from '../mod.ts'
-import { getAuthProvider } from '../auth-provider.ts'
-import { createServerAuthContextZitadel } from './auth.zitadel.ts'
-import * as shortUUID from '@opensrc/short-uuid'
+import { getZitadelConfig } from 'infra/zitadel/mod.ts'
+import { ZitadelAuthClient } from 'infra/zitadel/auth-client.ts'
+import type { ServerAuthContext } from '../mod.ts'
 
-const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
-
-/** Dispatches to the auth adapter selected by AUTH_PROVIDER (default: supabase). */
-export function createServerAuthContext(
+/**
+ * Establishes a server-side auth context from the access/refresh tokens carried by the request.
+ * The Zitadel `sub` is used verbatim as the owner id (numeric snowflake, not a UUID).
+ */
+export async function createServerAuthContext(
   opts: { auth: { accessToken: string | undefined; refreshToken: string | undefined } },
 ): Promise<ServerAuthContext> {
-  return getAuthProvider() === 'zitadel' ? createServerAuthContextZitadel(opts) : createServerAuthContextSupabase(opts)
-}
-
-export async function createServerAuthContextSupabase(
-  opts: { auth: { accessToken: string | undefined; refreshToken: string | undefined } },
-): Promise<ServerAuthContext> {
-  const config = getSupabaseConfig()
-  const supabase = createClient(config.url, config.anonKey)
   if (!opts.auth.accessToken || !opts.auth.refreshToken) {
     throw new Error('Access token and refresh token are required for authentication context')
   }
+  const client = new ZitadelAuthClient(inMemoryStorage(), getZitadelConfig())
   try {
-    const { data: { session, user } } = await supabase.auth.setSession({
+    const { data: { session, user }, error } = await client.setSession({
       access_token: opts.auth.accessToken,
       refresh_token: opts.auth.refreshToken,
     })
-    if (!session) {
-      throw new Error('Failed to set session with provided tokens')
-    }
-    if (!user) {
-      throw new Error('Failed to retrieve user from session')
+    if (error || !session || !user) {
+      throw new Error(error?.message ?? 'Failed to establish session from provided tokens')
     }
     return {
       auth: {
-        client: supabase.auth,
-        session: session,
+        client,
+        session,
         user: {
-          avatar: user.user_metadata.avatar_url,
-          email: user.email!,
-          id: shortUUIDtranslator.fromUUID(user.id),
-          name: user.app_metadata.user_name,
+          avatar: user.user_metadata.avatar_url ?? '',
+          email: user.email ?? '',
+          id: user.id,
+          name: user.user_metadata.name ?? user.app_metadata.user_name ?? '',
           createdAt: new Date(user.created_at),
         },
       },
     }
   } catch (error) {
-    console.error('Error setting session:', error)
+    console.error('Error establishing Zitadel session:', error)
     throw new Error('Please log in again to continue.')
+  }
+}
+
+function inMemoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
+  const map = new Map<string, string>()
+  return {
+    getItem: (k) => map.get(k) ?? null,
+    setItem: (k, v) => void map.set(k, v),
+    removeItem: (k) => void map.delete(k),
   }
 }

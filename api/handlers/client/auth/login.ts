@@ -23,7 +23,7 @@ export default async function* login(
 
     yield '🔑 Starting OAuth flow...'
 
-    // Start OAuth flow with GitHub using Supabase
+    // Start OAuth flow with the configured provider (GitHub via Zitadel)
     const { data, error } = await ctx.auth.client.signInWithOAuth({
       provider,
       options: {

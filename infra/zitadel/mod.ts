@@ -2,9 +2,9 @@
  * @file infra/zitadel/mod.ts
  * @description Raw Zitadel SDK wrapper: OIDC/OAuth primitives + Zitadel management API.
  *
- * This is the infra-level equivalent of `infra/supabase/mod.ts`: it only knows how to talk
- * to a Zitadel instance over HTTP. It holds no ctnr domain concepts; the tenancy adapters
- * (the auth.zitadel.ts files under api/context) wrap these primitives into the auth context.
+ * Infra-level: it only knows how to talk to a Zitadel instance over HTTP. It holds no ctnr
+ * domain concepts; the auth context adapters (api/context/{client,server}/auth.ts) wrap these
+ * primitives into the auth context.
  *
  * Everything is config-driven from env (issuer / client id), never hardcoded.
  */

@@ -1,6 +1,6 @@
 import { MollieClient } from '@mollie/api-client'
 import { KubeClient } from 'infra/kubernetes/mod.ts'
-import { Session, SupabaseClient } from '@supabase/supabase-js'
+import type { AuthClient, AuthSession } from 'infra/zitadel/auth-client.ts'
 import { QontoClient } from 'infra/qonto/mod.ts'
 import { ClusterName } from 'core/schemas/common.ts'
 
@@ -45,8 +45,8 @@ export type WorkerKubeContext = WebhookKubeContext
  */
 export type ServerAuthContext = {
   auth: {
-    client: SupabaseClient['auth']
-    session: Session
+    client: AuthClient
+    session: AuthSession
     user: {
       id: string
       email: string
@@ -64,7 +64,7 @@ export type ServerAuthContext = {
 export type ClientAuthContext =
   & (ServerAuthContext | {
     auth: {
-      client: SupabaseClient['auth']
+      client: AuthClient
       session: null
       user: null
     }

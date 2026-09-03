@@ -1,31 +1,22 @@
-import { getSupabaseClient } from 'infra/supabase/mod.ts'
+import { getZitadelConfig } from 'infra/zitadel/mod.ts'
+import { ZitadelAuthClient } from 'infra/zitadel/auth-client.ts'
 import type { ClientAuthContext } from '../mod.ts'
-import { getAuthProvider } from '../auth-provider.ts'
-import { createClientAuthContextZitadel } from './auth.zitadel.ts'
-import * as shortUUID from '@opensrc/short-uuid'
 
-const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid25Base36)
-
-/** Dispatches to the auth adapter selected by AUTH_PROVIDER (default: supabase). */
-export function createClientAuthContext(
-  opts: { storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> },
-): Promise<ClientAuthContext> {
-  return getAuthProvider() === 'zitadel' ? createClientAuthContextZitadel(opts) : createClientAuthContextSupabase(opts)
-}
-
-export async function createClientAuthContextSupabase(
+/**
+ * Loads any persisted Zitadel session from the provided storage; returns a null session/user
+ * when unauthenticated. The Zitadel `sub` is used verbatim as the owner id (numeric snowflake,
+ * not a UUID - never run it through shortUUID).
+ */
+export async function createClientAuthContext(
   { storage }: { storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> },
 ): Promise<ClientAuthContext> {
-  const supabase = getSupabaseClient({
-    storage,
-  })
-  const { data: { session } } = await supabase.auth.getSession().catch((error) => ({ error, data: { session: null } }))
-  const { data: { user } } = await supabase.auth.getUser().catch((error) => ({ error, data: { user: null } }))
-  if (!session || !user) {
+  const client = new ZitadelAuthClient(storage, getZitadelConfig())
+  const { data: { session } } = await client.getSession()
+  if (!session || !session.user) {
     return {
       auth: {
         storage,
-        client: supabase.auth,
+        client,
         session: null,
         user: null,
       },
@@ -34,14 +25,14 @@ export async function createClientAuthContextSupabase(
   return {
     auth: {
       storage,
-      client: supabase.auth,
+      client,
       session,
       user: {
-        id: shortUUIDtranslator.fromUUID(user.id),
-        email: user.email || '',
-        name: user.user_metadata.name || '',
-        avatar: user.user_metadata.avatar_url || '',
-        createdAt: new Date(user.created_at) || '',
+        id: session.user.id,
+        email: session.user.email ?? '',
+        name: session.user.user_metadata.name ?? '',
+        avatar: session.user.user_metadata.avatar_url ?? '',
+        createdAt: new Date(session.user.created_at),
       },
     },
   }

@@ -1,0 +1,22 @@
+{{- range $name, $vol := .Values.volumes }}
+{{- $driverOpts := default (dict) $vol.driver_opts -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name | quote }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/resource-type: volume
+    ctnr.io/name: {{ $name | quote }}
+spec:
+  accessModes:
+    {{- toYaml (default (list "ReadWriteOnce") $driverOpts.accessModes) | nindent 4 }}
+  {{- if $driverOpts.storageClassName }}
+  storageClassName: {{ $driverOpts.storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ default "10Gi" $driverOpts.size | quote }}
+---
+{{- end }}

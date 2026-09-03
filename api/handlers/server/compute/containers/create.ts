@@ -20,11 +20,11 @@ export const Meta = {
 
 export const Input = z.object({
     image: z.string()
-    .min(1, 'Containers image cannot be empty')
+    .min(1, 'Container image cannot be empty')
     // TODO: Add image tag validation when stricter security is needed
     // .regex(/^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$/, "Container image must include a tag for security")
     // .refine((img) => !img.includes(":latest"), "Using ':latest' tag is not allowed for security reasons")
-    .describe('Containers image to run')
+    .describe('Container image to run')
     .meta({ positional: true }),
   name: ContainerName.optional(),
   env: z.array(

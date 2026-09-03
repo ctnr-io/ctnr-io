@@ -1,0 +1,17 @@
+// CLI e2e tests - imports all CLI command tests
+import './commands/login.test.ts'
+import './commands/logout.test.ts'
+import './commands/run.test.ts'
+import './commands/list.test.ts'
+import './commands/get.test.ts'
+import './commands/attach.test.ts'
+import './commands/exec.test.ts'
+import './commands/logs.test.ts'
+import './commands/remove.test.ts'
+import './commands/restart.test.ts'
+import './commands/start.test.ts'
+import './commands/stop.test.ts'
+import './commands/rollout.test.ts'
+import './commands/route.test.ts'
+
+export * from './test-runner.ts'

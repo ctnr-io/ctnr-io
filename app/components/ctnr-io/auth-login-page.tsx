@@ -12,12 +12,14 @@ interface AuthLoginFormProps {
   className?: string
   onSignInGithub: () => Promise<void>
   isLoading: boolean
+  error?: string
 }
 
 export default function AuthLoginForm({
   className,
   onSignInGithub,
   isLoading,
+  error,
 }: AuthLoginFormProps) {
   return (
     <div className={cn('bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10', className)}>
@@ -34,6 +36,16 @@ export default function AuthLoginForm({
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {error
+                ? (
+                  <div
+                    role='alert'
+                    className='border-destructive/50 text-destructive mb-4 rounded-md border px-3 py-2 text-sm'
+                  >
+                    {error}
+                  </div>
+                )
+                : null}
               <Button
                 variant='outline'
                 className='w-full'

@@ -6,7 +6,15 @@
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
-import type { Container, ContainerInstance, ContainerPort, ContainerReplicas, ContainerStatus, ContainerSummary } from 'core/schemas/compute/container.ts'
+import type {
+  Container,
+  ContainerInstance,
+  ContainerLastTermination,
+  ContainerPort,
+  ContainerReplicas,
+  ContainerStatus,
+  ContainerSummary,
+} from 'core/schemas/compute/container.ts'
 import type { PodMetrics } from 'infra/kubernetes/types/metrics.ts'
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
@@ -244,6 +252,7 @@ export function extractReplicas(
     for (const pod of deploymentPods) {
       const podName = pod.metadata?.name ?? ''
       const podMetrics = metrics?.find((m) => m.metadata.name === podName)
+      const containerStatuses = pod.status?.containerStatuses ?? []
 
       instances.push({
         name: podName,
@@ -251,8 +260,10 @@ export function extractReplicas(
         createdAt: new Date(pod.metadata?.creationTimestamp ?? Date.now()),
         cpu: podMetrics?.containers?.[0]?.usage?.cpu ?? '0m',
         memory: podMetrics?.containers?.[0]?.usage?.memory ?? '0Mi',
-        restarts: pod.status?.containerStatuses?.[0]?.restartCount,
+        restarts: sumRestarts(containerStatuses),
         node: pod.spec?.nodeName ?? undefined,
+        ready: allContainersReady(containerStatuses),
+        lastTermination: latestTermination(containerStatuses),
       })
     }
   }
@@ -283,6 +294,47 @@ function mapPodStatus(pod: Pod): string {
   }
 
   return phase
+}
+
+type PodContainerStatus = NonNullable<NonNullable<Pod['status']>['containerStatuses']>[number]
+
+/**
+ * Sum restart counts across all containers in a pod
+ */
+function sumRestarts(containerStatuses: PodContainerStatus[]): number | undefined {
+  if (containerStatuses.length === 0) return undefined
+  return containerStatuses.reduce((total, cs) => total + (cs.restartCount ?? 0), 0)
+}
+
+/**
+ * A pod is ready only when every one of its containers reports ready
+ */
+function allContainersReady(containerStatuses: PodContainerStatus[]): boolean | undefined {
+  if (containerStatuses.length === 0) return undefined
+  return containerStatuses.every((cs) => cs.ready)
+}
+
+/**
+ * Most recent termination across all containers, for "why did my container crash"
+ */
+function latestTermination(containerStatuses: PodContainerStatus[]): ContainerLastTermination | undefined {
+  const terminations = containerStatuses
+    .map((cs) => cs.lastState?.terminated)
+    .filter((t): t is NonNullable<typeof t> => t != null)
+
+  if (terminations.length === 0) return undefined
+
+  const latest = terminations.reduce((mostRecent, current) => {
+    const mostRecentTime = mostRecent.finishedAt ? new Date(mostRecent.finishedAt).getTime() : 0
+    const currentTime = current.finishedAt ? new Date(current.finishedAt).getTime() : 0
+    return currentTime > mostRecentTime ? current : mostRecent
+  })
+
+  return {
+    reason: latest.reason ?? undefined,
+    exitCode: latest.exitCode,
+    finishedAt: latest.finishedAt ? new Date(latest.finishedAt) : undefined,
+  }
 }
 
 /**

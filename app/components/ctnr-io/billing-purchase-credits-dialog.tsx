@@ -11,7 +11,7 @@ import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
-import { useForm } from 'react-hook-form'
+import { Resolver, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BillingClient } from 'core/rules/billing/utils.ts'
@@ -28,6 +28,13 @@ const CreditPurchaseFormSchema = z.object({
 }).and(BillingClient)
 
 type CreditPurchaseFormData = z.infer<typeof CreditPurchaseFormSchema>
+
+// z4.input<> under-computes this union-in-intersection schema; no transform, so input === output at runtime.
+const creditPurchaseFormResolver = zodResolver(CreditPurchaseFormSchema) as unknown as Resolver<
+  CreditPurchaseFormData,
+  unknown,
+  CreditPurchaseFormData
+>
 
 // Client Information Form Component
 function ClientInfoForm({ form, watchedType }: {
@@ -277,7 +284,7 @@ function CreditPurchaseForm({
 
   // Initialize form with default values
   const form = useForm<CreditPurchaseFormData>({
-    resolver: zodResolver(CreditPurchaseFormSchema),
+    resolver: creditPurchaseFormResolver,
     defaultValues: {
       amount: '500',
       type: 'individual',

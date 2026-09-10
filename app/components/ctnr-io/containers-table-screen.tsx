@@ -13,7 +13,7 @@ import { Label } from '../shadcn/ui/label.tsx'
 import { TerminalLine } from './terminal-line.tsx'
 import ResponsiveDialog from './responsive-dialog.tsx'
 import { Badge } from '../shadcn/ui/badge.tsx'
-import { Container } from 'core/schemas/mod.ts'
+import { Container, ContainerPort } from 'core/schemas/mod.ts'
 import ContainerCreateWizard from './container-create-wizard.tsx'
 
 function getStatusColor(status: string) {
@@ -149,7 +149,7 @@ export default function ContainersTableScreen({
       label: 'Ports',
       render: (_value, item) =>
         item.ports
-          ? item.ports.map((port) => (
+          ? item.ports.map((port: ContainerPort) => (
             <Badge variant='outline'>
             </Badge>
           )).join(', ')

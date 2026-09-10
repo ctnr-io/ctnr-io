@@ -54,8 +54,10 @@ export interface DataTableScreenProps<T = any> {
   defaultVisibleColumns?: string[] // Column keys that should be visible by default
   mobileVisibleColumns?: string[] // Column keys that should be visible on mobile
 
-  // Loading and empty states
+  // Loading, error and empty states
   loading?: boolean
+  error?: string
+  onRetry?: () => void
   emptyTitle?: string
   emptyMessage?: string
 
@@ -90,6 +92,8 @@ export function DataTableScreen<T = any>({
   defaultVisibleColumns,
   mobileVisibleColumns,
   loading = false,
+  error,
+  onRetry,
   emptyTitle,
   emptyMessage = 'No data available',
   pagination = false,
@@ -156,6 +160,8 @@ export function DataTableScreen<T = any>({
         defaultVisibleColumns={defaultVisibleColumns}
         mobileVisibleColumns={mobileVisibleColumns}
         loading={loading}
+        error={error}
+        onRetry={onRetry}
         emptyTitle={emptyTitle}
         emptyMessage={emptyMessage}
         primaryAction={primaryAction}

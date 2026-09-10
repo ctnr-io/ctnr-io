@@ -109,7 +109,12 @@ export default function DomainsTableScreen() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
-  const { data: domains, isLoading: isDomainsLoading } = useQuery(
+  const {
+    data: domains,
+    isLoading: isDomainsLoading,
+    error: domainsError,
+    refetch: refetchDomains,
+  } = useQuery(
     trpc.network.domains.listQuery.queryOptions({
       output: 'raw',
     }),
@@ -225,6 +230,8 @@ export default function DomainsTableScreen() {
       icon={Globe}
       data={domainData}
       isLoading={isDomainsLoading || isProjectLoading}
+      error={domainsError ? domainsError.message : undefined}
+      onRetry={() => refetchDomains()}
       columns={columns}
       onAdd={handleAdd}
       onDelete={handleDelete}

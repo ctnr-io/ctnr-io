@@ -308,7 +308,12 @@ export default function RoutesTableScreen() {
   )
 
   // Fetch routes data
-  const { data: routes, isLoading: isRoutesLoading } = useQuery(
+  const {
+    data: routes,
+    isLoading: isRoutesLoading,
+    error: routesError,
+    refetch: refetchRoutes,
+  } = useQuery(
     trpc.network.routes.listQuery.queryOptions({
       output: 'raw',
     }),
@@ -452,6 +457,8 @@ export default function RoutesTableScreen() {
       icon={RouteIcon}
       data={routeData}
       isLoading={isRoutesLoading || isProjectLoading}
+      error={routesError ? routesError.message : undefined}
+      onRetry={() => refetchRoutes()}
       columns={columns}
       onAdd={handleAdd}
       onDelete={handleDelete}

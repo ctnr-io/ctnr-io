@@ -8,7 +8,7 @@ export default function ContainersScreen() {
   const router = useRouter()
   const trpc = useTRPC()
 
-  const { data, isLoading, isFetching } = useQuery(trpc.core.listQuery.queryOptions({
+  const { data, isLoading, isFetching, error, refetch } = useQuery(trpc.core.listQuery.queryOptions({
     output: 'raw',
     fields: ['basic', 'resources', 'replicas', 'routes', 'clusters'], // Only fetch what the table needs
   }))
@@ -17,6 +17,8 @@ export default function ContainersScreen() {
     <ContainersTableScreen
       data={data as Container[]}
       isLoading={isLoading || isFetching}
+      error={error ? error.message : undefined}
+      onRetry={() => refetch()}
       onRowClick={(container) => {
         router.push(`/containers/${container.name}`)
       }}

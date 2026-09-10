@@ -4,7 +4,7 @@ import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Input } from 'app/components/shadcn/ui/input.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'app/components/shadcn/ui/table.tsx'
 import { Skeleton } from 'app/components/shadcn/ui/skeleton.tsx'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, Search, Settings2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, Eye, EyeOff, LucideIcon, RotateCcw, Search, Settings2 } from 'lucide-react'
 import { MouseEvent, ReactNode, useMemo, useState } from 'react'
 import { Checkbox } from 'app/components/shadcn/ui/checkbox.tsx'
 import { Card, CardContent, CardFooter, CardHeader } from '../shadcn/ui/card.tsx'
@@ -69,8 +69,10 @@ export interface DataTableProps<T = any> {
   defaultVisibleColumns?: string[] // Column keys that should be visible by default
   mobileVisibleColumns?: string[] // Column keys that should be visible on mobile
 
-  // Loading and empty states
+  // Loading, error and empty states
   loading?: boolean
+  error?: string
+  onRetry?: () => void
   emptyTitle?: string
   emptyMessage?: string
   primaryAction?: { label: string; icon: LucideIcon; onClick: () => void }
@@ -106,6 +108,8 @@ export function DataTable<T = any>({
   defaultVisibleColumns,
   mobileVisibleColumns,
   loading = false,
+  error,
+  onRetry,
   emptyTitle = 'Nothing here yet',
   emptyMessage = 'No data available',
   primaryAction,
@@ -452,7 +456,25 @@ export function DataTable<T = any>({
           </CardHeader>
         )}
 
-        {loading
+        {error
+          ? (
+            <div className='p-8 flex flex-col items-center gap-3 text-center'>
+              <div className='p-3 bg-destructive/10 rounded-lg'>
+                <AlertTriangle className='h-6 w-6 text-destructive' />
+              </div>
+              <div>
+                <h3 className='font-semibold text-foreground'>Failed to load {tableTitle.toLowerCase()}</h3>
+                <p className='text-sm text-muted-foreground mt-1'>{error}</p>
+              </div>
+              {onRetry && (
+                <Button onClick={onRetry} variant='outline' className='mt-1'>
+                  <RotateCcw className='h-4 w-4 mr-2' />
+                  Retry
+                </Button>
+              )}
+            </div>
+          )
+          : loading
           ? (
             <>
               {/* Mobile Card View - Loading */}

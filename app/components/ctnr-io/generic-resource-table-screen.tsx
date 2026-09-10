@@ -27,9 +27,11 @@ export interface GenericResourceTableScreenProps<T extends ResourceItem> {
   resourceNamePlural: string
   icon: LucideIcon
 
-  // Data and loading
+  // Data, loading and error
   data: T[]
   isLoading?: boolean
+  error?: string
+  onRetry?: () => void
 
   // Table configuration
   columns: TableColumn<T>[]
@@ -116,6 +118,8 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
   icon: Icon,
   data,
   isLoading = false,
+  error,
+  onRetry,
   columns,
   onAdd,
   onDelete,
@@ -216,6 +220,8 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
         emptyTitle={emptyTitle || `No ${resourceNamePlural.toLowerCase()} yet`}
         emptyMessage={emptyMessage || `Create your first ${resourceName.toLowerCase()} to get started.`}
         loading={isLoading}
+        error={error}
+        onRetry={onRetry}
       />
 
       {/* Add dialog */}

@@ -41,10 +41,14 @@ function formatDate(date: Date) {
 export default function ContainersTableScreen({
   data = [],
   isLoading = false,
+  error,
+  onRetry,
   onRowClick,
 }: {
   data: Container[] | undefined
   isLoading?: boolean
+  error?: string
+  onRetry?: () => void
   onRowClick: (container: Container) => void
 }) {
   const queryClient = useQueryClient()
@@ -351,6 +355,8 @@ export default function ContainersTableScreen({
         emptyTitle='No containers yet'
         emptyMessage='Create your first container to get started.'
         loading={isLoading}
+        error={error}
+        onRetry={onRetry}
       />
     </>
   )

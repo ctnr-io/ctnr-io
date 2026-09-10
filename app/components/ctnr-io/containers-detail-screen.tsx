@@ -2,8 +2,9 @@
 
 import { ContainerImageIcon } from 'app/components/ctnr-io/container-image-icon.tsx'
 import { ContainerLogs } from 'app/components/ctnr-io/container-logs.tsx'
+import { ContainerMetrics } from 'app/components/ctnr-io/container-metrics.tsx'
 import { DataDetailsScreen } from 'app/components/ctnr-io/data-details-screen.tsx'
-import { Copy, FileText, Info, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
+import { Activity, Copy, Info, Play, RotateCcw, Settings, Square, Trash2 } from 'lucide-react'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
 import { Badge } from 'app/components/shadcn/ui/badge.tsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -63,6 +64,14 @@ export type ContainerData = {
       createdAt: Date
       cpu: string
       memory: string
+      restarts?: number
+      node?: string
+      ready?: boolean
+      lastTermination?: {
+        reason?: string
+        exitCode?: number
+        finishedAt?: Date
+      }
     }[]
   }
   routes: string[]
@@ -425,15 +434,18 @@ export function ContainersDetailScreen(props: {
           ],
         },
         {
-          id: 'logs',
-          label: 'Logs',
-          icon: <FileText className='h-4 w-4 sm:mr-2' />,
+          id: 'observability',
+          label: 'Observability',
+          icon: <Activity className='h-4 w-4 sm:mr-2' />,
           className: '-mx-6 sm:mx-0',
           content: (
-            <ContainerLogs
-              containerName={data.name}
-              replicas={data.replicas.instances}
-            />
+            <div className='space-y-6'>
+              <ContainerMetrics containerName={data.name} />
+              <ContainerLogs
+                containerName={data.name}
+                replicas={data.replicas.instances}
+              />
+            </div>
           ),
         },
         // {

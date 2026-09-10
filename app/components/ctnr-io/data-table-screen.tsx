@@ -56,6 +56,7 @@ export interface DataTableScreenProps<T = any> {
 
   // Loading and empty states
   loading?: boolean
+  emptyTitle?: string
   emptyMessage?: string
 
   pagination?: boolean
@@ -89,6 +90,7 @@ export function DataTableScreen<T = any>({
   defaultVisibleColumns,
   mobileVisibleColumns,
   loading = false,
+  emptyTitle,
   emptyMessage = 'No data available',
   pagination = false,
   page = 0,
@@ -154,7 +156,9 @@ export function DataTableScreen<T = any>({
         defaultVisibleColumns={defaultVisibleColumns}
         mobileVisibleColumns={mobileVisibleColumns}
         loading={loading}
+        emptyTitle={emptyTitle}
         emptyMessage={emptyMessage}
+        primaryAction={primaryAction}
         pagination={pagination}
         page={page}
         onPageChange={onPageChange}

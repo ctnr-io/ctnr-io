@@ -71,7 +71,9 @@ export interface DataTableProps<T = any> {
 
   // Loading and empty states
   loading?: boolean
+  emptyTitle?: string
   emptyMessage?: string
+  primaryAction?: { label: string; icon: LucideIcon; onClick: () => void }
 
   pagination?: boolean
   page?: number // Current page number (0-indexed)
@@ -104,7 +106,9 @@ export function DataTable<T = any>({
   defaultVisibleColumns,
   mobileVisibleColumns,
   loading = false,
+  emptyTitle = 'Nothing here yet',
   emptyMessage = 'No data available',
+  primaryAction,
   pagination = false,
   page = 0,
   onPageChange,
@@ -476,11 +480,32 @@ export function DataTable<T = any>({
             </>
           )
           : filteredData.length === 0
-          ? (
-            <div className='p-8 text-center text-muted-foreground'>
-              {searchQuery ? `No results found for "${searchQuery}"` : emptyMessage}
-            </div>
-          )
+          ? searchQuery
+            ? (
+              <div className='p-8 flex flex-col items-center gap-3 text-center'>
+                <p className='text-sm text-muted-foreground'>No results found for "{searchQuery}"</p>
+                <Button variant='outline' size='sm' onClick={() => setSearchQuery('')}>
+                  Clear search
+                </Button>
+              </div>
+            )
+            : (
+              <div className='p-8 flex flex-col items-center gap-3 text-center'>
+                <div className='p-3 bg-primary/10 rounded-lg'>
+                  <Icon className='h-6 w-6 text-primary' />
+                </div>
+                <div>
+                  <h3 className='font-semibold text-foreground'>{emptyTitle}</h3>
+                  <p className='text-sm text-muted-foreground mt-1'>{emptyMessage}</p>
+                </div>
+                {primaryAction && (
+                  <Button onClick={primaryAction.onClick} className='mt-1'>
+                    <primaryAction.icon className='h-4 w-4 mr-2' />
+                    {primaryAction.label}
+                  </Button>
+                )}
+              </div>
+            )
           : (
             <>
               {/* Mobile Card View */}

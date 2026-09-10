@@ -51,6 +51,7 @@ export interface GenericResourceTableScreenProps<T extends ResourceItem> {
   infoDescription?: ReactNode
   searchPlaceholder?: string
   searchKeys?: string[]
+  emptyTitle?: string
   emptyMessage?: string
   addButtonLabel?: string
   tableDescription?: ReactNode
@@ -124,6 +125,7 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
   infoDescription,
   searchPlaceholder,
   searchKeys,
+  emptyTitle,
   emptyMessage,
   addButtonLabel,
   tableDescription,
@@ -211,8 +213,8 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
         searchKeys={searchKeys}
         columnFilterable
         defaultVisibleColumns={columns.map((col) => col.key)}
-        emptyMessage={emptyMessage ||
-          `No ${resourceNamePlural.toLowerCase()} found. Create your first ${resourceName.toLowerCase()} to get started.`}
+        emptyTitle={emptyTitle || `No ${resourceNamePlural.toLowerCase()} yet`}
+        emptyMessage={emptyMessage || `Create your first ${resourceName.toLowerCase()} to get started.`}
         loading={isLoading}
       />
 

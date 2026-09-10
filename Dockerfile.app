@@ -15,10 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install bun to /workspace/.bun for non-root user
 RUN curl -fsSL https://bun.sh/install | bash && mv /root/.bun /workspace/.bun
 
-# Download and extract the app from the GitHub release
-RUN curl -fsSL https://github.com/ctnr-io/ctnr-io/releases/download/${CTNR_VERSION}/ctnr-app-${CTNR_VERSION}.tar.gz -o ctnr-app.tar.gz && \
-    tar -xzf ctnr-app.tar.gz && \
-    rm ctnr-app.tar.gz
+# App bundle is built by the build-app job and fetched by the workflow (actions/download-artifact)
+# before this build runs, since the GitHub Release asset it used to curl is draft and 404s unauthenticated.
+COPY app/dist ./dist
 
 # Copy package.json, npmrc, serve config, and entrypoint
 COPY app/package.json app/.npmrc app/serve.json app/docker-entrypoint.sh ./

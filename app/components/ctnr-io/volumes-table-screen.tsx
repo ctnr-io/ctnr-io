@@ -130,7 +130,7 @@ export default function VolumesTableScreen() {
   const queryClient = useQueryClient()
 
   // Fetch volumes data
-  const { data: volumes = [], isLoading } = useQuery(
+  const { data: volumes = [], isLoading, error: volumesError, refetch: refetchVolumes } = useQuery(
     trpc.storage.volumes.listQuery.queryOptions({
       output: 'raw',
     }),
@@ -261,6 +261,8 @@ export default function VolumesTableScreen() {
       icon={HardDrive}
       data={volumes as Volume[]}
       isLoading={isLoading}
+      error={volumesError ? volumesError.message : undefined}
+      onRetry={() => refetchVolumes()}
       columns={columns}
       onAdd={handleAdd}
       onDelete={handleDelete}

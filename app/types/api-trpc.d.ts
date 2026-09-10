@@ -102,6 +102,27 @@ declare module 'api/drivers/trpc/client/expo/mod.tsx' {
       stopMutation: MutationProcedure<{ name: string }, void>
       restartMutation: MutationProcedure<{ name: string }, void>
       removeMutation: MutationProcedure<{ name: string; force: boolean }, void>
+      runMutation: MutationProcedure<
+        {
+          image: string
+          name?: string
+          env?: string[]
+          publish?: string[]
+          volume?: string[]
+          domain?: string
+          interactive?: boolean
+          terminal?: boolean
+          detach?: boolean
+          route?: string
+          force?: boolean
+          command?: string
+          replicas?: number | string
+          cpu?: string
+          memory?: string
+          restart?: 'always' | 'on-failure' | 'never'
+        },
+        void
+      >
     }
     network: {
       domains: {

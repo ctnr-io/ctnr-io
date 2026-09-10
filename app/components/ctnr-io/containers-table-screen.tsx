@@ -14,6 +14,7 @@ import { TerminalLine } from './terminal-line.tsx'
 import ResponsiveDialog from './responsive-dialog.tsx'
 import { Badge } from '../shadcn/ui/badge.tsx'
 import { Container } from 'core/schemas/mod.ts'
+import ContainerCreateWizard from './container-create-wizard.tsx'
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -294,12 +295,21 @@ export default function ContainersTableScreen({
   ]
 
   const [runDialogOpen, setRunDialogOpen] = useState(false)
+  const [cliDialogOpen, setCliDialogOpen] = useState(false)
 
   return (
     <>
-      <ResponsiveDialog
+      <ContainerCreateWizard
         open={runDialogOpen}
         onOpenChange={setRunDialogOpen}
+        onSwitchToCli={() => {
+          setRunDialogOpen(false)
+          setCliDialogOpen(true)
+        }}
+      />
+      <ResponsiveDialog
+        open={cliDialogOpen}
+        onOpenChange={setCliDialogOpen}
         title='Install & Run CLI'
         description={
           <div className='space-y-4 flex flex-col'>

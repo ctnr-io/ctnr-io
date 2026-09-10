@@ -1,7 +1,7 @@
 import { FreeTier } from 'core/rules/billing/utils.ts'
 import { ensureFederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.ts'
 import { calculateTotalCost } from './cost.ts'
-import { Balance, getNamespaceBalance, getNextBalance, updateBalance } from './balance.ts'
+import { Balance, ensureDailyFreeCredits, getNamespaceBalance, getNextBalance, getTotalCredits, updateBalance } from './balance.ts'
 import {
   extractDeploymentCurrentResourceUsage,
   parseResourceToPrimitiveValue,
@@ -15,7 +15,8 @@ import {
  * - 'resource_limits_reached_for_current_usage': The user has reached their resource limits.
  * - 'insufficient_credits_for_current_usage': The user has insufficient credits for current resources.
  * - 'insufficient_credits_for_additional_resource': The user has insufficient credits for additional provisioning.
- * - 'free_tier': The user is on the free tier and has limited resources.
+ * - 'free_tier': The user is on the free tier (no paid credits) and running on their daily free credits.
+ * - 'out_of_credits': The user has exhausted both free and paid credits for today.
  */
 export type BalanceStatus =
   | 'normal'
@@ -24,6 +25,7 @@ export type BalanceStatus =
   | 'insufficient_credits_for_current_usage'
   | 'insufficient_credits_for_additional_resource'
   | 'free_tier'
+  | 'out_of_credits'
 
 export interface Usage {
   balance: Balance
@@ -85,7 +87,13 @@ export async function getUsage(opts: {
 
   let balance = getNamespaceBalance(namespaceObj)
 
-  if (balance.credits <= 0) {
+  // Grant today's free credits before anything else reads the balance.
+  const balanceWithFreeCredits = ensureDailyFreeCredits(balance)
+  balance = balanceWithFreeCredits === balance
+    ? balance
+    : await updateBalance(kubeClient, namespace, balanceWithFreeCredits, signal)
+
+  if (getTotalCredits(balance) <= 0) {
     // For free tier users, always use free tier limits
     parsedLimits = { ...freeTierLimits }
     // Ensure resource quota is set to free tier limits
@@ -231,27 +239,32 @@ export async function getUsage(opts: {
       parseResourceToPrimitiveValue(resources.storage.next, 'storage') <= freeTierLimits.storage
     : currentUsageWithinFreeTier
 
+  const totalCredits = getTotalCredits(balance)
+
+  // Determine tier: paid as soon as any paid credits are present, regardless of free credits.
+  const tier = balance.paidCredits > 0 ? 'paid' : 'free' as 'free' | 'paid'
+
   // Priority order for status determination:
   // 1. If current usage exceeds credits, it's a breach
   // 2. If resource limits are reached, that takes priority over credit issues
   // 3. If next usage would exceed credits, insufficient credits
-  // 4. If credits are 0, it's free tier (unless other issues exist)
-  if (!currentUsageWithinFreeTier && currentCost.hourly > balance.credits) {
+  // 4. If both free and paid credits are exhausted, out of credits
+  // 5. Otherwise, on the free tier it's just free_tier; else normal
+  if (!currentUsageWithinFreeTier && currentCost.hourly > totalCredits) {
     status = 'insufficient_credits_for_current_usage'
   } else if (!currentUsageWithinFreeTier && resourceLimitReached) {
     status = 'resource_limits_reached_for_current_usage'
-  } else if (!nextUsageWithinFreeTier && additionalResource && nextCost.hourly > balance.credits) {
+  } else if (!nextUsageWithinFreeTier && additionalResource && nextCost.hourly > totalCredits) {
     status = 'insufficient_credits_for_additional_resource'
   } else if (!nextUsageWithinFreeTier && additionalResource && nextCost.daily > limitCost.daily) {
     status = 'resource_limits_reached_for_additional_resource'
-  } else if (balance.credits === 0) {
+  } else if (totalCredits <= 0) {
+    status = 'out_of_credits'
+  } else if (tier === 'free') {
     status = 'free_tier'
   } else {
     status = 'normal'
   }
-
-  // Determine tier
-  const tier = balance.credits > 0 ? 'paid' : 'free' as 'free' | 'paid'
 
   const result: Usage = {
     balance,
@@ -286,14 +299,14 @@ export async function* checkUsage(opts: {
   // Display current usage information
   yield `${usage.tier === 'free' ? '🆓' : '⚡️'} Account Status: ${
     usage.tier === 'free' ? 'Free Tier' : 'Paid'
-  } | Credits: ${usage.balance.credits}`
+  } | Credits: ${getTotalCredits(usage.balance)} (free: ${usage.balance.freeCredits}, paid: ${usage.balance.paidCredits})`
 
   // Check status and provide appropriate messages
   switch (usage.status) {
     case 'insufficient_credits_for_current_usage': {
       yield `🚨 Credit breach! Current usage (${
         usage.costs.current.hourly.toFixed(4)
-      } credits/hour) exceeds your balance (${usage.balance.credits} credits)`
+      } credits/hour) exceeds your balance (${getTotalCredits(usage.balance)} credits)`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits immediately.`
 
       // Retrieve last threshold breach time
@@ -354,7 +367,7 @@ export async function* checkUsage(opts: {
 
     case 'insufficient_credits_for_additional_resource': {
       yield `⚠️  Insufficient credits for this additional provisioning! Next usage would exceed your balance.`
-      yield `💰 Balance: ${usage.balance.credits} credits, Next cost: ${
+      yield `💰 Balance: ${getTotalCredits(usage.balance)} credits, Next cost: ${
         usage.costs.next.hourly.toFixed(4)
       } credits/hour`
       yield `👉 Visit ${Deno.env.get('CTNR_APP_URL')}/billing to purchase more credits.`
@@ -393,6 +406,15 @@ export async function* checkUsage(opts: {
 
     // TODO: add low_balance case w/ notification only if credits < 5 * max daily cost
 
+    case 'out_of_credits': {
+      // Softer dunning: usage already fits within free tier limits (otherwise we'd be in
+      // insufficient_credits_for_current_usage above), so just nag - no scale-to-0.
+      yield `🪫 Out of credits for today (free and paid balance are both 0).`
+      yield `⏳ Daily free credits reset at ${new Date(usage.balance.freeCreditsResetAt).toLocaleString()}.`
+      yield `👉 Or visit ${Deno.env.get('CTNR_APP_URL')}/billing to add credits now.`
+      break
+    }
+
     case 'free_tier':
       yield `✅ Free tier usage check passed`
       yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
@@ -401,7 +423,7 @@ export async function* checkUsage(opts: {
     case 'normal':
       yield `✅ Usage and credit check passed`
       yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
-      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${usage.balance.credits} credits)`
+      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${getTotalCredits(usage.balance)} credits)`
       break
 
     default:

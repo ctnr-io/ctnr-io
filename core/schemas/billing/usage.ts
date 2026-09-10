@@ -8,8 +8,10 @@ import { z } from 'zod'
  * Balance schema
  */
 export const BalanceSchema = z.object({
-  credits: z.number(),
-  lastUpdated: z.string(),
+  freeCredits: z.number(),
+  paidCredits: z.number(),
+  freeCreditsResetAt: z.string().or(z.number()),
+  lastUpdated: z.string().or(z.number()),
 })
 export type Balance = z.infer<typeof BalanceSchema>
 
@@ -22,6 +24,7 @@ export const BalanceStatusSchema = z.enum([
   'resource_limits_reached_for_additional_resource',
   'insufficient_credits_for_current_usage',
   'insufficient_credits_for_additional_resource',
+  'out_of_credits',
   'free_tier',
 ])
 export type BalanceStatus = z.infer<typeof BalanceStatusSchema>

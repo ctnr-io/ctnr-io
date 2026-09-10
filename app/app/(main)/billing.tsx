@@ -147,7 +147,9 @@ export default function BillingScreen() {
   ]
 
   // Use actual data from the updated API
-  const currentBalance = Number(usageData?.balance.credits.toFixed(0)) ?? 0
+  const freeCredits = Number(usageData?.balance.freeCredits?.toFixed(0)) ?? 0
+  const paidCredits = Number(usageData?.balance.paidCredits?.toFixed(0)) ?? 0
+  const currentBalance = freeCredits + paidCredits
   const tier = usageData?.tier ?? 'free'
   const isPaidPlan = usageData?.tier !== 'free'
   // Map backend invoices to Invoice type expected by DataTableScreen
@@ -186,6 +188,28 @@ export default function BillingScreen() {
         </div>
 
         {/* Warning Alerts */}
+        {status === 'out_of_credits' && (
+          <Alert className='mb-6'>
+            <AlertTriangle className='h-5 w-5' />
+            <AlertDescription>
+              <div className='flex-1'>
+                <h4 className='font-semibold mb-2'>Out of Credits for Today</h4>
+                <p className='text-sm mb-4'>
+                  Your free and paid balance are both 0. Your usage still fits within the free tier, so
+                  nothing will be paused - your daily free credits reset at{' '}
+                  {usageData?.balance.freeCreditsResetAt
+                    ? new Date(usageData.balance.freeCreditsResetAt).toLocaleString()
+                    : 'the next reset'}, or you can add credits now.
+                </p>
+                <Button size='sm' onClick={() => setPurchaseDialogOpen(true)}>
+                  <Plus className='h-4 w-4 mr-2' />
+                  Add Credits
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {(status === 'resource_limits_reached_for_current_usage' ||
           status === 'insufficient_credits_for_current_usage') && (
           <Alert className='mb-6' variant='destructive'>
@@ -256,7 +280,10 @@ export default function BillingScreen() {
                     <p className='text-4xl font-bold text-foreground mb-1'>
                       {currentBalance?.toLocaleString() || '0'}
                     </p>
-                    <p className='text-muted-foreground font-medium'>credits</p>
+                    <p className='text-muted-foreground font-medium mb-2'>credits</p>
+                    <p className='text-xs text-muted-foreground'>
+                      Free: {freeCredits.toLocaleString()} &middot; Paid: {paidCredits.toLocaleString()}
+                    </p>
                   </div>
                   <Button
                     onClick={() => setPurchaseDialogOpen(true)}

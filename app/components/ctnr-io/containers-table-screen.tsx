@@ -148,11 +148,16 @@ export default function ContainersTableScreen({
       key: 'ports',
       label: 'Ports',
       render: (_value, item) =>
-        item.ports
-          ? item.ports.map((port: ContainerPort) => (
-            <Badge variant='outline'>
-            </Badge>
-          )).join(', ')
+        item.ports.length > 0
+          ? (
+            <div className='flex flex-wrap gap-1'>
+              {item.ports.map((port: ContainerPort) => (
+                <Badge key={`${port.name ?? ''}${port.number}/${port.protocol}`} variant='outline'>
+                  {port.number}/{port.protocol}
+                </Badge>
+              ))}
+            </div>
+          )
           : '-',
     },
     {

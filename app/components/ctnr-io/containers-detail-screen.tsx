@@ -369,7 +369,7 @@ export function ContainersDetailScreen(props: {
                       </div>
 
                       <div className='mt-3 text-xs text-muted-foreground'>
-                        Created: {formatDate(instance.created)}
+                        Created: {formatDate(instance.createdAt)}
                       </div>
                     </div>
                   ))}

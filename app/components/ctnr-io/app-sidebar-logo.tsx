@@ -6,10 +6,8 @@ export function AppSidebarLogo(props: SvgProps) {
   const { open } = useSidebar()
   const { isDark } = useTheme()
   return (
-    // @ts-expect-error TS2604
     <Svg
-      xmlns='http://www.w3.org/2000/svg'
-      viewBox={[0, 0, open ? 3162.175 : 1000, 958.19]}
+      viewBox={`0 0 ${open ? 3162.175 : 1000} 958.19`}
       height={32}
       className={open ? 'mt-2' : ''}
       {...props}

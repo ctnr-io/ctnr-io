@@ -4,10 +4,8 @@ import { useTheme } from './theme-provider.tsx'
 export function AppLogo(props: SvgProps) {
   const { isDark } = useTheme()
   return (
-    // @ts-expect-error TS2604
     <Svg
-      xmlns='http://www.w3.org/2000/svg'
-      viewBox={[0, 0, 3162.175, 958.19]}
+      viewBox='0 0 3162.175 958.19'
       height={32}
       {...props}
     >

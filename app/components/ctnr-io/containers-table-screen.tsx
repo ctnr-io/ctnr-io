@@ -348,7 +348,8 @@ export default function ContainersTableScreen({
         searchKeys={['name', 'image', 'status']}
         columnFilterable
         defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}
-        emptyMessage='No containers found. Create your first container to get started.'
+        emptyTitle='No containers yet'
+        emptyMessage='Create your first container to get started.'
         loading={isLoading}
       />
     </>

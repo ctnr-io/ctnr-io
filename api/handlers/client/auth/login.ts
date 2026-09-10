@@ -16,7 +16,7 @@ export default async function* login(
 
     // Check if user is already authenticated
     const { data: { session } } = await ctx.auth.client.getSession()
-    if (session?.access_token && (session?.expires_at ?? 0) > Date.now()) {
+    if (session?.access_token && (session?.expires_at ?? 0) * 1000 > Date.now()) {
       yield `🔑 Authenticated as ${session.user?.email || 'user'}.`
       return
     }

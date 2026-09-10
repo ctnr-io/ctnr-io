@@ -8,10 +8,12 @@ import { Redirect } from 'expo-router'
 export default function AuthLoginScreen() {
   const ctx = useExpoTrpcClientContext()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | undefined>(undefined)
   const router = useRouter()
 
   const handleSignInGithub = async () => {
     setIsLoading(true)
+    setError(undefined)
     try {
       // Use the new auth system
       const authGenerator = loginFromApp({ ctx, input: {} })
@@ -25,7 +27,7 @@ export default function AuthLoginScreen() {
       router.replace('/')
     } catch (error) {
       console.error('Authentication failed:', error)
-      // Handle error (show toast, etc.)
+      setError(error instanceof Error ? error.message : String(error))
     } finally {
       setIsLoading(false)
     }
@@ -35,5 +37,5 @@ export default function AuthLoginScreen() {
     return <Redirect href='/' />
   }
 
-  return <AuthLoginPage onSignInGithub={handleSignInGithub} isLoading={isLoading} />
+  return <AuthLoginPage onSignInGithub={handleSignInGithub} isLoading={isLoading} error={error} />
 }

@@ -5,9 +5,23 @@
     "paths": {
       "app/*": [
         "./*"
+      ],
+      "lib/*": [
+        "../lib/*"
+      ],
+      "clsx": [
+        "./node_modules/clsx"
+      ],
+      "tailwind-merge": [
+        "./node_modules/tailwind-merge"
+      ],
+      "expo-constants": [
+        "./node_modules/expo-constants"
       ]
     },
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
   "include": [
     "**/*.ts",

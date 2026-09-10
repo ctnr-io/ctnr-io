@@ -12,6 +12,16 @@ export const ContainerPort = z.object({
 export type ContainerPort = z.infer<typeof ContainerPort>
 
 /**
+ * Last termination detail for a container instance, from its previous run
+ */
+export const ContainerLastTermination = z.object({
+  reason: z.string().optional(),
+  exitCode: z.number().optional(),
+  finishedAt: z.date().optional(),
+})
+export type ContainerLastTermination = z.infer<typeof ContainerLastTermination>
+
+/**
  * Container instance (pod) information
  */
 export const ContainerInstance = z.object({
@@ -22,6 +32,8 @@ export const ContainerInstance = z.object({
   memory: z.string(),
   restarts: z.number().optional(),
   node: z.string().optional(),
+  ready: z.boolean().optional(),
+  lastTermination: ContainerLastTermination.optional(),
 })
 export type ContainerInstance = z.infer<typeof ContainerInstance>
 

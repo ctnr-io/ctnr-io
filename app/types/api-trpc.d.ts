@@ -1,6 +1,7 @@
 // Ambient bridge for the app's tRPC client and auth handlers, mirroring their real Deno-side shapes.
 declare module 'api/drivers/trpc/client/expo/mod.tsx' {
   import type { QueryKey, UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query'
+  import type { DecorateSubscriptionProcedure } from '@trpc/tanstack-react-query'
   import type { ReactNode } from 'react'
   import type { Container } from 'core/schemas/mod.ts'
   import type { BillingClient } from 'core/rules/billing/utils.ts'
@@ -71,15 +72,13 @@ declare module 'api/drivers/trpc/client/expo/mod.tsx' {
     mutationOptions(opts?: Record<string, unknown>): UseMutationOptions<TOutput, Error, TInput>
   }
 
-  interface SubscriptionProcedure<TInput, TYield> {
-    subscriptionOptions(
-      input: TInput,
-      opts?: {
-        onData?: (data: { type: 'yield'; value: TYield } | { type: 'return'; value?: void }) => void
-        onError?: (err: unknown) => void
-      },
-    ): unknown
-  }
+  // Mirrors api/drivers/trpc/server/procedures/_utils.ts's transformSubscribeProcedure output shape.
+  type SubscriptionProcedure<TInput, TYield, TReturn = void> = DecorateSubscriptionProcedure<{
+    input: TInput
+    output: AsyncGenerator<{ type: 'yield'; value: TYield } | { type: 'return'; value?: TReturn }, TReturn, unknown>
+    transformer: boolean
+    errorShape: unknown
+  }>
 
   export interface TRPCServerRouter {
     billing: {

@@ -1,7 +1,7 @@
 // Ambient bridges for bare `core/*` and `api/*` specifiers tsc's Node resolver cannot follow.
 // `export *` silently re-exports nothing here; named re-exports are required.
 declare module 'core/schemas/mod.ts' {
-  export { Container, Volume } from '../../core/schemas/mod.ts'
+  export { Container, ContainerPort, Volume } from '../../core/schemas/mod.ts'
 }
 
 declare module 'core/schemas/network/route.ts' {

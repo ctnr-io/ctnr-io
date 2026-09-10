@@ -21,7 +21,12 @@ jobs:
           deno-version: 2.5
 
       - name: Run tests
-        run: deno test -A
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          CTNR_API_URL: https://api.ctnr.io
+          CTNR_E2E_TOKEN: ${{ secrets.CTNR_E2E_TOKEN }}
+        run: deno test -A e2e/cli/
 
   compute-tags:
     runs-on: ubuntu-latest

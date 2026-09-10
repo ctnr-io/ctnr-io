@@ -8,7 +8,7 @@ import {
   ensurePropagationPolicy,
   type KubeClient,
 } from 'infra/kubernetes/mod.ts'
-import { getNamespaceBalance } from 'core/rules/billing/balance.ts'
+import { getNamespaceBalance, getTotalCredits } from 'core/rules/billing/balance.ts'
 import { FreeTier } from 'core/rules/billing/utils.ts'
 import { yaml } from '@tmpl/core'
 import * as YAML from '@std/yaml'
@@ -224,7 +224,7 @@ const { userId, projectId } = input
   // 3. Check project balance, set limits to Free Tier if no credits.
   namespaceObj = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal })
   const balance = getNamespaceBalance(namespaceObj)
-  if (balance.credits === 0) {
+  if (getTotalCredits(balance) === 0) {
     await ensureFederatedResourceQuota(kubeClient, {
       apiVersion: 'policy.karmada.io/v1alpha1',
       kind: 'FederatedResourceQuota',
@@ -248,7 +248,7 @@ const { userId, projectId } = input
 		ownerId: ownerId,
 		cluster: cluster,
     namespace: namespaceName,
-    balance: getNamespaceBalance(namespaceObj),
+    balance: { credits: getTotalCredits(balance), currency: 'EUR' },
     createdAt: namespaceObj.metadata?.creationTimestamp ?  new Date(namespaceObj.metadata.creationTimestamp).toISOString() : undefined,
   }
 }
@@ -276,7 +276,7 @@ export async function getProject(
 			ownerId: ns.metadata.labels[ProjectNamespaceLabels.OwnerId] || userId,
 			cluster: (ns.metadata.labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
       namespace: namespaceName,
-      balance: getNamespaceBalance(ns),
+      balance: { credits: getTotalCredits(getNamespaceBalance(ns)), currency: 'EUR' },
       createdAt: ns.metadata?.creationTimestamp ?  new Date(ns.metadata.creationTimestamp).toISOString() : undefined,
 		}
 	} catch {

@@ -31,7 +31,7 @@ export function CreditsDisplay() {
   }
 
   // Extract data from the API response
-  const credits = usageData.balance.credits
+  const credits = usageData.balance.freeCredits + usageData.balance.paidCredits
 
   return (
     <>

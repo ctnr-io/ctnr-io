@@ -4,7 +4,7 @@
  */
 import type { Namespace } from '@cloudydeno/kubernetes-apis/core/v1'
 import type { Project, ProjectSummary, ClusterName } from 'core/schemas/mod.ts'
-import { getNamespaceBalance } from 'core/rules/billing/balance.ts'
+import { getNamespaceBalance, getTotalCredits } from 'core/rules/billing/balance.ts'
 import { ProjectNamespaceLabels } from 'core/rules/tenancy/project.ts'
 
 /**
@@ -22,7 +22,7 @@ export function namespaceToProject(ns: Namespace): Project {
     namespace: ns.metadata?.name || '',
     createdAt: ns.metadata?.creationTimestamp?.toISOString(),
     balance: {
-      credits: balance.credits,
+      credits: getTotalCredits(balance),
       currency: 'EUR',
     },
   }

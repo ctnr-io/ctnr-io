@@ -157,6 +157,24 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
   // Build actions array
   const actions: TableAction<T>[] = []
 
+  const DeleteWrapper = useCallback(({ item, children }: { item: T; children: ReactNode }) => (
+    <DefaultConfirmDeleteDialog
+      item={item}
+      resourceName={resourceName}
+      onConfirm={async (item) => {
+        setIsDeletingItem(item.id)
+        try {
+          await onDelete?.(item)
+        } finally {
+          setIsDeletingItem(null)
+        }
+      }}
+      isDeleting={isDeletingItem === item.id}
+    >
+      {children}
+    </DefaultConfirmDeleteDialog>
+  ), [isDeletingItem, onDelete, resourceName])
+
   if (onDelete) {
     actions.push({
       icon: Trash2,
@@ -164,23 +182,7 @@ export function GenericResourceTableScreen<T extends ResourceItem>({
       variant: 'ghost',
       className: 'text-destructive hover:text-destructive',
       disabled: isDeletingItem !== null,
-      Wrapper: useCallback(({ item, children }: { item: T; children: ReactNode }) => (
-        <DefaultConfirmDeleteDialog
-          item={item}
-          resourceName={resourceName}
-          onConfirm={async (item) => {
-            setIsDeletingItem(item.id)
-            try {
-              await onDelete(item)
-            } finally {
-              setIsDeletingItem(null)
-            }
-          }}
-          isDeleting={isDeletingItem === item.id}
-        >
-          {children}
-        </DefaultConfirmDeleteDialog>
-      ), [isDeletingItem, onDelete, resourceName]),
+      Wrapper: DeleteWrapper,
     })
   }
 

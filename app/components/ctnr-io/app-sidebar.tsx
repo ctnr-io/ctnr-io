@@ -4,6 +4,7 @@ import {
   FunctionSquare,
   Globe,
   HardDrive,
+  LayoutGrid,
   LucideIcon,
   RouteIcon,
   Zap,
@@ -63,6 +64,10 @@ const data = {
         title: 'Containers',
         url: '/containers',
         icon: Container,
+      }, {
+        title: 'Catalog',
+        url: '/catalog' as Route,
+        icon: LayoutGrid,
       }, {
         title: 'Functions',
         url: '/functions' as Route,

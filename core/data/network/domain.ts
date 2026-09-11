@@ -102,10 +102,7 @@ export async function deleteDomain(
 
   // Delete associated Routes
   const routes = await listRoutes(kubeClient, namespace, { domain: name })
-  for (const route of routes) {
-    // async delete route
-    deleteRoute(kubeClient, namespace, route.name)
-  }
+  await Promise.all(routes.map((route) => deleteRoute(kubeClient, namespace, route.name)))
 }
 
 /**
@@ -216,7 +213,7 @@ export async function listDomains(
         // Further check if verification actually failed
         const isVerified = await isDomainVerified(rootDomain, ctx.project.id)
         if (isVerified) {
-          markDomainVerified(ctx, rootDomain)
+          await markDomainVerified(ctx, rootDomain)
           status = 'verified'
         }
       }

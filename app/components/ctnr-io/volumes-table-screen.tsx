@@ -152,6 +152,7 @@ function AddVolumeForm({
 export default function VolumesTableScreen() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
+  const [actionError, setActionError] = useState<string | undefined>(undefined)
 
   // Fetch volumes data
   const { data: volumes = [], isLoading, error: volumesError, refetch: refetchVolumes } = useQuery(
@@ -160,14 +161,18 @@ export default function VolumesTableScreen() {
     }),
   )
 
+  const onMutationError = (error: { message: string }) => setActionError(error.message)
+
   // Create volume mutation
   const createVolume = useMutation(
     trpc.storage.volumes.createMutation.mutationOptions({
       onSuccess: () => {
+        setActionError(undefined)
         queryClient.invalidateQueries({
           queryKey: trpc.storage.volumes.listQuery.queryKey(),
         })
       },
+      onError: onMutationError,
     }),
   )
 
@@ -175,10 +180,12 @@ export default function VolumesTableScreen() {
   const deleteVolume = useMutation(
     trpc.storage.volumes.deleteMutation.mutationOptions({
       onSuccess: () => {
+        setActionError(undefined)
         queryClient.invalidateQueries({
           queryKey: trpc.storage.volumes.listQuery.queryKey(),
         })
       },
+      onError: onMutationError,
     }),
   )
 
@@ -279,31 +286,34 @@ export default function VolumesTableScreen() {
   ]
 
   return (
-    <GenericResourceTableScreen
-      resourceName='Volume'
-      resourceNamePlural='Volumes'
-      icon={HardDrive}
-      data={volumes as Volume[]}
-      isLoading={isLoading}
-      error={volumesError ? volumesError.message : undefined}
-      onRetry={() => refetchVolumes()}
-      columns={columns}
-      onAdd={handleAdd}
-      onDelete={handleDelete}
-      addFormComponent={AddVolumeForm}
-      description='Manage your persistent storage volumes'
-      infoDescription='Create and manage storage volumes for your containers. Volumes use ReadWriteMany access mode, allowing them to be attached to multiple containers simultaneously for shared data access.'
-      searchPlaceholder='Search volumes by name, status, or mount path...'
-      searchKeys={['name', 'status', 'attachedTo', 'attachments']}
-      addButtonLabel='Create Volume'
-      emptyTitle='No volumes yet'
-      emptyMessage='Volumes give your containers storage that survives restarts.'
-      mobileCardSubtitle={(item) => `${item.size} • ${item.status}`}
-      mobileCardStatus={(item) => ({
-        label: item.status,
-        className: getStatusColor(item.status),
-      })}
-      mobileCardIcon={(_item) => <HardDrive className='h-4 w-4' />}
-    />
+    <>
+      {actionError && <p className='px-4 pt-4 text-sm text-destructive'>{actionError}</p>}
+      <GenericResourceTableScreen
+        resourceName='Volume'
+        resourceNamePlural='Volumes'
+        icon={HardDrive}
+        data={volumes as Volume[]}
+        isLoading={isLoading}
+        error={volumesError ? volumesError.message : undefined}
+        onRetry={() => refetchVolumes()}
+        columns={columns}
+        onAdd={handleAdd}
+        onDelete={handleDelete}
+        addFormComponent={AddVolumeForm}
+        description='Manage your persistent storage volumes'
+        infoDescription='Create and manage storage volumes for your containers. Volumes use ReadWriteMany access mode, allowing them to be attached to multiple containers simultaneously for shared data access.'
+        searchPlaceholder='Search volumes by name, status, or mount path...'
+        searchKeys={['name', 'status', 'attachedTo', 'attachments']}
+        addButtonLabel='Create Volume'
+        emptyTitle='No volumes yet'
+        emptyMessage='Volumes give your containers storage that survives restarts.'
+        mobileCardSubtitle={(item) => `${item.size} • ${item.status}`}
+        mobileCardStatus={(item) => ({
+          label: item.status,
+          className: getStatusColor(item.status),
+        })}
+        mobileCardIcon={(_item) => <HardDrive className='h-4 w-4' />}
+      />
+    </>
   )
 }

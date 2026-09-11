@@ -105,7 +105,7 @@ export function ResourceLimitsDialog({ open, onOpenChange, tier, currentLimits }
         onOpenChange(false)
       } catch (error) {
         console.error('Failed to update limits:', error)
-        setGeneralError('Failed to update resource limits. Please try again.')
+        setGeneralError(error instanceof Error ? error.message : 'Failed to update resource limits. Please try again.')
       }
     })
 

@@ -322,9 +322,9 @@ export function DataTable<T = any>({
                           {actions
                             .filter((action) => !action.condition || action.condition(item))
                             .map(({ Wrapper = ActionWrapperDefault, ...action }) => (
-                              <Tooltip>
+                              <Tooltip key={action.label}>
                                 <TooltipTrigger asChild>
-                                  <Wrapper item={item} key={action.label}>
+                                  <Wrapper item={item}>
                                     <Button
                                       variant={action.variant || 'ghost'}
                                       size='sm'

@@ -125,14 +125,18 @@ async function waitForDeployment({ containerCtx, name, predicate, signal }: {
     signal,
   })
   const reader = deploymentWatcher.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    const deployment = value?.object as Deployment
-    if (deployment?.metadata?.name === name && await predicate(deployment)) {
-      return deployment
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      const deployment = value?.object as Deployment
+      if (deployment?.metadata?.name === name && await predicate(deployment)) {
+        return deployment
+      }
+      if (done) {
+        return deployment
+      }
     }
-    if (done) {
-      return deployment
-    }
+  } finally {
+    await reader.cancel().catch(() => {})
   }
 }

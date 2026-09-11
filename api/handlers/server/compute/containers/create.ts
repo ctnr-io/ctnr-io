@@ -230,16 +230,20 @@ async function waitForDeploymentDeletion(
       abortSignal: signal,
     })
   const reader = deploymentWatcher.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    const deployment = value?.object as Deployment
-    if (value?.type === 'DELETED' && deployment?.metadata?.name === name) {
-      console.debug(`Deployment ${name} deleted`)
-      break
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      const deployment = value?.object as Deployment
+      if (value?.type === 'DELETED' && deployment?.metadata?.name === name) {
+        console.debug(`Deployment ${name} deleted`)
+        break
+      }
+      if (done) {
+        return
+      }
     }
-    if (done) {
-      return
-    }
+  } finally {
+    await reader.cancel().catch(() => {})
   }
 }
 
@@ -254,14 +258,18 @@ async function waitForDeployment({ ctx, name, predicate, signal }: {
     abortSignal: signal,
   })
   const reader = deploymentWatcher.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    const deployment = value?.object as Deployment
-    if (deployment?.metadata?.name === name && await predicate(deployment)) {
-      return deployment
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      const deployment = value?.object as Deployment
+      if (deployment?.metadata?.name === name && await predicate(deployment)) {
+        return deployment
+      }
+      if (done) {
+        return deployment
+      }
     }
-    if (done) {
-      return deployment
-    }
+  } finally {
+    await reader.cancel().catch(() => {})
   }
 }

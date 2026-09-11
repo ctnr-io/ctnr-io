@@ -14,6 +14,9 @@ export const Meta = {
       'terminal': 't',
       'publish': 'p',
       'route': 'r',
+      'detach': 'd',
+      'env': 'e',
+      'volume': 'v',
     },
   },
 }

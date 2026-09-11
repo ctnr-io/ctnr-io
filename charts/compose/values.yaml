@@ -1,0 +1,48 @@
+version: "3.9"
+
+services: {}
+# services:
+#   api:
+#     image: ghcr.io/acme/api:1.0.0
+#     command: ["deno", "task", "start"]
+#     environment:
+#       NODE_ENV: production
+#     deploy:
+#       replicas: 2
+#     ports:
+#       - "8080:80"
+#       - target: 9090
+#         published: 9090
+#         protocol: tcp
+#         name: metrics
+#     volumes:
+#       - "data:/var/lib/data"
+#       - source: data
+#         target: /var/lib/data
+#         read_only: false
+
+volumes: {}
+# volumes:
+#   data:
+#     driver: local
+#     driver_opts: {}
+
+networks: {}
+configs: {}
+secrets: {}
+
+
+domains: []
+# routes host values can be full domains, or subdomains expanded against each item in `domains`.
+# domains:
+#   - example.com
+#   - example.net
+
+routes: []
+# routes:
+#   - name: api
+#     service: api
+#     host: api   # resolves to api.<domain> for each item in `domains`
+#     path: /
+#     protocol: https
+#     port: 80

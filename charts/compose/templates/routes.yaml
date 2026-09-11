@@ -1,0 +1,82 @@
+{{- range $idx, $route := .Values.routes }}
+{{- $name := default (printf "route-%d" $idx) $route.name -}}
+{{- $routeBaseName := include "ctnr-compose.routeName" (dict "root" $ "name" $name) -}}
+{{- $service := required (printf "routes[%d].service is required" $idx) $route.service -}}
+{{- $path := default "/" $route.path -}}
+{{- $protocol := lower (default "https" $route.protocol) -}}
+{{- $port := int (default 80 $route.port) -}}
+{{- $svcName := include "ctnr-compose.svcName" (dict "root" $ "name" $service) -}}
+{{- $hosts := list -}}
+{{- if $route.host }}
+  {{- $isExplicitHost := or (contains "." $route.host) (eq (lower $route.host) "localhost") (contains ":" $route.host) -}}
+  {{- if $isExplicitHost -}}
+    {{- $hosts = append $hosts $route.host -}}
+  {{- else if gt (len $.Values.domains) 0 -}}
+    {{- range $domain := $.Values.domains -}}
+      {{- $hosts = append $hosts (printf "%s.%s" $route.host $domain) -}}
+    {{- end -}}
+  {{- end -}}
+{{- else if gt (len $.Values.domains) 0 -}}
+  {{- range $domain := $.Values.domains -}}
+    {{- $hosts = append $hosts $domain -}}
+  {{- end -}}
+{{- end -}}
+{{- if eq (len $hosts) 0 -}}
+  {{- fail (printf "routes[%d] requires either: host as FQDN/localhost/IP, or short host with non-empty domains (example: host=api with domains=[example.com])" $idx) -}}
+{{- end -}}
+{{- range $hIdx, $host := $hosts }}
+{{- $routeName := $routeBaseName -}}
+{{- if gt (len $hosts) 1 -}}
+  {{- $routeName = printf "%s-%d" $routeBaseName $hIdx -}}
+{{- end -}}
+{{- if hasSuffix ".ctnr.io" $host }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $service | quote }}
+spec:
+  hostnames:
+    - {{ $host | quote }}
+  parentRefs:
+    - name: public-gateway
+      namespace: kube-public
+      sectionName: {{ if eq $protocol "http" }}web{{ else }}websecure{{ end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ $path | quote }}
+      backendRefs:
+        - kind: Service
+          name: {{ $svcName }}
+          port: {{ $port }}
+---
+{{- else }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ include "ctnr-compose.namespace" $ }}
+  labels:
+    {{- include "ctnr-compose.labels" $ | nindent 4 }}
+    ctnr.io/name: {{ $service | quote }}
+spec:
+  entryPoints:
+    - {{ if eq $protocol "http" }}web{{ else }}websecure{{ end }}
+  routes:
+    - kind: Rule
+      match: {{ printf "Host(`%s`) && PathPrefix(`%s`)" $host $path | quote }}
+      services:
+        - name: {{ $svcName }}
+          port: {{ $port }}
+  {{- if eq $protocol "https" }}
+  tls: {}
+  {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

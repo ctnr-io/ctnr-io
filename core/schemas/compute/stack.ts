@@ -8,7 +8,7 @@ import { VolumeMount } from 'core/schemas/storage/volume.ts'
 export const StackService = z.object({
   image: z.string().min(1),
   env: z.array(
-    z.string().regex(/^[A-Z_][A-Z0-9_]*=.*$/, 'Environment variables must follow format KEY=value with uppercase keys'),
+    z.string().regex(/^[^0-9=][^=]*=.*$/, 'Environment variables must follow format KEY=value, where KEY does not start with a digit and does not contain "="'),
   ).optional(),
   publish: z.array(Publish).optional(),
   volume: z.array(VolumeMount).optional(),

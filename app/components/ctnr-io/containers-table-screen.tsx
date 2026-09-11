@@ -55,8 +55,10 @@ export default function ContainersTableScreen({
   const queryClient = useQueryClient()
   const trpc = useTRPC()
   const router = useRouter()
+  const [actionError, setActionError] = useState<string | undefined>(undefined)
 
   const invalidate = () => {
+    setActionError(undefined)
     queryClient.invalidateQueries({
       queryKey: trpc.core.listQuery.queryKey(),
     })
@@ -68,19 +70,24 @@ export default function ContainersTableScreen({
     })
   }
 
+  const onMutationError = (error: { message: string }) => setActionError(error.message)
+
   const startMutation = useMutation(
     trpc.core.startMutation.mutationOptions({
       onSuccess: invalidate,
+      onError: onMutationError,
     }),
   )
   const stopMutation = useMutation(
     trpc.core.stopMutation.mutationOptions({
       onSuccess: invalidate,
+      onError: onMutationError,
     }),
   )
   const restartMutation = useMutation(
     trpc.core.restartMutation.mutationOptions({
       onSuccess: invalidate,
+      onError: onMutationError,
     }),
   )
   const removeMutation = useMutation(
@@ -89,6 +96,7 @@ export default function ContainersTableScreen({
         router.replace('/(main)/containers')
         return invalidate()
       },
+      onError: onMutationError,
     }),
   )
 
@@ -341,6 +349,7 @@ export default function ContainersTableScreen({
           </DialogClose>
         </DialogFooter>
       </ResponsiveDialog>
+      {actionError && <p className='px-4 pt-4 text-sm text-destructive'>{actionError}</p>}
       <DataTableScreen<Container>
         title='Containers'
         description='Manage and monitor your application containers'

@@ -11,7 +11,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { useRouter } from 'expo-router'
 import { ActivityIndicator } from 'react-native'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import ResponsiveDialog from './responsive-dialog.tsx'
 import { useSidebar } from '../shadcn/ui/sidebar.tsx'
 import { cn } from 'lib/shadcn/utils.ts'
@@ -100,7 +100,10 @@ export function ContainersDetailScreen(props: {
 
   const sidebar = useSidebar()
 
+  const [actionError, setActionError] = useState<string | undefined>(undefined)
+
   const invalidate = () => {
+    setActionError(undefined)
     queryClient.invalidateQueries({
       queryKey: trpc.core.listQuery.queryKey(),
     })
@@ -109,19 +112,24 @@ export function ContainersDetailScreen(props: {
     })
   }
 
+  const onMutationError = (error: { message: string }) => setActionError(error.message)
+
   const startMutation = useMutation(
     trpc.core.startMutation.mutationOptions({
       onSuccess: invalidate,
+      onError: onMutationError,
     }),
   )
   const stopMutation = useMutation(
     trpc.core.stopMutation.mutationOptions({
       onSuccess: invalidate,
+      onError: onMutationError,
     }),
   )
   const restartMutation = useMutation(
     trpc.core.restartMutation.mutationOptions({
       onSuccess: invalidate,
+      onError: onMutationError,
     }),
   )
   const removeMutation = useMutation(
@@ -130,6 +138,7 @@ export function ContainersDetailScreen(props: {
         router.replace('/(main)/containers')
         return invalidate()
       },
+      onError: onMutationError,
     }),
   )
 
@@ -162,6 +171,7 @@ export function ContainersDetailScreen(props: {
   // Build the header actions
   const headerActions = (
     <>
+      {actionError && <p className='text-sm text-destructive mr-2'>{actionError}</p>}
       {isPending && <ActivityIndicator color='gray' />}
       <Button
         variant={data.status !== 'running' ? 'outline' : 'secondary'}

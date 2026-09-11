@@ -33,6 +33,7 @@ import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from '../context.ts'
 import login from 'api/handlers/client/auth/login_from_terminal.ts'
 import logout from 'api/handlers/client/auth/logout.ts'
+import compose, * as Compose from 'api/handlers/client/compute/compose.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'api/context/mod.ts'
 import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
@@ -148,6 +149,12 @@ export const TRPCCLientTerminalRouter = trpc.router({
   // Client authentication procedures
   login: trpc.procedure.mutation(transformQueryProcedure(login)),
   logout: trpc.procedure.mutation(logout),
+
+  // Compose ingestion (local mapping, no cluster round-trip)
+  compose: trpc.procedure
+    .meta(Compose.Meta)
+    .input(Compose.Input)
+    .mutation(transformQueryProcedure(compose)),
 
   // Core container procedures
   run: createSubscribeMutation(Run.Meta, Run.Input, (server) => server.core.run),

@@ -14,3 +14,6 @@ export * from './volume.ts'
 
 // Route transformers (HTTPRoute/IngressRoute -> Route)
 export * from './route.ts'
+
+// Compose transformers (docker-compose.yaml -> Stack)
+export * from './compose.ts'

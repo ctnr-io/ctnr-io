@@ -34,6 +34,9 @@ jobs:
         with:
           deno-version: 2.5
 
+      - name: Generate static env (cli/ depends on it)
+        run: deno run -A jsr:@tmpl/gen .
+
       - name: Type check
         run: deno check cli/
 

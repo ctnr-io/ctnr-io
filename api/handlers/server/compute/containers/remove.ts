@@ -30,7 +30,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
   }
 
   // Check if deployment exists
-  const deployment = await getDeployment(containerCtx, name)
+  const deployment = await getDeployment(containerCtx, name, { signal })
   if (!deployment) {
     yield `❌ Container ${name} not found`
     return

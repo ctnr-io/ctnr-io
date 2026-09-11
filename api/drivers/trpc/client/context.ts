@@ -8,7 +8,6 @@ import process from 'node:process'
 import * as GetServerVersion from 'api/handlers/server/protocol/version/get_version.ts'
 import { ClientAuthError, ClientVersionError } from 'api/drivers/errors.ts'
 
-
 export type TrpcClientContext = ClientContext & {
   /**
    * This function prevent to start websocket connection until the first call to `connect`
@@ -35,11 +34,11 @@ export async function createTrpcClientContext(
   let client: Awaited<ReturnType<typeof createTRPCWebSocketClient>> | null = null
 
   async function disconnect() {
-      if (client) {
-        client.websocket.connection?.ws.close()
-        await client.websocket.close()
-        client = null
-      }
+    if (client) {
+      client.websocket.connection?.ws.close()
+      await client.websocket.close()
+      client = null
+    }
   }
 
   return {
@@ -47,6 +46,12 @@ export async function createTrpcClientContext(
     disconnect,
     connect: async (callback, connectOpts) => {
       try {
+        // Reuse an already-open connection instead of reconnecting: closing it would trigger
+        // mod.ts's onClose(code 1000) -> Deno.exit(0), killing long-lived callers like `ctnr mcp`.
+        if (client && client.websocket.connection?.state === 'open') {
+          return await callback(client.trpc)
+        }
+
         // Disconnect previous client if any
         if (client) {
           await disconnect()

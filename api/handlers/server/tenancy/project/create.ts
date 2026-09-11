@@ -64,6 +64,6 @@ export default async function* createProject(request: ServerRequest<Input, Serve
     } catch (deleteError) {
       console.error('Failed to delete project after creation failure:', deleteError)
     }
-    throw new Error('Failed to create project')
+    throw new Error(error instanceof Error ? error.message : 'Failed to create project')
   }
 }

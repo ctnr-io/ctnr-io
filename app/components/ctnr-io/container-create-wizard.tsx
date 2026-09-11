@@ -1,6 +1,6 @@
 'use dom'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { Plus, Trash2 } from 'lucide-react'
@@ -25,16 +25,28 @@ const RESOURCE_PRESETS = [
 
 const STEPS = ['Image', 'Resources', 'Networking', 'Review'] as const
 
+export type ContainerCreateInitialValues = {
+  image?: string
+  name?: string
+  ports?: PortRow[]
+  env?: EnvRow[]
+  volumes?: VolumeRow[]
+  command?: string
+  restart?: 'always' | 'on-failure' | 'never'
+}
+
 export default function ContainerCreateWizard({
   open,
   onOpenChange,
   onSuccess,
   onSwitchToCli,
+  initialValues,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
   onSwitchToCli?: () => void
+  initialValues?: ContainerCreateInitialValues
 }) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -65,6 +77,18 @@ export default function ContainerCreateWizard({
   const [terminal, setTerminal] = useState(false)
   const [customCpu, setCustomCpu] = useState('')
   const [customMemory, setCustomMemory] = useState('')
+
+  // Prefill from a catalog entry when the dialog opens.
+  useEffect(() => {
+    if (!open) return
+    setImage(initialValues?.image ?? '')
+    setName(initialValues?.name ?? '')
+    setPorts(initialValues?.ports ?? [])
+    setEnvRows(initialValues?.env ?? [])
+    setVolumeRows(initialValues?.volumes ?? [])
+    setCommand(initialValues?.command ?? '')
+    setRestart(initialValues?.restart ?? 'never')
+  }, [open])
 
   const preset = RESOURCE_PRESETS.find((p) => p.id === presetId) ?? RESOURCE_PRESETS[0]
   const cpu = customCpu.trim() || preset.cpu
@@ -212,7 +236,9 @@ export default function ContainerCreateWizard({
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='wizard-name'>Name <i className='text-xs text-muted-foreground font-normal'>optional</i></Label>
+              <Label htmlFor='wizard-name'>
+                Name <i className='text-xs text-muted-foreground font-normal'>optional</i>
+              </Label>
               <Input
                 id='wizard-name'
                 value={name}
@@ -309,7 +335,9 @@ export default function ContainerCreateWizard({
             </div>
             {ports.length > 0 && (
               <div className='space-y-2'>
-                <Label htmlFor='wizard-domain'>Domain <i className='text-xs text-muted-foreground font-normal'>optional</i></Label>
+                <Label htmlFor='wizard-domain'>
+                  Domain <i className='text-xs text-muted-foreground font-normal'>optional</i>
+                </Label>
                 <Input
                   id='wizard-domain'
                   value={domain}
@@ -324,14 +352,21 @@ export default function ContainerCreateWizard({
         {step === 3 && (
           <div className='space-y-4'>
             <div className='text-sm space-y-1 bg-muted/50 p-3 rounded-md'>
-              <div><strong>Image:</strong> {image || '-'}</div>
-              <div><strong>Name:</strong> {name || 'auto-generated'}</div>
-              <div><strong>Resources:</strong> {cpu} CPU, {memory} memory, {replicas} replica(s)</div>
               <div>
-                <strong>Ports:</strong>{' '}
-                {publish.length > 0 ? publish.join(', ') : 'none'}
+                <strong>Image:</strong> {image || '-'}
               </div>
-              <div><strong>Domain:</strong> {domain || 'none'}</div>
+              <div>
+                <strong>Name:</strong> {name || 'auto-generated'}
+              </div>
+              <div>
+                <strong>Resources:</strong> {cpu} CPU, {memory} memory, {replicas} replica(s)
+              </div>
+              <div>
+                <strong>Ports:</strong> {publish.length > 0 ? publish.join(', ') : 'none'}
+              </div>
+              <div>
+                <strong>Domain:</strong> {domain || 'none'}
+              </div>
             </div>
 
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
@@ -343,7 +378,9 @@ export default function ContainerCreateWizard({
               <CollapsibleContent className='space-y-4 pt-4'>
                 <div className='grid grid-cols-2 gap-2'>
                   <div className='space-y-2'>
-                    <Label htmlFor='wizard-cpu'>CPU <i className='text-xs text-muted-foreground font-normal'>overrides preset</i></Label>
+                    <Label htmlFor='wizard-cpu'>
+                      CPU <i className='text-xs text-muted-foreground font-normal'>overrides preset</i>
+                    </Label>
                     <Input
                       id='wizard-cpu'
                       value={customCpu}
@@ -352,7 +389,9 @@ export default function ContainerCreateWizard({
                     />
                   </div>
                   <div className='space-y-2'>
-                    <Label htmlFor='wizard-memory'>Memory <i className='text-xs text-muted-foreground font-normal'>overrides preset</i></Label>
+                    <Label htmlFor='wizard-memory'>
+                      Memory <i className='text-xs text-muted-foreground font-normal'>overrides preset</i>
+                    </Label>
                     <Input
                       id='wizard-memory'
                       value={customMemory}
@@ -363,7 +402,9 @@ export default function ContainerCreateWizard({
                 </div>
 
                 <div className='space-y-2'>
-                  <Label htmlFor='wizard-command'>Command <i className='text-xs text-muted-foreground font-normal'>optional</i></Label>
+                  <Label htmlFor='wizard-command'>
+                    Command <i className='text-xs text-muted-foreground font-normal'>optional</i>
+                  </Label>
                   <Input
                     id='wizard-command'
                     value={command}
@@ -396,8 +437,16 @@ export default function ContainerCreateWizard({
                   </div>
                   {envRows.map((e, i) => (
                     <div key={i} className='grid grid-cols-[1fr_1fr_auto] gap-2'>
-                      <Input placeholder='KEY' value={e.key} onChange={(ev) => updateEnvRow(i, { key: ev.target.value.toUpperCase() })} />
-                      <Input placeholder='value' value={e.value} onChange={(ev) => updateEnvRow(i, { value: ev.target.value })} />
+                      <Input
+                        placeholder='KEY'
+                        value={e.key}
+                        onChange={(ev) => updateEnvRow(i, { key: ev.target.value.toUpperCase() })}
+                      />
+                      <Input
+                        placeholder='value'
+                        value={e.value}
+                        onChange={(ev) => updateEnvRow(i, { value: ev.target.value })}
+                      />
                       <Button type='button' variant='ghost' size='icon' onClick={() => removeEnvRow(i)}>
                         <Trash2 className='h-4 w-4' />
                       </Button>
@@ -415,9 +464,21 @@ export default function ContainerCreateWizard({
                   </div>
                   {volumeRows.map((v, i) => (
                     <div key={i} className='grid grid-cols-[1fr_1fr_1fr_auto] gap-2'>
-                      <Input placeholder='volume name' value={v.name} onChange={(ev) => updateVolumeRow(i, { name: ev.target.value })} />
-                      <Input placeholder='mount path' value={v.path} onChange={(ev) => updateVolumeRow(i, { path: ev.target.value })} />
-                      <Input placeholder='size, e.g. 1G' value={v.size} onChange={(ev) => updateVolumeRow(i, { size: ev.target.value })} />
+                      <Input
+                        placeholder='volume name'
+                        value={v.name}
+                        onChange={(ev) => updateVolumeRow(i, { name: ev.target.value })}
+                      />
+                      <Input
+                        placeholder='mount path'
+                        value={v.path}
+                        onChange={(ev) => updateVolumeRow(i, { path: ev.target.value })}
+                      />
+                      <Input
+                        placeholder='size, e.g. 1G'
+                        value={v.size}
+                        onChange={(ev) => updateVolumeRow(i, { size: ev.target.value })}
+                      />
                       <Button type='button' variant='ghost' size='icon' onClick={() => removeVolumeRow(i)}>
                         <Trash2 className='h-4 w-4' />
                       </Button>
@@ -427,7 +488,12 @@ export default function ContainerCreateWizard({
 
                 {ports.length > 0 && (
                   <div className='space-y-2'>
-                    <Label htmlFor='wizard-route'>Route port <i className='text-xs text-muted-foreground font-normal'>which published port the domain routes to</i></Label>
+                    <Label htmlFor='wizard-route'>
+                      Route port{' '}
+                      <i className='text-xs text-muted-foreground font-normal'>
+                        which published port the domain routes to
+                      </i>
+                    </Label>
                     <Input
                       id='wizard-route'
                       value={routePort}
@@ -452,9 +518,7 @@ export default function ContainerCreateWizard({
               </CollapsibleContent>
             </Collapsible>
 
-            {runMutation.isError && (
-              <p className='text-sm text-destructive'>{runMutation.error.message}</p>
-            )}
+            {runMutation.isError && <p className='text-sm text-destructive'>{runMutation.error.message}</p>}
           </div>
         )}
       </div>

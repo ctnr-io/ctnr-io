@@ -36,6 +36,17 @@ function formatDate(date: Date) {
   })
 }
 
+// RFC 1123 label: matches the server-side CreateVolumeInput name check.
+const VOLUME_NAME_REGEXP = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
+const VOLUME_NAME_HINT = 'Lowercase letters, numbers, and hyphens only, e.g. app-data'
+
+function volumeNameError(name: string): string | null {
+  if (!name) return null
+  if (name.length > 63) return 'Must be 63 characters or fewer'
+  if (!VOLUME_NAME_REGEXP.test(name)) return VOLUME_NAME_HINT
+  return null
+}
+
 // Add Volume Form Component
 function AddVolumeForm({
   onSubmit,
@@ -52,8 +63,11 @@ function AddVolumeForm({
     sizeUnit: 'Gi',
   })
 
+  const nameError = volumeNameError(formData.name)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (nameError) return
 
     const volume = {
       name: formData.name,
@@ -74,8 +88,12 @@ function AddVolumeForm({
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder='e.g., app-data'
+          aria-invalid={!!nameError}
           required
         />
+        <p className={`text-xs ${nameError ? 'text-destructive' : 'text-muted-foreground'}`}>
+          {nameError ?? VOLUME_NAME_HINT}
+        </p>
       </div>
 
       <div className='grid grid-cols-2 gap-2'>

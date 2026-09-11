@@ -49,6 +49,16 @@ function formatDate(dateString: string) {
   })
 }
 
+// Matches the server-side CreateDomainInput name check.
+const DOMAIN_NAME_REGEXP = /^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/
+const DOMAIN_NAME_HINT = 'Enter your custom domain name (e.g., example.com, app.mydomain.net)'
+
+function domainNameError(name: string): string | null {
+  if (!name) return null
+  if (!DOMAIN_NAME_REGEXP.test(name)) return 'Enter a valid domain, e.g. example.com'
+  return null
+}
+
 // Add Domain Form Component - only for custom domains
 function AddDomainForm({
   onSubmit,
@@ -63,8 +73,11 @@ function AddDomainForm({
     name: '',
   })
 
+  const nameError = domainNameError(formData.name)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (nameError) return
 
     const domainData = {
       name: formData.name,
@@ -83,11 +96,12 @@ function AddDomainForm({
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder='example.com'
+            aria-invalid={!!nameError}
             required
           />
         </div>
-        <p className='text-xs text-muted-foreground'>
-          Enter your custom domain name (e.g., example.com, app.mydomain.net)
+        <p className={`text-xs ${nameError ? 'text-destructive' : 'text-muted-foreground'}`}>
+          {nameError ?? DOMAIN_NAME_HINT}
         </p>
       </div>
 

@@ -42,6 +42,24 @@ function formatDate(dateString: string) {
   })
 }
 
+// RFC 1123 label: matches the server-side CreateRouteInput name/subdomain checks.
+const ROUTE_NAME_REGEXP = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/
+const ROUTE_NAME_HINT = 'Lowercase letters, numbers, and hyphens only, e.g. api-route'
+const ROUTE_PATH_HINT = 'Must start with /, e.g. /api or /webhooks/github'
+
+function routeNameError(name: string): string | null {
+  if (!name) return null
+  if (name.length > 63) return 'Must be 63 characters or fewer'
+  if (!ROUTE_NAME_REGEXP.test(name)) return ROUTE_NAME_HINT
+  return null
+}
+
+function routePathError(path: string): string | null {
+  if (!path) return null
+  if (!path.startsWith('/')) return ROUTE_PATH_HINT
+  return null
+}
+
 // Add Route Form Component
 function AddRouteForm({
   onSubmit,
@@ -98,10 +116,15 @@ function AddRouteForm({
   }
 
   const [formError, setFormError] = useState<string | null>(null)
+  const nameError = routeNameError(formData.name)
+  const pathError = routePathError(formData.path)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    if (nameError || pathError) {
+      return
+    }
     if (!formData.container) {
       setFormError('Target container is required')
       return
@@ -141,8 +164,12 @@ function AddRouteForm({
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder='e.g., api-route'
+          aria-invalid={!!nameError}
           required
         />
+        <p className={`text-xs ${nameError ? 'text-destructive' : 'text-muted-foreground'}`}>
+          {nameError ?? ROUTE_NAME_HINT}
+        </p>
       </div>
 
       <div className='space-y-2'>
@@ -152,8 +179,12 @@ function AddRouteForm({
           value={formData.path}
           onChange={(e) => setFormData({ ...formData, path: e.target.value })}
           placeholder='e.g., /api or /webhooks/github'
+          aria-invalid={!!pathError}
           required
         />
+        <p className={`text-xs ${pathError ? 'text-destructive' : 'text-muted-foreground'}`}>
+          {pathError ?? ROUTE_PATH_HINT}
+        </p>
       </div>
 
       <div className='space-y-2'>
@@ -283,7 +314,10 @@ function AddRouteForm({
         <Button type='button' variant='outline' onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type='submit' disabled={isSubmitting || !formData.container || !formData.port}>
+        <Button
+          type='submit'
+          disabled={isSubmitting || !formData.container || !formData.port || !!nameError || !!pathError}
+        >
           {isSubmitting ? 'Creating...' : 'Create Route'}
         </Button>
       </div>

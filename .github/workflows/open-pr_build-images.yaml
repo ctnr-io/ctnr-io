@@ -12,9 +12,12 @@ permissions:
   packages: write
 
 jobs:
-  # PR-blocking gate. Type check covers cli/ and core/; lint and fmt stay on cli/
-  # only, since core/, api/, lib/ and infra/ carry pre-existing lint/fmt debt and
-  # api/ and lib/ do not type-check clean yet. There are no unit tests outside
+  # PR-blocking gate. Type check covers cli/, core/ and the deno-consumable parts
+  # of lib/; lib/env/app-env.ts and lib/shadcn/utils.ts are excluded because they
+  # import app-only npm packages the root deno.json does not declare, and the
+  # typecheck-app job already covers them via app/tsconfig.json. Lint and fmt stay
+  # on cli/ only, since core/, api/, lib/ and infra/ carry pre-existing lint/fmt
+  # debt and api/ does not type-check clean yet. There are no unit tests outside
   # e2e/ yet. Both are intentionally left out rather than faked green.
   test:
     runs-on: ubuntu-latest
@@ -31,7 +34,7 @@ jobs:
         run: deno run -A jsr:@tmpl/gen .
 
       - name: Type check
-        run: deno check cli/ core/
+        run: deno check cli/ core/ lib/api/ lib/log/ lib/node/ lib/ts/
 
       - name: Lint
         run: deno lint cli/

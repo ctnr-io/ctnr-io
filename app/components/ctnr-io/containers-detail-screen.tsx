@@ -317,8 +317,8 @@ export function ContainersDetailScreen(props: {
               ],
             },
             {
-              title: 'Replica Instances',
-              description: 'Detailed information about each container instance',
+              title: 'Instances',
+              description: 'Detailed information about each running copy of this container',
               content: (
                 <div className='space-y-4'>
                   {data.replicas.instances.map((instance: any) => (

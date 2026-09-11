@@ -110,7 +110,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
   }, [state.selectedReplicaName])
 
   const getSelectedReplicaName = () => {
-    if (!state.selectedReplicaName) return 'All Replicas'
+    if (!state.selectedReplicaName) return 'All instances'
     if (!replicas) return containerName
     const replica = replicas.find((r) => r.name === state.selectedReplicaName)
     return replica?.name || containerName
@@ -377,7 +377,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
   const replicaOptions: SearchableSelectOption[] = [
     {
       value: 'all',
-      label: 'All Replicas',
+      label: 'All instances',
       icon: <div className='w-2 h-2 rounded-full bg-blue-500' />,
     },
     ...(replicas?.map((replica) => ({
@@ -425,9 +425,9 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                 options={replicaOptions}
                 value={state.selectedReplicaName || 'all'}
                 onValueChange={handleReplicaChange}
-                placeholder='Select replica...'
-                searchPlaceholder='Search replicas...'
-                emptyMessage='No replica found.'
+                placeholder='Select instance...'
+                searchPlaceholder='Search instances...'
+                emptyMessage='No instance found.'
                 popoverClassName='w-[200px]'
                 className='flex-1 min-w-fit md:text-foreground/100 hover:md:text-foreground/100 overflow-hidden'
               />

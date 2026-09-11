@@ -1,11 +1,12 @@
 'use dom'
 
-import { Container, Globe, HardDrive, LayoutGrid, Plus, Wallet } from 'lucide-react'
+import { Container, Globe, HardDrive, LayoutGrid, Plus, Rocket, Wallet } from 'lucide-react'
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTRPC } from 'api/drivers/trpc/client/expo/mod.tsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'app/components/shadcn/ui/card.tsx'
 import { Button } from 'app/components/shadcn/ui/button.tsx'
+import { Alert, AlertDescription } from 'app/components/shadcn/ui/alert.tsx'
 
 function StatCard({
   icon: Icon,
@@ -52,6 +53,12 @@ export default function OverviewScreen() {
 
   const credits = usageData ? (usageData.balance.freeCredits ?? 0) + (usageData.balance.paidCredits ?? 0) : undefined
 
+  const containersCount = Array.isArray(containers) ? containers.length : 0
+  const volumesCount = Array.isArray(volumes) ? volumes.length : 0
+  const domainsCount = Array.isArray(domains) ? domains.length : 0
+  const isFirstRun = !containersLoading && !volumesLoading && !domainsLoading &&
+    containersCount === 0 && volumesCount === 0 && domainsCount === 0
+
   return (
     <div className='space-y-6 p-4'>
       <div>
@@ -62,36 +69,48 @@ export default function OverviewScreen() {
         </p>
       </div>
 
-      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-        <StatCard
-          icon={Container}
-          label='Containers'
-          value={String(Array.isArray(containers) ? containers.length : 0)}
-          isLoading={containersLoading}
-          onClick={() => router.push('/containers')}
-        />
-        <StatCard
-          icon={HardDrive}
-          label='Volumes'
-          value={String(Array.isArray(volumes) ? volumes.length : 0)}
-          isLoading={volumesLoading}
-          onClick={() => router.push('/volumes')}
-        />
-        <StatCard
-          icon={Globe}
-          label='Domains'
-          value={String(Array.isArray(domains) ? domains.length : 0)}
-          isLoading={domainsLoading}
-          onClick={() => router.push('/network/domains')}
-        />
-        <StatCard
-          icon={Wallet}
-          label='Credits'
-          value={credits !== undefined ? credits.toFixed(2) : '0.00'}
-          isLoading={usageLoading}
-          onClick={() => router.push('/billing')}
-        />
-      </div>
+      {isFirstRun
+        ? (
+          <Alert>
+            <Rocket className='h-4 w-4' />
+            <AlertDescription>
+              You haven't deployed anything yet. ctnr.io turns a container image into a running app with its own URL -
+              deploy a preset or your own image below and it'll show up here.
+            </AlertDescription>
+          </Alert>
+        )
+        : (
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <StatCard
+              icon={Container}
+              label='Containers'
+              value={String(containersCount)}
+              isLoading={containersLoading}
+              onClick={() => router.push('/containers')}
+            />
+            <StatCard
+              icon={HardDrive}
+              label='Volumes'
+              value={String(volumesCount)}
+              isLoading={volumesLoading}
+              onClick={() => router.push('/volumes')}
+            />
+            <StatCard
+              icon={Globe}
+              label='Domains'
+              value={String(domainsCount)}
+              isLoading={domainsLoading}
+              onClick={() => router.push('/network/domains')}
+            />
+            <StatCard
+              icon={Wallet}
+              label='Credits'
+              value={credits !== undefined ? credits.toFixed(2) : '0.00'}
+              isLoading={usageLoading}
+              onClick={() => router.push('/billing')}
+            />
+          </div>
+        )}
 
       <Card>
         <CardHeader>

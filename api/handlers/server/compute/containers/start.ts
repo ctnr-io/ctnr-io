@@ -32,7 +32,7 @@ export default async function* startContainer(request: ServerRequest<Input>): Se
   }
 
   // Fetch deployment
-  const deployment = await getDeployment(containerCtx, name)
+  const deployment = await getDeployment(containerCtx, name, { signal })
   if (!deployment) throw new Error('Deployment not found')
 
   const resources = extractDeploymentResourceUsage(deployment)

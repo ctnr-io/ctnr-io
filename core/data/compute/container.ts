@@ -99,10 +99,11 @@ export async function containerExists(
 export async function getDeployment(
 	ctx: ContainerContext,
 	name: string,
+	options: { signal?: AbortSignal } = {},
 ): Promise<Deployment | null> {
 	const { kubeClient, namespace } = ctx
 	try {
-		return await kubeClient.AppsV1.namespace(namespace).getDeployment(name)
+		return await kubeClient.AppsV1.namespace(namespace).getDeployment(name, { abortSignal: options.signal })
 	} catch {
 		return null
 	}

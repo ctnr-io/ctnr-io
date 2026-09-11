@@ -83,7 +83,7 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
   }
 
   // Fetch deployment to verify it exists and get current configuration
-  const existingDeployment = await getDeployment(containerCtx, containerName)
+  const existingDeployment = await getDeployment(containerCtx, containerName, { signal })
   if (!existingDeployment) {
     throw new Error(`Deployment '${containerName}' not found`)
   }

@@ -35,6 +35,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_PASSWORD: secret
+      database__connection__host: db
     volumes:
       - db-data:/var/lib/postgresql/data:10G
     networks:
@@ -64,6 +65,7 @@ Deno.test('parseComposeFile maps a realistic multi-service compose file to a Sta
   assertEquals(api.restart, 'on-failure')
 
   const db = stack.services.db
+  assertEquals(db.env, ['POSTGRES_PASSWORD=secret', 'database__connection__host=db'])
   assertEquals(db.volume, ['db-data:/var/lib/postgresql/data:10G'])
   assertEquals(db.networks, ['backend'])
   // unless-stopped maps to ctnr's closest equivalent, always

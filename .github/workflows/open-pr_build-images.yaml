@@ -60,6 +60,10 @@ jobs:
         working-directory: app
         run: npm install
 
+      - name: Generate router types
+        working-directory: app
+        run: ./scripts/generate-router-types.sh
+
       - name: Type check
         working-directory: app
         run: npx tsc --noEmit
@@ -233,6 +237,9 @@ jobs:
 
           # Install dependencies
           bun install
+
+          # Regenerate typed routes (gitignored, expo export never does this)
+          ./scripts/generate-router-types.sh
 
           # Build the app
           bunx expo export --platform web

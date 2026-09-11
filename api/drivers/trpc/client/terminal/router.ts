@@ -34,6 +34,7 @@ import { TrpcClientContext } from '../context.ts'
 import login from 'api/handlers/client/auth/login_from_terminal.ts'
 import logout from 'api/handlers/client/auth/logout.ts'
 import compose, * as Compose from 'api/handlers/client/compute/compose.ts'
+import deploy, * as Deploy from 'api/handlers/client/compute/deploy.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'api/context/mod.ts'
 import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
@@ -79,12 +80,12 @@ export function transformSubscribeResolver<
   )
 }
 
-type TRPClientRequest<Input> = { ctx: ClientContext; input: Input; signal: AbortSignal | undefined }
+type TRPClientRequest<Input, Context = ClientContext> = { ctx: Context; input: Input; signal: AbortSignal | undefined }
 
-export function transformQueryProcedure<Input, Output>(
-  procedure: (opts: ClientRequest<Input>) => ClientResponse<Output>,
+export function transformQueryProcedure<Input, Output, Context extends ClientContext = ClientContext>(
+  procedure: (opts: ClientRequest<Input, Context>) => ClientResponse<Output>,
 ) {
-  return async function (opts: TRPClientRequest<Input>): Promise<Output> {
+  return async function (opts: TRPClientRequest<Input, Context>): Promise<Output> {
     const defer = createDeferer()
     try {
       const gen = procedure({
@@ -119,9 +120,7 @@ export function createSubscribeQuery<Input, Output>(
     .meta(Meta)
     .input(Input)
     .query(({ input, signal, ctx }: any) =>
-      ctx.connect((server: any) =>
-        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
-      )
+      ctx.connect((server: any) => transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx }))
     )
 }
 
@@ -135,9 +134,7 @@ export function createSubscribeMutation<Input, Output>(
     .meta(Meta)
     .input(Input)
     .mutation(({ input, signal, ctx }: any) =>
-      ctx.connect((server: any) =>
-        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx })
-      )
+      ctx.connect((server: any) => transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx }))
     )
 }
 
@@ -156,6 +153,12 @@ export const TRPCCLientTerminalRouter = trpc.router({
     .input(Compose.Input)
     .mutation(transformQueryProcedure(compose)),
 
+  // Compose stack deploy: parses the compose file, then creates each service as a container
+  deploy: trpc.procedure
+    .meta(Deploy.Meta)
+    .input(Deploy.Input)
+    .mutation(transformQueryProcedure(deploy)),
+
   // Core container procedures
   run: createSubscribeMutation(Run.Meta, Run.Input, (server) => server.core.run),
   create: createSubscribeMutation(Create.Meta, Create.Input, (server) => server.core.run),
@@ -173,7 +176,6 @@ export const TRPCCLientTerminalRouter = trpc.router({
   route: createSubscribeMutation(Route.Meta, Route.Input, (server) => server.core.route),
   start: createSubscribeMutation(Start.Meta, Start.Input, (server) => server.core.start),
   stop: createSubscribeMutation(Stop.Meta, Stop.Input, (server) => server.core.stop),
-
   // // Storage volumes procedures
   // volumes: trpc.router({
   //   list: createSubscribeQuery(

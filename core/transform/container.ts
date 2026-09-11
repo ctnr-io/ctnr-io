@@ -112,6 +112,9 @@ export function deploymentToContainer(
   // Extract replicas info
   const replicas = extractReplicas(deployment, options.pods, options.metrics)
 
+  const containerStatus = mapDeploymentStatus(status)
+  const createdAt = new Date(metadata.creationTimestamp ?? Date.now())
+
   // Extract routes
   const routes = options.routes
     ? extractRoutesForContainer(metadata.name ?? '', options.routes.http, options.routes.ingress)
@@ -129,8 +132,9 @@ export function deploymentToContainer(
     name: metadata.name ?? '',
     image: extractImageName(container?.image ?? ''),
     tag: extractImageTag(container?.image ?? ''),
-    status: mapDeploymentStatus(status),
-    createdAt: new Date(metadata.creationTimestamp ?? Date.now()),
+    status: containerStatus,
+    statusText: buildStatusText(containerStatus, createdAt, latestInstanceTermination(replicas.instances)),
+    createdAt,
     ports: extractPorts(container?.ports as Array<{ name?: string; containerPort?: number; protocol?: string }> ?? []),
     routes,
     cpu: cpuLimit,
@@ -182,8 +186,10 @@ export function mapDeploymentStatus(status: Deployment['status']): ContainerStat
   const availableCondition = conditions.find((c) => c.type === 'Available')
 
   // Deployment is scaling up
-  if (progressingCondition?.reason === 'NewReplicaSetCreated' ||
-    progressingCondition?.reason === 'ReplicaSetUpdated') {
+  if (
+    progressingCondition?.reason === 'NewReplicaSetCreated' ||
+    progressingCondition?.reason === 'ReplicaSetUpdated'
+  ) {
     return 'starting'
   }
 
@@ -213,7 +219,9 @@ export function mapDeploymentStatus(status: Deployment['status']): ContainerStat
 /**
  * Extract port mappings from container ports
  */
-export function extractPorts(ports: Array<{ name?: string; containerPort?: number; protocol?: string }>): ContainerPort[] {
+export function extractPorts(
+  ports: Array<{ name?: string; containerPort?: number; protocol?: string }>,
+): ContainerPort[] {
   return ports.map((port) => ({
     name: port.name,
     number: port.containerPort ?? 0,
@@ -385,6 +393,71 @@ export function extractRoutesForContainer(
   }
 
   return [...new Set(routes)] // Remove duplicates
+}
+
+/**
+ * Most recent termination across a container's instances, for statusText
+ */
+function latestInstanceTermination(instances: ContainerInstance[]): ContainerLastTermination | undefined {
+  const terminations = instances
+    .map((i) => i.lastTermination)
+    .filter((t): t is ContainerLastTermination => t != null)
+
+  if (terminations.length === 0) return undefined
+
+  return terminations.reduce((mostRecent, current) => {
+    const mostRecentTime = mostRecent.finishedAt?.getTime() ?? 0
+    const currentTime = current.finishedAt?.getTime() ?? 0
+    return currentTime > mostRecentTime ? current : mostRecent
+  })
+}
+
+/**
+ * Format a duration in docker's "X unit" style, e.g. "5 minutes", "2 hours"
+ */
+function formatStatusDuration(ms: number): string {
+  const seconds = Math.max(0, Math.floor(ms / 1000))
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? '' : 's'}`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'}`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`
+  const days = Math.floor(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'}`
+}
+
+/**
+ * Build a docker-style human-readable status text alongside the k8s-native status enum,
+ * e.g. "Up 5 minutes", "Exited (0) 2h ago", "Created"
+ */
+export function buildStatusText(
+  status: ContainerStatus,
+  createdAt: Date,
+  lastTermination?: ContainerLastTermination,
+): string {
+  const now = Date.now()
+
+  switch (status) {
+    case 'running':
+      return `Up ${formatStatusDuration(now - createdAt.getTime())}`
+    case 'starting':
+      return 'Starting'
+    case 'stopping':
+      return 'Stopping'
+    case 'pending':
+      return 'Created'
+    case 'stopped':
+      if (lastTermination?.finishedAt) {
+        const exitCode = lastTermination.exitCode ?? 0
+        return `Exited (${exitCode}) ${formatStatusDuration(now - lastTermination.finishedAt.getTime())} ago`
+      }
+      return 'Stopped'
+    case 'error':
+      return 'Error'
+    case 'unknown':
+    default:
+      return 'Unknown'
+  }
 }
 
 /**

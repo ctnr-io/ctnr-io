@@ -126,11 +126,11 @@ export default function ContainersTableScreen({
     {
       key: 'status',
       label: 'Status',
-      render: (value) => (
+      render: (value, item) => (
         <span
           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(value)}`}
         >
-          {value}
+          {item.statusText}
         </span>
       ),
     },

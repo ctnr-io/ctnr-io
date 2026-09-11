@@ -361,9 +361,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=${{ needs.publish-app-image.outputs.version || needs.publish-api-image.outputs.version }}
-          if [ -z "$VERSION" ]; then
-            VERSION=$(gh release list --repo ${{ github.repository }} --limit 1 | awk '{print $1}')
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
           fi
           echo "Rolling back release $VERSION"
           gh release delete "$VERSION" --repo ${{ github.repository }} --yes || true

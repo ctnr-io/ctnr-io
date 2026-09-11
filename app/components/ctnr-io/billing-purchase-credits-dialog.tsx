@@ -583,7 +583,7 @@ export function CreditPurchaseDialog({ open, onOpenChange }: { open: boolean; on
       onOpenChange(false)
     } catch (error) {
       console.error('Purchase failed:', error)
-      setGeneralError('Purchase failed. Please try again.')
+      setGeneralError(error instanceof Error ? error.message : 'Purchase failed. Please try again.')
     }
   }
 

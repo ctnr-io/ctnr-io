@@ -122,6 +122,7 @@ export default function DomainsTableScreen() {
 
   const trpc = useTRPC()
   const queryClient = useQueryClient()
+  const [actionError, setActionError] = useState<string | undefined>(undefined)
 
   const {
     data: domains,
@@ -139,14 +140,18 @@ export default function DomainsTableScreen() {
     trpc.tenancy.project.getQuery.queryOptions({}),
   )
 
+  const onMutationError = (error: { message: string }) => setActionError(error.message)
+
   // Create domain mutation
   const createDomain = useMutation(
     trpc.network.domains.createMutation.mutationOptions({
       onSuccess: () => {
+        setActionError(undefined)
         queryClient.invalidateQueries({
           queryKey: trpc.network.domains.listQuery.queryKey(),
         })
       },
+      onError: onMutationError,
     }),
   )
 
@@ -154,10 +159,12 @@ export default function DomainsTableScreen() {
   const deleteDomain = useMutation(
     trpc.network.domains.deleteMutation.mutationOptions({
       onSuccess: () => {
+        setActionError(undefined)
         queryClient.invalidateQueries({
           queryKey: trpc.network.domains.listQuery.queryKey(),
         })
       },
+      onError: onMutationError,
     }),
   )
 
@@ -238,43 +245,47 @@ export default function DomainsTableScreen() {
   ]
 
   return (
-    <GenericResourceTableScreen
-      resourceName='Domain'
-      resourceNamePlural='Domains'
-      icon={Globe}
-      data={domainData}
-      isLoading={isDomainsLoading || isProjectLoading}
-      error={domainsError ? domainsError.message : undefined}
-      onRetry={() => refetchDomains()}
-      columns={columns}
-      onAdd={handleAdd}
-      onDelete={handleDelete}
-      addFormComponent={AddDomainForm}
-      description='Manage your custom domains and SSL certificates'
-      infoDescription={
-        <>
-          Add custom domains to use with your containers. Each domain will get an SSL certificate automatically
-          provisioned.
-        </>
-      }
-      tableDescription={isMobile || isProjectLoading ? undefined : (
-        <>
-          To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record{' '}
-          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} />{' '}
-          for root domain ) and target gateway at <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
-        </>
-      )}
-      searchPlaceholder='Search domains by name, status, or provider...'
-      searchKeys={['name', 'status', 'routeCount']}
-      addButtonLabel='Add Domain'
-      emptyTitle='No domains yet'
-      emptyMessage='Domains let people reach your containers at your own web address.'
-      mobileCardSubtitle={(item) => `${item.name} • ${item.status}`}
-      mobileCardStatus={(item) => ({
-        label: item.status,
-        className: getStatusColor(item.status),
-      })}
-      mobileCardIcon={(_item) => <Globe className='h-4 w-4' />}
-    />
+    <>
+      {actionError && <p className='px-4 pt-4 text-sm text-destructive'>{actionError}</p>}
+      <GenericResourceTableScreen
+        resourceName='Domain'
+        resourceNamePlural='Domains'
+        icon={Globe}
+        data={domainData}
+        isLoading={isDomainsLoading || isProjectLoading}
+        error={domainsError ? domainsError.message : undefined}
+        onRetry={() => refetchDomains()}
+        columns={columns}
+        onAdd={handleAdd}
+        onDelete={handleDelete}
+        addFormComponent={AddDomainForm}
+        description='Manage your custom domains and SSL certificates'
+        infoDescription={
+          <>
+            Add custom domains to use with your containers. Each domain will get an SSL certificate automatically
+            provisioned.
+          </>
+        }
+        tableDescription={isMobile || isProjectLoading ? undefined : (
+          <>
+            To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record{' '}
+            (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} />{' '}
+            for root domain ) and target gateway at{' '}
+            <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
+          </>
+        )}
+        searchPlaceholder='Search domains by name, status, or provider...'
+        searchKeys={['name', 'status', 'routeCount']}
+        addButtonLabel='Add Domain'
+        emptyTitle='No domains yet'
+        emptyMessage='Domains let people reach your containers at your own web address.'
+        mobileCardSubtitle={(item) => `${item.name} • ${item.status}`}
+        mobileCardStatus={(item) => ({
+          label: item.status,
+          className: getStatusColor(item.status),
+        })}
+        mobileCardIcon={(_item) => <Globe className='h-4 w-4' />}
+      />
+    </>
   )
 }

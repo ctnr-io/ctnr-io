@@ -335,6 +335,7 @@ export default function RoutesTableScreen() {
 
   const trpc = useTRPC()
   const queryClient = useQueryClient()
+  const [actionError, setActionError] = useState<string | undefined>(undefined)
 
   // Fetch project context
   const { data: project, isLoading: isProjectLoading } = useQuery(
@@ -353,14 +354,18 @@ export default function RoutesTableScreen() {
     }),
   )
 
+  const onMutationError = (error: { message: string }) => setActionError(error.message)
+
   // Create route mutation
   const createRoute = useMutation(
     trpc.network.routes.createMutation.mutationOptions({
       onSuccess: () => {
+        setActionError(undefined)
         queryClient.invalidateQueries({
           queryKey: trpc.network.routes.listQuery.queryKey(),
         })
       },
+      onError: onMutationError,
     }),
   )
 
@@ -368,10 +373,12 @@ export default function RoutesTableScreen() {
   const deleteRoute = useMutation(
     trpc.network.routes.deleteMutation.mutationOptions({
       onSuccess: () => {
+        setActionError(undefined)
         queryClient.invalidateQueries({
           queryKey: trpc.network.routes.listQuery.queryKey(),
         })
       },
+      onError: onMutationError,
     }),
   )
 
@@ -485,44 +492,48 @@ export default function RoutesTableScreen() {
   ]
 
   return (
-    <GenericResourceTableScreen
-      resourceName='Route'
-      resourceNamePlural='Routes'
-      icon={RouteIcon}
-      data={routeData}
-      isLoading={isRoutesLoading || isProjectLoading}
-      error={routesError ? routesError.message : undefined}
-      onRetry={() => refetchRoutes()}
-      columns={columns}
-      onAdd={handleAdd}
-      onDelete={handleDelete}
-      onRowClick={handleRowClick}
-      addFormComponent={AddRouteForm}
-      description='Manage HTTP routes and traffic routing rules'
-      infoDescription={
-        <>
-          Configure HTTP routes to direct traffic from domains to your services. Set up path-based routing, protocol,
-          method filtering and load balancing rules.
-        </>
-      }
-      tableDescription={isMobile || isProjectLoading ? undefined : (
-        <>
-          To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record (or{' '}
-          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} />{' '}
-          for root domain ) and target gateway at <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
-        </>
-      )}
-      searchPlaceholder='Search routes by name, path, domain, or service...'
-      searchKeys={['name', 'path', 'domain', 'container', 'status']}
-      addButtonLabel='Create Route'
-      emptyTitle='No routes yet'
-      emptyMessage='Routes send traffic from a domain to one of your containers.'
-      mobileCardSubtitle={(item) => `${item.protocol}://${item.domain}${item.path}`}
-      mobileCardStatus={(item) => ({
-        label: item.status,
-        className: getStatusColor(item.status),
-      })}
-      mobileCardIcon={(_item) => <RouteIcon className='h-4 w-4' />}
-    />
+    <>
+      {actionError && <p className='px-4 pt-4 text-sm text-destructive'>{actionError}</p>}
+      <GenericResourceTableScreen
+        resourceName='Route'
+        resourceNamePlural='Routes'
+        icon={RouteIcon}
+        data={routeData}
+        isLoading={isRoutesLoading || isProjectLoading}
+        error={routesError ? routesError.message : undefined}
+        onRetry={() => refetchRoutes()}
+        columns={columns}
+        onAdd={handleAdd}
+        onDelete={handleDelete}
+        onRowClick={handleRowClick}
+        addFormComponent={AddRouteForm}
+        description='Manage HTTP routes and traffic routing rules'
+        infoDescription={
+          <>
+            Configure HTTP routes to direct traffic from domains to your services. Set up path-based routing,
+            protocol, method filtering and load balancing rules.
+          </>
+        }
+        tableDescription={isMobile || isProjectLoading ? undefined : (
+          <>
+            To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record (or{' '}
+            (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} />{' '}
+            for root domain ) and target gateway at{' '}
+            <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
+          </>
+        )}
+        searchPlaceholder='Search routes by name, path, domain, or service...'
+        searchKeys={['name', 'path', 'domain', 'container', 'status']}
+        addButtonLabel='Create Route'
+        emptyTitle='No routes yet'
+        emptyMessage='Routes send traffic from a domain to one of your containers.'
+        mobileCardSubtitle={(item) => `${item.protocol}://${item.domain}${item.path}`}
+        mobileCardStatus={(item) => ({
+          label: item.status,
+          className: getStatusColor(item.status),
+        })}
+        mobileCardIcon={(_item) => <RouteIcon className='h-4 w-4' />}
+      />
+    </>
   )
 }

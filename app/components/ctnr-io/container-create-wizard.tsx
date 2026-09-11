@@ -279,7 +279,7 @@ export default function ContainerCreateWizard({
               </div>
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='wizard-replicas'>Replicas</Label>
+              <Label htmlFor='wizard-replicas'>Instances</Label>
               <Input
                 id='wizard-replicas'
                 type='number'

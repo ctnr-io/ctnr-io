@@ -136,7 +136,7 @@ export default function ContainersTableScreen({
     },
     {
       key: 'replicas',
-      label: 'Replicas',
+      label: 'Instances',
       render: (_value, item) => (
         <Badge variant='outline'>
           {item.replicas.current}
@@ -351,7 +351,7 @@ export default function ContainersTableScreen({
         columns={columns}
         actions={actions}
         tableTitle='All Containers'
-        tableDescription={`${data.length} containers deployments total • ${
+        tableDescription={`${data.length} containers total • ${
           data.filter((c) => c.status === 'running').length
         } running`}
         mobileCardTitle={(item) => item.name}
@@ -363,7 +363,7 @@ export default function ContainersTableScreen({
         onRowClick={onRowClick}
         rowClickable
         searchable
-        searchPlaceholder='Search containers by name, image, status, or clusters...'
+        searchPlaceholder='Search containers by name, image, or status...'
         searchKeys={['name', 'image', 'status']}
         columnFilterable
         defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}

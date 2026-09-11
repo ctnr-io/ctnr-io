@@ -269,6 +269,9 @@ export async function getProject(
 		if (!ns.metadata?.labels?.[ProjectNamespaceLabels.Id]) {
 			return null
 		}
+		if (ns.metadata.labels[ProjectNamespaceLabels.OwnerId] !== userId) {
+			return null
+		}
 
 		return {
 			id: ns.metadata.labels[ProjectNamespaceLabels.Id],

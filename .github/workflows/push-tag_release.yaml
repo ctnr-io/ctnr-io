@@ -184,6 +184,9 @@ jobs:
            # Install dependencies
            bun install
 
+           # Regenerate typed routes (gitignored, expo export never does this)
+           ./scripts/generate-router-types.sh
+
            # Build the app
            bunx expo export --platform web
 

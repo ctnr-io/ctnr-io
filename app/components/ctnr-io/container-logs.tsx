@@ -609,6 +609,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
                   }`}
                 />
                 <span className='font-medium'>
+                  {isLoading ? 'Connecting' : state.isStreaming ? 'Live' : 'Paused'}
                 </span>
               </div>
               <span>Lines: {state.logs.length.toLocaleString()}</span>
@@ -628,8 +629,8 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
 
       {/* Error Display */}
       {state.error && (
-        <div className='p-3 bg-red-50 border border-red-200 sm:rounded-lg'>
-          <div className='flex items-center gap-2 text-red-800'>
+        <div className='p-3 bg-destructive/10 border border-destructive/50 sm:rounded-lg'>
+          <div className='flex items-center gap-2 text-destructive'>
             <span className='text-sm font-medium'>Error:</span>
             <span className='text-sm'>{state.error}</span>
           </div>
@@ -648,7 +649,7 @@ export function ContainerLogs({ containerName, replicas }: ContainerLogsProps) {
           {state.logs.length === 0
             ? (
               <div className='text-slate-400 text-center py-8'>
-                No logs available
+                {isLoading ? 'Connecting to container...' : 'No logs yet'}
               </div>
             )
             : (

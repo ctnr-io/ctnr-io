@@ -40,6 +40,7 @@ import { ClientContext } from 'api/context/mod.ts'
 import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
 import { createDeferer } from 'lib/api/defer.ts'
 import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
+import { colorStatusLine, red } from 'lib/api/colors.ts'
 import z from 'zod'
 
 export const trpc = initTRPC.context<TrpcClientContext>().create()
@@ -69,7 +70,7 @@ export function transformSubscribeResolver<
       onData: (data: SubscribeProcedureOutput<Output>) => {
         switch (data.type) {
           case 'yield':
-            console.info(data.value)
+            console.info(typeof data.value === 'string' ? colorStatusLine(data.value) : data.value)
             return
           case 'return':
             result = data.value as Output
@@ -97,11 +98,11 @@ export function transformQueryProcedure<Input, Output, Context extends ClientCon
         if (done) {
           return value
         }
-        console.info(value)
+        console.info(typeof value === 'string' ? colorStatusLine(value) : value)
       }
     } catch (error) {
       if (error instanceof Error) {
-        console.error('❌', error.message)
+        console.error(red('❌'), error.message)
       }
       Deno.exit(1)
     } finally {

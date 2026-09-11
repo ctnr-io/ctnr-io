@@ -9,6 +9,7 @@ import installCli from 'api/handlers/client/version/install_cli.ts'
 import { createClientAuthContext } from 'api/context/client/auth.ts'
 import loginFromTerminal from 'api/handlers/client/auth/login_from_terminal.ts'
 import { ClientAuthError, ClientVersionError } from '../../../errors.ts'
+import { cyan, red } from 'lib/api/colors.ts'
 
 try {
   const clientCli = createCli({
@@ -69,7 +70,7 @@ try {
   switch (true) {
     case error instanceof ClientVersionError: {
       // Upgrade client and relaunch command
-      console.info('🔄 Upgrading version...')
+      console.info(cyan('🔄 Upgrading version...'))
       for await (
         const msg of installCli({
           ctx: { version: process.env.CTNR_VERSION || 'unknown' },
@@ -78,7 +79,7 @@ try {
       ) {
         console.info(msg)
       }
-      console.info('⚡️ Upgrade completed. Relaunching command...')
+      console.info(cyan('⚡️ Upgrade completed. Relaunching command...'))
       // Relaunch command
       const p = new Deno.Command(process.argv[0], {
         args: process.argv.slice(1),
@@ -116,7 +117,7 @@ try {
       // Sanitize noisy compiled ts file path errors
       const sanitized = msg.replace(/\/.*deno-compile-ctnr\/[^\s]+/g, '')
       console.debug(error)
-      console.error(sanitized || 'An error occurred while executing command.')
+      console.error(red('❌'), sanitized || 'An error occurred while executing command.')
       Deno.exit(1)
     }
   }

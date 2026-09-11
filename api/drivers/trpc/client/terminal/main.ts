@@ -60,7 +60,7 @@ try {
 
   await clientCli.run({
     logger: {
-      info: console.warn,
+      info: console.log,
     },
     formatError: (error) => {
       throw error

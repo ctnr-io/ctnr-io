@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as YAML from '@std/yaml'
-import { listContainers, type ContainerContext } from 'core/data/compute/container.ts'
+import { type ContainerContext, listContainers } from 'core/data/compute/container.ts'
 import { formatAge } from 'lib/api/formatter.ts'
+import { bold, colorStatus } from 'lib/api/colors.ts'
 import type { Container } from 'core/schemas/compute/container.ts'
 
 export const Meta = {
@@ -86,25 +87,30 @@ export default async function* listContainersApiHandler<T extends OutputType = '
     case 'wide':
     default:
       // Header
-      yield 'NAME'.padEnd(26) +
-        'IMAGE'.padEnd(25) +
-        'STATUS'.padEnd(15) +
-        'REPLICAS'.padEnd(12) +
-        'CPU'.padEnd(8) +
-        'MEMORY'.padEnd(10) +
-        'AGE'.padEnd(12) +
-        'PORTS'.padEnd(20)
+      yield bold(
+        'NAME'.padEnd(26) +
+          'IMAGE'.padEnd(25) +
+          'STATUS'.padEnd(15) +
+          'REPLICAS'.padEnd(12) +
+          'CPU'.padEnd(8) +
+          'MEMORY'.padEnd(10) +
+          'AGE'.padEnd(12) +
+          'PORTS'.padEnd(20),
+      )
 
       // Container rows
       for (const container of containers) {
         const name = container.name.padEnd(26)
         const image = (container.image || '').substring(0, 24).padEnd(25)
-        const status = container.status.padEnd(15)
+        // Pad the plain text first, then color the padded string: the ANSI codes add
+        // invisible characters, so coloring after padding keeps columns aligned.
+        const status = colorStatus(container.status.padEnd(15))
         const replicas = `${container.replicas?.current ?? 0}`.padEnd(12)
         const cpu = (container.resources?.requests?.cpu || '').padEnd(8)
         const memory = (container.resources?.requests?.memory || '').padEnd(10)
         const age = formatAge(container.createdAt).padEnd(12)
-        const ports = (container.ports?.map((p) => `${p.name || p.number}:${p.number}/${p.protocol}`).join(', ') || '').padEnd(20)
+        const ports = (container.ports?.map((p) => `${p.name || p.number}:${p.number}/${p.protocol}`).join(', ') || '')
+          .padEnd(20)
 
         yield name + image + status + replicas + cpu + memory + age + ports
       }

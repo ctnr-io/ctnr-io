@@ -57,6 +57,24 @@ jobs:
       - name: Run e2e tests
         run: deno test -A e2e/api/core
 
+  # PR-blocking subset of e2e-api-core: compose.test.ts runs the real CLI against
+  # local catalog fixtures with no cluster/API round-trip, unlike its siblings
+  # (run/list/attach/integration), so it can gate a merge on a plain runner.
+  e2e-api-core-compose:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.5
+
+      - name: Run compose e2e tests
+        run: deno test -A e2e/api/core/compose.test.ts
+
   compute-tags:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -94,7 +112,7 @@ jobs:
 
   build-cli:
     if: github.event_name == 'pull_request'
-    needs: [test, compute-tags]
+    needs: [test, e2e-api-core-compose, compute-tags]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -166,7 +184,7 @@ jobs:
 
   build-app:
     if: github.event_name == 'pull_request'
-    needs: [test, compute-tags]
+    needs: [test, e2e-api-core-compose, compute-tags]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

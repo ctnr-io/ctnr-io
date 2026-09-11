@@ -229,11 +229,9 @@ export async function deleteRoute(
     }
   })
 
-  // Check if there is any route and delete the service if not
-  const routes = await listRoutes(kubeClient, namespace, { name })
-  if (routes.length === 0) {
-    await kubeClient.CoreV1.namespace(namespace).deleteService(route[0].container)
-  }
+  // Note: the Service is NOT deleted here even if this was the container's last route.
+  // Service lifecycle now belongs to the container create/remove path (core/data/compute/container.ts),
+  // since the Service also provides in-cluster DNS for inter-service resolution independent of routes.
 }
 
 /**

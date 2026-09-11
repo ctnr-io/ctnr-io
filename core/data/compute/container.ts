@@ -10,7 +10,7 @@ export interface ContainerContext {
 }
 
 /**
- * Delete a container (Deployment) by name
+ * Delete a container (Deployment + its Service) by name
  */
 export async function deleteContainer(
 	ctx: ContainerContext,
@@ -21,6 +21,10 @@ export async function deleteContainer(
 	await kubeClient.AppsV1.namespace(namespace).deleteDeployment(name, {
 		abortSignal: signal,
 	})
+	// Service is optional (only created when the container declared ports), so ignore not-found
+	await kubeClient.CoreV1.namespace(namespace).deleteService(name, {
+		abortSignal: signal,
+	}).catch(() => {})
 }
 
 /**

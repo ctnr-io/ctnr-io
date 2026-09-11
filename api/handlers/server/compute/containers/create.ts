@@ -7,6 +7,7 @@ import { ensureVolume } from 'core/data/storage/volume.ts'
 import { containerInputToDeployment } from 'core/transform/container.ts'
 import { hash } from 'node:crypto'
 import { VolumeMount } from 'core/schemas/mod.ts'
+import { ensureService } from 'infra/kubernetes/mod.ts'
 
 export const Meta = {
   aliases: {
@@ -112,17 +113,19 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     })
   }
 
+  const ports = publish?.map((p) => ({
+    name: p.name || `port-${p.port}`,
+    port: Number(p.port),
+    protocol: p.protocol,
+  }))
+
   // Build the deployment using the transform function
   const deploymentResource = containerInputToDeployment({
     name,
     namespace: ctx.project.namespace,
     image,
     env,
-    publish: publish?.map((p) => ({
-      name: p.name || `port-${p.port}`,
-      port: Number(p.port),
-      protocol: p.protocol,
-    })),
+    publish: ports,
     volume: volumeDevices,
     interactive,
     terminal,
@@ -170,6 +173,35 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
   await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).createDeployment(deploymentResource, {
     abortSignal: signal,
   })
+
+  // Ensure a Service exists so the container has a stable in-cluster DNS name
+  // (<name>.<namespace>.svc.cluster.local), e.g. for stack services to resolve
+  // each other the way Docker network aliases do. Only created when at least
+  // one port is declared, matching the ports-required Service already created
+  // by `ctnr route create` (core/data/network/route.ts).
+  if (ports && ports.length > 0) {
+    yield `🔌 Ensuring service DNS for ${name}...`
+    await ensureService(ctx.kube.client['karmada'], {
+      apiVersion: 'v1',
+      kind: 'Service',
+      metadata: {
+        name,
+        namespace: ctx.project.namespace,
+      },
+      spec: {
+        selector: {
+          'ctnr.io/name': name,
+        },
+        ports: ports.map((p) => ({
+          name: p.name,
+          port: p.port,
+          targetPort: p.port,
+          protocol: p.protocol === 'udp' ? 'UDP' : 'TCP',
+        })),
+      },
+    }, signal)
+  }
+
   // Wait for deployment to be ready
   deployment = await waitForDeployment({
     ctx,

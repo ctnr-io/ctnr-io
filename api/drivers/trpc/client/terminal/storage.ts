@@ -26,18 +26,45 @@ if (!fs.exists(storageFile)) {
 export const authStorage = {
   getItem: (key: string) => {
     const storageData = Deno.readTextFileSync(storageFile)
-    const storage = JSON.parse(storageData)
+    let storage
+    try {
+      storage = JSON.parse(storageData)
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn('Invalid auth storage file, resetting:', error.message)
+      }
+      Deno.writeTextFileSync(storageFile, JSON.stringify({}))
+      storage = {}
+    }
     return storage[key] || null
   },
   setItem: (key: string, value: string) => {
     const storageData = Deno.readTextFileSync(storageFile)
-    const storage = JSON.parse(storageData)
+    let storage
+    try {
+      storage = JSON.parse(storageData)
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn('Invalid auth storage file, resetting:', error.message)
+      }
+      Deno.writeTextFileSync(storageFile, JSON.stringify({}))
+      storage = {}
+    }
     storage[key] = value
     Deno.writeTextFileSync(storageFile, JSON.stringify(storage, null, 2))
   },
   removeItem: (key: string) => {
     const storageData = Deno.readTextFileSync(storageFile)
-    const storage = JSON.parse(storageData)
+    let storage
+    try {
+      storage = JSON.parse(storageData)
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn('Invalid auth storage file, resetting:', error.message)
+      }
+      Deno.writeTextFileSync(storageFile, JSON.stringify({}))
+      storage = {}
+    }
     delete storage[key]
     Deno.writeTextFileSync(storageFile, JSON.stringify(storage, null, 2))
   },

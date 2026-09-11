@@ -1,0 +1,13 @@
+name: ghost
+services:
+  ghost:
+    image: ghost:5-alpine
+    ports:
+      - '2368:2368'
+    environment:
+      NODE_ENV: production
+    volumes:
+      - ghost-data:/var/lib/ghost/content
+    restart: always
+volumes:
+  ghost-data: {}

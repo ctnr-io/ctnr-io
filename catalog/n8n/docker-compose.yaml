@@ -1,0 +1,15 @@
+name: n8n
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - '5678:5678'
+    environment:
+      N8N_PROTOCOL: http
+      N8N_PORT: '5678'
+      GENERIC_TIMEZONE: UTC
+    volumes:
+      - n8n-data:/home/node/.n8n
+    restart: unless-stopped
+volumes:
+  n8n-data: {}

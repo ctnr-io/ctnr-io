@@ -1,0 +1,45 @@
+name: supabase
+services:
+  db:
+    image: supabase/postgres:15.1.0.117
+    environment:
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: postgres
+    volumes:
+      - supabase-db-data:/var/lib/postgresql/data:10G
+    networks:
+      - supabase
+    restart: always
+  rest:
+    image: postgrest/postgrest:v12.0.1
+    environment:
+      PGRST_DB_URI: postgres://postgres:changeme@db:5432/postgres
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: your-super-secret-jwt-token-with-at-least-32-characters-long
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    networks:
+      - supabase
+    restart: always
+  auth:
+    image: supabase/gotrue:v2.151.0
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: '9999'
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:changeme@db:5432/postgres
+      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_JWT_SECRET: your-super-secret-jwt-token-with-at-least-32-characters-long
+      GOTRUE_DISABLE_SIGNUP: 'false'
+    ports:
+      - '9999:9999'
+    depends_on:
+      - db
+    networks:
+      - supabase
+    restart: always
+networks:
+  supabase: {}

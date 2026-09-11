@@ -39,6 +39,28 @@ jobs:
       - name: Format check
         run: deno fmt --check cli/
 
+  # PR-blocking gate for app/. deno check is incompatible with the app's
+  # react-native jsx mode (hundreds of unrelated errors), so this uses the
+  # app's own tsc instead.
+  typecheck-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm install
+
+      - name: Type check
+        working-directory: app
+        run: npx tsc --noEmit
+
   # Live-cluster e2e (needs a running ctnr API/cluster, not available on a plain
   # runner). Never ran on pull_request; kept runnable on demand / weekly instead
   # of deleted.
@@ -184,7 +206,7 @@ jobs:
 
   build-app:
     if: github.event_name == 'pull_request'
-    needs: [test, e2e-api-core-compose, compute-tags]
+    needs: [test, typecheck-app, e2e-api-core-compose, compute-tags]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

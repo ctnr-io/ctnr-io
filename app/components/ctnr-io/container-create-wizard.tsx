@@ -227,6 +227,9 @@ export default function ContainerCreateWizard({
           <div className='space-y-4'>
             <div className='space-y-2'>
               <Label htmlFor='wizard-image'>Image</Label>
+              <p className='text-xs text-muted-foreground'>
+                What to run, e.g. a Docker Hub image like nginx:latest, or your own registry image.
+              </p>
               <Input
                 id='wizard-image'
                 value={image}
@@ -239,6 +242,7 @@ export default function ContainerCreateWizard({
               <Label htmlFor='wizard-name'>
                 Name <i className='text-xs text-muted-foreground font-normal'>optional</i>
               </Label>
+              <p className='text-xs text-muted-foreground'>How this container shows up in your list.</p>
               <Input
                 id='wizard-name'
                 value={name}
@@ -280,6 +284,9 @@ export default function ContainerCreateWizard({
             </div>
             <div className='space-y-2'>
               <Label htmlFor='wizard-replicas'>Instances</Label>
+              <p className='text-xs text-muted-foreground'>
+                How many copies to run. More than 1 keeps the container up if one crashes.
+              </p>
               <Input
                 id='wizard-replicas'
                 type='number'
@@ -302,6 +309,9 @@ export default function ContainerCreateWizard({
                   Add port
                 </Button>
               </div>
+              <p className='text-xs text-muted-foreground'>
+                Ports the container listens on that should be reachable from outside.
+              </p>
               {ports.length === 0 && (
                 <p className='text-sm text-muted-foreground'>No ports published. Add one to expose the container.</p>
               )}
@@ -338,6 +348,9 @@ export default function ContainerCreateWizard({
                 <Label htmlFor='wizard-domain'>
                   Domain <i className='text-xs text-muted-foreground font-normal'>optional</i>
                 </Label>
+                <p className='text-xs text-muted-foreground'>
+                  Reach this container at your own domain instead of a generated address.
+                </p>
                 <Input
                   id='wizard-domain'
                   value={domain}

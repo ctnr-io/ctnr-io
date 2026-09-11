@@ -96,28 +96,30 @@ export type ContainerResources = z.infer<typeof ContainerResources>
 export const Container = z.object({
   // Identity
   name: z.string(),
-  
+
   // Image configuration
   image: z.string(),
   tag: z.string().optional(),
-  
+
   // Status
   status: ContainerStatus,
+  // Docker-style human-readable status, e.g. "Up 5 minutes", "Exited (0) 2h ago", "Created"
+  statusText: z.string(),
   createdAt: z.date(),
-  
+
   // Networking
   ports: z.array(ContainerPort),
   routes: z.array(z.string()),
-  
+
   // Resources
   cpu: z.string(),
   memory: z.string(),
   storage: z.string(),
   resources: ContainerResources.optional(),
-  
+
   // Scaling
   replicas: ContainerReplicas,
-  
+
   // Configuration
   restartPolicy: z.enum(['Always', 'OnFailure', 'Never']).default('Always'),
   command: z.array(z.string()),
@@ -129,7 +131,7 @@ export const Container = z.object({
     mountPath: z.string(),
     readOnly: z.boolean().optional(),
   })).optional(),
-  
+
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),
   annotations: z.record(z.string(), z.string()).optional(),

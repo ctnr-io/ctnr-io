@@ -41,6 +41,6 @@ export default async function* deleteProjectHandler(request: ServerRequest<Input
     yield `Project ${input.id} deleted successfully`
   } catch (error) {
     console.error(error)
-    throw new Error(`Failed to delete project with id ${input.id}`)
+    throw new Error(error instanceof Error ? error.message : `Failed to delete project with id ${input.id}`)
   }
 }

@@ -30,7 +30,10 @@ export const Input = z.object({
   name: ContainerName.optional(),
   env: z.array(
     z.string()
-      .regex(/^[A-Z_][A-Z0-9_]*=.*$/, 'Environment variables must follow format KEY=value with uppercase keys'),
+      .regex(
+        /^[^0-9=][^=]*=.*$/,
+        'Environment variables must follow format KEY=value, where KEY does not start with a digit and does not contain "="',
+      ),
   )
     .optional()
     .describe('Set environment variables'),

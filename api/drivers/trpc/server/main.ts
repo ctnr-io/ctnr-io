@@ -34,7 +34,13 @@ const httpServer = createServer((req, res) => {
   // Handle health check
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({ status: 'ok', service: 'ctnr-io-trpc-server' }))
+    res.end(
+      JSON.stringify({
+        status: 'ok',
+        service: 'ctnr-io-trpc-server',
+        version: process.env.CTNR_VERSION || 'unknown',
+      }),
+    )
     return
   }
   console.debug(`Handling HTTP request: ${req.method} ${req.url}`, req.headers)

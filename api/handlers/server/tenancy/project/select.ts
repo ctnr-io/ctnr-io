@@ -54,7 +54,7 @@ export default async function* selectProject(
   // Update context
   request.ctx = {
     ...ctx,
-    ...createServerProjectContext(request.ctx, { id: project.id }, signal),
+    ...(await createServerProjectContext(request.ctx, { id: project.id }, signal)),
   }
 
   return {

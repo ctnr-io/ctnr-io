@@ -98,14 +98,20 @@ function AddVolumeForm({
 
       <div className='grid grid-cols-2 gap-2'>
         <div className='space-y-2'>
-          <Label htmlFor='volume-size'>Size <i className="text-xs text-muted-foreground font-normal">20 Gi max currently</i></Label>
+          <Label htmlFor='volume-size'>
+            Size <i className='text-xs text-muted-foreground font-normal'>20 Gi max currently</i>
+          </Label>
           <Input
             id='volume-size'
             type='number'
             min='1'
             max='20'
             value={formData.size}
-            onChange={(e) => setFormData({ ...formData, size: Number(e.target.value) > 20 ? '20' : Number(e.target.value) < 1 ? '1' : e.target.value })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                size: Number(e.target.value) > 20 ? '20' : Number(e.target.value) < 1 ? '1' : e.target.value,
+              })}
             required
           />
         </div>
@@ -209,7 +215,7 @@ export default function VolumesTableScreen() {
       label: 'Size',
       className: 'text-sm',
       visibleOnMobile: true,
-      render: value => <Badge variant='outline'>{value}</Badge>,
+      render: (value) => <Badge variant='outline'>{value}</Badge>,
     },
     {
       key: 'status',
@@ -290,6 +296,8 @@ export default function VolumesTableScreen() {
       searchPlaceholder='Search volumes by name, status, or mount path...'
       searchKeys={['name', 'status', 'attachedTo', 'attachments']}
       addButtonLabel='Create Volume'
+      emptyTitle='No volumes yet'
+      emptyMessage='Volumes give your containers storage that survives restarts.'
       mobileCardSubtitle={(item) => `${item.size} • ${item.status}`}
       mobileCardStatus={(item) => ({
         label: item.status,

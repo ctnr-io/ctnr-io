@@ -508,14 +508,15 @@ export default function RoutesTableScreen() {
       tableDescription={isMobile || isProjectLoading ? undefined : (
         <>
           To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record (or{' '}
-          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} /> for root domain ) and target gateway at
-          {' '}
-          <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
+          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} />{' '}
+          for root domain ) and target gateway at <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
         </>
       )}
       searchPlaceholder='Search routes by name, path, domain, or service...'
       searchKeys={['name', 'path', 'domain', 'container', 'status']}
       addButtonLabel='Create Route'
+      emptyTitle='No routes yet'
+      emptyMessage='Routes send traffic from a domain to one of your containers.'
       mobileCardSubtitle={(item) => `${item.protocol}://${item.domain}${item.path}`}
       mobileCardStatus={(item) => ({
         label: item.status,

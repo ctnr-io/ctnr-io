@@ -257,18 +257,18 @@ export default function DomainsTableScreen() {
           provisioned.
         </>
       }
-      tableDescription={isMobile || isProjectLoading? undefined : (
+      tableDescription={isMobile || isProjectLoading ? undefined : (
         <>
-          To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record
-          {' '}
-          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} /> for root domain ) and target gateway at
-          {' '}
-          <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
+          To point your domain to Containers, create <CodeInline text='CNAME' showIcon={false} /> record{' '}
+          (<CodeInline text='ALIAS' showIcon={false} /> or <CodeInline text='ANAME' showIcon={false} />{' '}
+          for root domain ) and target gateway at <CodeInline text={`${project?.id}.gtw.${project?.cluster}.ctnr.io`} />
         </>
       )}
       searchPlaceholder='Search domains by name, status, or provider...'
       searchKeys={['name', 'status', 'routeCount']}
       addButtonLabel='Add Domain'
+      emptyTitle='No domains yet'
+      emptyMessage='Domains let people reach your containers at your own web address.'
       mobileCardSubtitle={(item) => `${item.name} • ${item.status}`}
       mobileCardStatus={(item) => ({
         label: item.status,

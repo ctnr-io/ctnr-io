@@ -4,6 +4,7 @@ import {
   FunctionSquare,
   Globe,
   HardDrive,
+  Home,
   LayoutGrid,
   LucideIcon,
   RouteIcon,
@@ -58,6 +59,14 @@ const data = {
     //     disabled: true,
     //   }],
     // },
+    {
+      title: 'Overview',
+      items: [{
+        title: 'Overview',
+        url: '/overview' as Route,
+        icon: Home,
+      }],
+    },
     {
       title: 'Compute',
       items: [{

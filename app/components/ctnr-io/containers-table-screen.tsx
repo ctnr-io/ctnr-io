@@ -163,17 +163,21 @@ export default function ContainersTableScreen({
     {
       key: 'cpu',
       label: 'CPU',
-      render: (_value, item) => <Badge variant='outline'>
-        {item.resources?.requests?.cpu || '-'}
-      </Badge>,
+      render: (_value, item) => (
+        <Badge variant='outline'>
+          {item.resources?.requests?.cpu || '-'}
+        </Badge>
+      ),
       className: 'text-end',
     },
     {
       key: 'memory',
       label: 'Memory',
-      render: (_value, item) => <Badge variant='outline'>
-        {item.resources?.requests?.memory || '-'}
-      </Badge>,
+      render: (_value, item) => (
+        <Badge variant='outline'>
+          {item.resources?.requests?.memory || '-'}
+        </Badge>
+      ),
       className: 'text-end',
     },
     {
@@ -368,7 +372,7 @@ export default function ContainersTableScreen({
         columnFilterable
         defaultVisibleColumns={['name', 'image', 'status', 'replicas', 'cpu', 'memory']}
         emptyTitle='No containers yet'
-        emptyMessage='Create your first container to get started.'
+        emptyMessage='Containers run your app. Run one to see it here.'
         loading={isLoading}
         error={error}
         onRetry={onRetry}

@@ -9,11 +9,10 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Step 1: Test run command structure
       const runResult = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
-        '--image',
-        'busybox:1.35',
         '--command',
         'sh -c "while true; do echo \'Integration test container\'; sleep 5; done"',
       ], { timeout: 10000 })
@@ -30,7 +29,6 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Step 3: Test attach command structure
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
       ], { timeout: 10000 })
 
@@ -48,11 +46,10 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Test container lifecycle command structures
       const runResult = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
-        '--image',
-        'busybox:1.35',
         '--command',
         "sh -c \"echo 'Starting container'; sleep 3; echo 'Container completing'\"",
       ], { timeout: 10000 })
@@ -77,11 +74,10 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Test multiple container command structures
       const run1Result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName1,
         '--detach',
-        '--image',
-        'busybox:1.35',
         '--command',
         'sleep 20',
       ], { timeout: 10000 })
@@ -89,13 +85,12 @@ Deno.test('Core API - Integration Tests', async (t) => {
 
       const run2Result = await runCliCommand([
         'run',
+        'alpine:3.18',
         '--name',
         containerName2,
         '--detach',
         '--env',
         'TEST_ENV=integration_test',
-        '--image',
-        'alpine:3.18',
         '--command',
         "sh -c 'echo $TEST_ENV; sleep 20'",
       ], { timeout: 10000 })
@@ -103,13 +98,12 @@ Deno.test('Core API - Integration Tests', async (t) => {
 
       const run3Result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName3,
         '--detach',
-        '--port',
+        '--publish',
         '8080',
-        '--image',
-        'busybox:1.35',
         '--command',
         'sleep 20',
       ], { timeout: 10000 })
@@ -122,7 +116,6 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Test attach command
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName1,
       ], { timeout: 10000 })
       assert(attachResult.code === 0, 'Should have exit code 0')
@@ -140,7 +133,6 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Test 1: Try to attach to non-existent container
       const attachNonExistentResult = await runCliCommand([
         'attach',
-        '--name',
         'non-existent-container-12345',
       ], { timeout: 10000 })
 
@@ -149,10 +141,9 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Test 2: Try to create container with invalid name
       const invalidNameResult = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         'INVALID_NAME_123',
-        '--image',
-        'busybox:1.35',
         '--command',
         'echo test',
       ], { timeout: 30000 })
@@ -163,8 +154,7 @@ Deno.test('Core API - Integration Tests', async (t) => {
       assert(
         output.includes('Pattern:') ||
           output.includes('invalid') ||
-          output.includes('DNS-1123') ||
-          invalidNameResult.code !== 0,
+          output.includes('DNS-1123'),
         'Should fail with invalid container name',
       )
 
@@ -183,13 +173,12 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Test interactive terminal container command structure
       const runResult = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
         '--interactive',
         '--terminal',
-        '--image',
-        'busybox:1.35',
         '--command',
         'sh',
       ], { timeout: 10000 })
@@ -203,7 +192,6 @@ Deno.test('Core API - Integration Tests', async (t) => {
       // Test attach with interactive and terminal flags
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
         '--interactive',
         '--terminal',

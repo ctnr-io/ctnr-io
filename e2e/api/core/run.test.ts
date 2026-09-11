@@ -21,10 +21,9 @@ Deno.test('Core API - Run Command Tests', async (t) => {
   await t.step('should fail with invalid container name', async () => {
     const result = await runCliCommand([
       'run',
+      'busybox:1.35',
       '--name',
       'INVALID_NAME_WITH_CAPS',
-      '--image',
-      'busybox:1.35',
       '--command',
       'echo test',
     ])
@@ -35,8 +34,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
     assert(
       output.includes('Pattern:') ||
         output.includes('invalid') ||
-        output.includes('DNS-1123') ||
-        result.code !== 0,
+        output.includes('DNS-1123'),
       'Should fail with invalid container name',
     )
   })
@@ -47,11 +45,10 @@ Deno.test('Core API - Run Command Tests', async (t) => {
     try {
       const result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
-        '--image',
-        'busybox:1.35',
         '--command',
         'echo Hello from e2e test',
       ], { timeout: 10000 })
@@ -67,8 +64,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
           output.includes('authentication') ||
             output.includes('connection') ||
             output.includes('server') ||
-            output.includes('login') ||
-            result.code === 1,
+            output.includes('login'),
           'Should fail due to authentication/connection issues, not command structure',
         )
       }
@@ -83,6 +79,7 @@ Deno.test('Core API - Run Command Tests', async (t) => {
     try {
       const result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
@@ -90,8 +87,6 @@ Deno.test('Core API - Run Command Tests', async (t) => {
         'TEST_VAR=hello_world',
         '--env',
         'ANOTHER_VAR=test_value',
-        '--image',
-        'busybox:1.35',
         '--command',
         "sh -c 'echo $TEST_VAR && echo $ANOTHER_VAR'",
       ], { timeout: 10000 })
@@ -109,15 +104,13 @@ Deno.test('Core API - Run Command Tests', async (t) => {
     try {
       const result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
-        '--port',
+        '--publish',
         '8080',
-        '--port',
         '9090',
-        '--image',
-        'busybox:1.35',
         '--command',
         'sleep 10',
       ], { timeout: 10000 })
@@ -136,12 +129,11 @@ Deno.test('Core API - Run Command Tests', async (t) => {
       // Test the command structure for force recreation
       const result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
         '--force',
-        '--image',
-        'busybox:1.35',
         '--command',
         'echo forced recreation',
       ], { timeout: 10000 })
@@ -160,12 +152,11 @@ Deno.test('Core API - Run Command Tests', async (t) => {
       // Test interactive flag parsing
       const result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--interactive',
         '--detach',
-        '--image',
-        'busybox:1.35',
         '--command',
         'echo interactive test',
       ], { timeout: 10000 })
@@ -183,12 +174,11 @@ Deno.test('Core API - Run Command Tests', async (t) => {
     try {
       const result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--terminal',
         '--detach',
-        '--image',
-        'busybox:1.35',
         '--command',
         'echo terminal test',
       ], { timeout: 10000 })
@@ -206,11 +196,10 @@ Deno.test('Core API - Run Command Tests', async (t) => {
     try {
       const result = await runCliCommand([
         'run',
+        'busybox:1.35',
         '--name',
         containerName,
         '--detach',
-        '--image',
-        'busybox:1.35',
         '--command',
         "echo 'Custom command executed' && sleep 5",
       ], { timeout: 10000 })

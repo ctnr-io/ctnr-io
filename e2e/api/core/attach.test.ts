@@ -22,7 +22,6 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
 
     const result = await runCliCommand([
       'attach',
-      '--name',
       nonExistentName,
     ], { timeout: 10000 })
 
@@ -37,7 +36,6 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
       // Test attach command structure
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
       ], { timeout: 10000 })
 
@@ -55,7 +53,6 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
       // Test attach command structure with interactive flag
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
         '--interactive',
       ], {
@@ -77,7 +74,6 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
       // Test attach command structure with terminal flag
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
         '--terminal',
       ], { timeout: 10000 })
@@ -96,7 +92,6 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
       // Test attach command structure with both flags
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
         '--interactive',
         '--terminal',
@@ -119,7 +114,6 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
       // Test attach command structure for completed container
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
       ], { timeout: 15000 })
 
@@ -137,7 +131,6 @@ Deno.test('Core API - Attach Command Tests', async (t) => {
       // Test attach command structure for output capture
       const attachResult = await runCliCommand([
         'attach',
-        '--name',
         containerName,
       ], { timeout: 15000 })
 

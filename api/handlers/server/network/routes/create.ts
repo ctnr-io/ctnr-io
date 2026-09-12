@@ -25,7 +25,9 @@ export const Input = z.object({
   port: PortName.describe(
     'Ports to expose, defaults to all ports of the container',
   ),
-  path: z.string().default('/').describe('Path for the route, defaults to "/"'),
+  path: z.string().regex(/^\/[A-Za-z0-9\-._~!$&'()*+,;=:@%/]*$/).default('/').describe(
+    'Path for the route, defaults to "/"',
+  ),
   protocol: z.enum(['http', 'https']).default('https').describe('Protocol for the route'),
 })
 

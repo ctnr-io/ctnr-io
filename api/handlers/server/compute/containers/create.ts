@@ -53,7 +53,11 @@ export const Input = z.object({
     .describe('Command to run in the container'),
   replicas: z.union([
     z.number().min(1).max(20),
-    z.string().regex(/^\d+-\d+$/, 'Replicas range must be in format "min-max" (e.g., "1-5")'),
+    z.string().regex(/^\d+-\d+$/, 'Replicas range must be in format "min-max" (e.g., "1-5")')
+      .refine((range) => {
+        const [min, max] = range.split('-').map(Number)
+        return min >= 1 && max <= 20 && min <= max
+      }, 'Replicas range must be between 1 and 20, with min not exceeding max'),
   ])
     .optional()
     .default(1)

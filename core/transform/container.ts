@@ -457,7 +457,7 @@ export function extractEnvironment(envVars: Array<{ name?: string; value?: strin
 /**
  * Split an image reference into name and tag/digest
  */
-function splitImageRef(image: string): { name: string; tag?: string } {
+export function splitImageRef(image: string): { name: string; tag?: string } {
   const digestAt = image.indexOf('@')
   if (digestAt !== -1) {
     return { name: image.slice(0, digestAt), tag: image.slice(digestAt + 1) }
@@ -473,8 +473,20 @@ function splitImageRef(image: string): { name: string; tag?: string } {
 /**
  * Extract image name without tag
  */
-function extractImageName(image: string): string {
+export function extractImageName(image: string): string {
   return splitImageRef(image).name
+}
+
+/**
+ * Derive a default container name from an image reference: the image name's last path
+ * segment, sanitized to a DNS-1123-safe label. Using only the last segment (not the full
+ * registry host/path) keeps a ported registry or a deep path from blowing the 63-char limit
+ * and from colliding two different apps that share a registry host.
+ */
+export function defaultContainerName(image: string): string {
+  const name = extractImageName(image)
+  const lastSegment = name.slice(name.lastIndexOf('/') + 1)
+  return lastSegment.replace(/[^a-z0-9]/gi, '-').toLowerCase()
 }
 
 /**

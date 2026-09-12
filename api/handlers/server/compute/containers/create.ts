@@ -4,7 +4,7 @@ import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ServerContext } from 'api/context/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
 import { ensureVolume } from 'core/data/storage/volume.ts'
-import { containerInputToDeployment } from 'core/transform/container.ts'
+import { containerInputToDeployment, defaultContainerName } from 'core/transform/container.ts'
 import { hash } from 'node:crypto'
 import { VolumeMount } from 'core/schemas/mod.ts'
 import { ensureService } from 'infra/kubernetes/mod.ts'
@@ -81,7 +81,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
 
   const {
     image,
-    name = image.split(':')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-' + hash("sha256", crypto.randomUUID()).substring(0, 6),
+    name = defaultContainerName(image) + '-' + hash("sha256", crypto.randomUUID()).substring(0, 6),
     env = [],
     publish,
     volume = [],

@@ -290,7 +290,7 @@ export async function listRoutes(
       // Apply filters
       if (name && route.name !== name) continue
       if (container && route.container !== container) continue
-      if (domain && !route.domain.includes(domain)) continue
+      if (domain && route.domain !== domain) continue
 
       routes.push(route)
     }
@@ -309,7 +309,7 @@ export async function listRoutes(
       // Apply filters
       if (name && route.name !== name) continue
       if (container && route.container !== container) continue
-      if (domain && !route.domain.includes(domain)) continue
+      if (domain && route.domain !== domain) continue
 
       routes.push(route)
     }

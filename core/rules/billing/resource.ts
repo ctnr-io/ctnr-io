@@ -15,8 +15,8 @@ export interface ResourceParsed {
 
 export function extractDeploymentMinimumResourceUsage(deployment: Deployment): ResourceUsage {
   const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
-  const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
+  const cpu = resources?.limits?.cpu?.serialize() || resources?.requests?.cpu?.serialize() || '250m'
+  const memory = resources?.limits?.memory?.serialize() || resources?.requests?.memory?.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
@@ -31,8 +31,8 @@ export function extractDeploymentMinimumResourceUsage(deployment: Deployment): R
 
 export function extractDeploymentMaximumResourceUsage(deployment: Deployment): ResourceUsage {
   const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
-  const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
+  const cpu = resources?.limits?.cpu?.serialize() || resources?.requests?.cpu?.serialize() || '250m'
+  const memory = resources?.limits?.memory?.serialize() || resources?.requests?.memory?.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
@@ -46,8 +46,8 @@ export function extractDeploymentMaximumResourceUsage(deployment: Deployment): R
 
 export function extractDeploymentCurrentResourceUsage(deployment: Deployment): ResourceUsage {
   const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu.serialize() || resources?.requests?.cpu.serialize() || '250m'
-  const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
+  const cpu = resources?.limits?.cpu?.serialize() || resources?.requests?.cpu?.serialize() || '250m'
+  const memory = resources?.limits?.memory?.serialize() || resources?.requests?.memory?.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'

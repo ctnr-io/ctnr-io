@@ -74,6 +74,9 @@ export const Input = z.object({
   restart: z.enum(['always', 'on-failure', 'never']).optional().default('never').describe(
     'Restart policy for the container',
   ),
+  rm: z.boolean().optional().default(false).describe(
+    'Automatically remove the container when it exits (only applies to `ctnr run`)',
+  ),
   runtime: z.enum(['kata', 'containerd']).optional().default('containerd').describe(
     "Container runtime: 'kata' for VM-isolated untrusted workloads (needs nested-virt and >= 1 CPU), 'containerd' otherwise",
   ),

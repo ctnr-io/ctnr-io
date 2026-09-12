@@ -6,6 +6,7 @@ import logContainer from './logs.ts'
 import createContainer, * as CreateContainer from './create.ts'
 import startContainer from './start.ts'
 import routeContainer from './route.ts'
+import removeContainer from './remove.ts'
 
 export const Meta = {
   aliases: {
@@ -44,6 +45,7 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     detach,
     replicas,
     publish,
+    rm,
   } = input
 
   // Create the container first
@@ -54,8 +56,8 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     ...request,
     input: {
       ...input,
-      name
-    }
+      name,
+    },
   })
 
   // Parse replicas parameter
@@ -122,9 +124,11 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
     }
   }
 
-
   if (detach) {
     // If detach is enabled, just return without attaching
+    // --rm auto-removal only applies to the foreground (attached) path below:
+    // detecting exit of a detached container would need a background watcher,
+    // which is out of scope here.
     yield `Containers ${name} is running. Detached successfully.`
     return
   } else if (pod?.status?.phase === 'Running') {
@@ -148,6 +152,16 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<v
         follow: true,
         timestamps: false,
       },
+      signal,
+      defer,
+    })
+  }
+
+  if (rm) {
+    yield `🗑️  Auto-removing container ${name} (--rm)...`
+    yield* removeContainer({
+      ctx,
+      input: { name, force: true },
       signal,
       defer,
     })

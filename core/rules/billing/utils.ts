@@ -153,7 +153,7 @@ export const ResourceLimits = {
       // Round to nearest 1 for cleaner values
       return Math.round(rawValue)
     },
-    fromString: (value: string) => parseResourceToPrimitiveValue(value, 'memory') / 1000,
+    fromString: (value: string) => parseResourceToPrimitiveValue(value, 'memory') / 1024,
   },
   storage: {
     min: parseResourceToPrimitiveValue(FreeTier.storage, 'storage'), // 1 Gi

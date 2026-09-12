@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert'
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
-import { buildStatusText, containerInputToDeployment, deploymentToContainer } from './container.ts'
+import { buildStatusText, containerInputToDeployment, deploymentToContainer, mapDeploymentStatus } from './container.ts'
 
 function deploymentWithImage(image: string): Deployment {
   return containerInputToDeployment({ name: 'app', namespace: 'ns', image }) as Deployment
@@ -57,4 +57,30 @@ Deno.test('containerInputToDeployment defaults memory/ephemeralStorage in decima
   assertEquals(resources?.limits?.['ephemeral-storage']?.serialize(), '1G')
   assertEquals(resources?.requests?.memory?.serialize(), '256M')
   assertEquals(resources?.requests?.['ephemeral-storage']?.serialize(), '1G')
+})
+
+Deno.test('a scale-down to zero reports stopped even mid-rollout (replicas=0 wins over Progressing)', () => {
+  const status: Deployment['status'] = {
+    replicas: 0,
+    readyReplicas: 0,
+    availableReplicas: 0,
+    unavailableReplicas: 0,
+    conditions: [
+      { type: 'Progressing', status: 'True', reason: 'NewReplicaSetCreated' },
+    ],
+  }
+  assertEquals(mapDeploymentStatus(status), 'stopped')
+})
+
+Deno.test('a genuine scale-up (replicas>0) still reports starting', () => {
+  const status: Deployment['status'] = {
+    replicas: 2,
+    readyReplicas: 0,
+    availableReplicas: 0,
+    unavailableReplicas: 0,
+    conditions: [
+      { type: 'Progressing', status: 'True', reason: 'NewReplicaSetCreated' },
+    ],
+  }
+  assertEquals(mapDeploymentStatus(status), 'starting')
 })

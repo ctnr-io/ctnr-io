@@ -153,17 +153,18 @@ export function mapDeploymentStatus(status: Deployment['status']): ContainerStat
   const progressingCondition = conditions.find((c) => c.type === 'Progressing')
   const availableCondition = conditions.find((c) => c.type === 'Available')
 
+  // Deployment is scaled to zero (checked before Progressing: a scale-down still
+  // reports a stale 'NewReplicaSetCreated'/'ReplicaSetUpdated' reason)
+  if (replicas === 0) {
+    return 'stopped'
+  }
+
   // Deployment is scaling up
   if (
     progressingCondition?.reason === 'NewReplicaSetCreated' ||
     progressingCondition?.reason === 'ReplicaSetUpdated'
   ) {
     return 'starting'
-  }
-
-  // Deployment is scaling down
-  if (replicas === 0) {
-    return 'stopped'
   }
 
   // All replicas ready

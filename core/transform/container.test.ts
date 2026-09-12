@@ -4,6 +4,7 @@ import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
 import {
   buildStatusText,
   containerInputToDeployment,
+  defaultContainerName,
   deploymentToContainer,
   extractReplicas,
   mapDeploymentStatus,
@@ -51,6 +52,18 @@ Deno.test('a digest reference is kept whole', () => {
   const container = deploymentToContainer(deploymentWithImage(`app@${digest}`))
   assertEquals(container.image, 'app')
   assertEquals(container.tag, digest)
+})
+
+Deno.test('defaultContainerName keeps the app name on a ported registry', () => {
+  assertEquals(defaultContainerName('registry.example.com:5000/team/app:v1'), 'app')
+})
+
+Deno.test('defaultContainerName keeps the app name on a digest reference', () => {
+  assertEquals(defaultContainerName('app@sha256:0000000000000000000000000000000000000000000000000000000000000000'), 'app')
+})
+
+Deno.test('defaultContainerName sanitizes a plain tagged image', () => {
+  assertEquals(defaultContainerName('nginx:1.27'), 'nginx')
 })
 
 Deno.test('stopping has no dedicated status text (the case is unreachable and was removed)', () => {

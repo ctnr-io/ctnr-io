@@ -13,49 +13,34 @@ export interface ResourceParsed {
   storage: number // in Gi
 }
 
-export function extractDeploymentMinimumResourceUsage(deployment: Deployment): ResourceUsage {
+function extractResourceUsageForReplicas(deployment: Deployment, replicas: number): ResourceUsage {
   const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
   const cpu = resources?.limits?.cpu?.serialize() || resources?.requests?.cpu?.serialize() || '250m'
   const memory = resources?.limits?.memory?.serialize() || resources?.requests?.memory?.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
+  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * replicas
+  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * replicas
+  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * replicas
+  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas }
+}
+
+export function extractDeploymentMinimumResourceUsage(deployment: Deployment): ResourceUsage {
   const annotations = deployment.metadata?.annotations || {}
   const minReplicas = parseInt(annotations['ctnr.io/min-replicas'] || '1', 10)
-  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * minReplicas
-  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * minReplicas
-  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * minReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: minReplicas }
-  
+  return extractResourceUsageForReplicas(deployment, minReplicas)
 }
 
 export function extractDeploymentMaximumResourceUsage(deployment: Deployment): ResourceUsage {
-  const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu?.serialize() || resources?.requests?.cpu?.serialize() || '250m'
-  const memory = resources?.limits?.memory?.serialize() || resources?.requests?.memory?.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
-    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
-  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
   const annotations = deployment.metadata?.annotations || {}
   const maxReplicas = parseInt(annotations['ctnr.io/max-replicas'] || '1', 10)
-  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * maxReplicas
-  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * maxReplicas
-  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * maxReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: maxReplicas }
+  return extractResourceUsageForReplicas(deployment, maxReplicas)
 }
 
 export function extractDeploymentCurrentResourceUsage(deployment: Deployment): ResourceUsage {
-  const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
-  const cpu = resources?.limits?.cpu?.serialize() || resources?.requests?.cpu?.serialize() || '250m'
-  const memory = resources?.limits?.memory?.serialize() || resources?.requests?.memory?.serialize() || '512M'
-  const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
-    resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
-  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
   const currentReplicas = deployment.status?.readyReplicas ?? deployment.status?.availableReplicas ?? 0
-  const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * currentReplicas
-  const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * currentReplicas
-  const totalStorage = parseResourceToPrimitiveValue(storage, 'storage') * currentReplicas
-  return { cpu: totalCpu + 'm', memory: totalMemory + 'MiB', storage: totalStorage + 'Gi', replicas: currentReplicas }
+  return extractResourceUsageForReplicas(deployment, currentReplicas)
 }
 
 export function extractDeploymentResourceUsage(

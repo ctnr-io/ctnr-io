@@ -152,31 +152,6 @@ export async function* deleteVolume(
   return true
 }
 
-/**
- * Get volume information
- */
-export async function getVolumeInfo(
-  name: string,
-  namespace: string,
-  kubeClient: KubeClient,
-): Promise<{
-  name: string
-  size: string
-  phase: string
-  storageClass: string | undefined
-  createdAt: Date | undefined
-}> {
-  const pvc = await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaim(name)
-
-  return {
-    name: pvc.metadata?.name || name,
-    size: pvc.spec?.resources?.requests?.storage?.serialize() || 'Unknown',
-    phase: pvc.status?.phase || 'Unknown',
-    storageClass: pvc.spec?.storageClassName || undefined,
-    createdAt: pvc.metadata?.creationTimestamp ? new Date(pvc.metadata.creationTimestamp) : undefined,
-  }
-}
-
 export interface VolumeContext {
   kubeClient: KubeClient
   namespace: string
@@ -192,7 +167,7 @@ export interface ListVolumesOptions {
  */
 export async function listVolumes(
   ctx: VolumeContext,
-  options: ListVolumesOptions = {}
+  options: ListVolumesOptions = {},
 ): Promise<Volume[]> {
   const { kubeClient, namespace } = ctx
   const { name: filterName, signal } = options
@@ -223,11 +198,11 @@ export async function listVolumes(
         name: metadata.name ?? '',
         size: spec.resources?.requests?.storage?.serialize() ?? 'Unknown',
         status: volumeStatus,
-        createdAt: metadata.creationTimestamp
-          ? new Date(metadata.creationTimestamp)
-          : new Date(),
+        createdAt: metadata.creationTimestamp ? new Date(metadata.creationTimestamp) : new Date(),
         storageClass: spec.storageClassName ?? 'default',
-        accessMode: (spec.accessModes?.[0] as 'ReadWriteOnce' | 'ReadOnlyMany' | 'ReadWriteMany' | 'ReadWriteOncePod') ?? 'ReadWriteOnce',
+        accessMode:
+          (spec.accessModes?.[0] as 'ReadWriteOnce' | 'ReadOnlyMany' | 'ReadWriteMany' | 'ReadWriteOncePod') ??
+            'ReadWriteOnce',
         labels: metadata.labels ?? {},
         annotations: metadata.annotations ?? {},
       }

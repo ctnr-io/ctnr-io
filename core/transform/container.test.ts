@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert'
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
-import { containerInputToDeployment, deploymentToContainer } from './container.ts'
+import { buildStatusText, containerInputToDeployment, deploymentToContainer } from './container.ts'
 
 function deploymentWithImage(image: string): Deployment {
   return containerInputToDeployment({ name: 'app', namespace: 'ns', image }) as Deployment
@@ -44,4 +44,8 @@ Deno.test('a digest reference is kept whole', () => {
   const container = deploymentToContainer(deploymentWithImage(`app@${digest}`))
   assertEquals(container.image, 'app')
   assertEquals(container.tag, digest)
+})
+
+Deno.test('stopping has no dedicated status text (the case is unreachable and was removed)', () => {
+  assertEquals(buildStatusText('stopping', new Date()), 'Unknown')
 })

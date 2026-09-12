@@ -410,8 +410,6 @@ export function buildStatusText(
       return `Up ${formatStatusDuration(now - createdAt.getTime())}`
     case 'starting':
       return 'Starting'
-    case 'stopping':
-      return 'Stopping'
     case 'pending':
       return 'Created'
     case 'stopped':

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
+import { ContainerName } from 'lib/api/schemas.ts'
 import * as YAML from '@std/yaml'
 import { type ContainerContext, listContainers } from 'core/data/compute/container.ts'
 import { formatAge } from 'lib/api/formatter.ts'
@@ -16,7 +17,7 @@ export const Meta = {
 
 export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
-  name: z.string().optional(),
+  name: ContainerName.optional(),
   fields: z.array(z.enum([
     'basic',
     'resources',

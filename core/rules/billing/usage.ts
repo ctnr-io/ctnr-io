@@ -173,15 +173,15 @@ export async function getUsage(opts: {
       percentage: parsedLimits.cpu === Infinity ? 0 : Math.round((totalMilliCpuUsed / parsedLimits.cpu) * 100),
     },
     memory: {
-      used: totalMemoryUsed + 'M',
-      limit: parsedLimits.memory + 'M',
-      next: totalMemoryUsed + parseResourceToPrimitiveValue(additionalResource?.memory || '0', 'memory') + 'M',
+      used: totalMemoryUsed + 'Mi',
+      limit: parsedLimits.memory + 'Mi',
+      next: totalMemoryUsed + parseResourceToPrimitiveValue(additionalResource?.memory || '0', 'memory') + 'Mi',
       percentage: parsedLimits.memory === Infinity ? 0 : Math.round((totalMemoryUsed / parsedLimits.memory) * 100),
     },
     storage: {
-      used: totalStorageUsed + 'G',
-      limit: parsedLimits.storage + 'G',
-      next: totalStorageUsed + parseResourceToPrimitiveValue(additionalResource?.storage || '0', 'storage') + 'G',
+      used: totalStorageUsed + 'Gi',
+      limit: parsedLimits.storage + 'Gi',
+      next: totalStorageUsed + parseResourceToPrimitiveValue(additionalResource?.storage || '0', 'storage') + 'Gi',
       percentage: parsedLimits.storage === Infinity ? 0 : Math.round((totalStorageUsed / parsedLimits.storage) * 100),
     },
   }

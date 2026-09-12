@@ -5,7 +5,7 @@ import { ContainerName } from 'lib/api/schemas.ts'
 import { ensureHorizontalPodAutoscaler } from 'infra/kubernetes/mod.ts'
 import { checkUsage } from 'core/rules/billing/usage.ts'
 import { extractDeploymentResourceUsage } from 'core/rules/billing/resource.ts'
-import { getDeployment, scaleContainer, watchDeployments, type ContainerContext } from 'core/data/compute/container.ts'
+import { type ContainerContext, getDeployment, scaleContainer, watchDeployments } from 'core/data/compute/container.ts'
 
 export const Meta = {
   aliases: {
@@ -101,7 +101,7 @@ export default async function* startContainer(request: ServerRequest<Input>): Se
     }, signal)
   }
 
-  await waitForDeployment({
+  yield* waitForDeployment({
     containerCtx,
     name,
     predicate: (deployment) => {
@@ -109,17 +109,20 @@ export default async function* startContainer(request: ServerRequest<Input>): Se
       return !!status?.readyReplicas && status?.readyReplicas >= minReplicas
     },
     signal,
+    progress: (deployment) =>
+      `⏳ Containers ${name}: ${deployment.status?.readyReplicas ?? 0}/${minReplicas} replicas ready`,
   })
 
   yield `✅ Containers ${name} started`
 }
 
-async function waitForDeployment({ containerCtx, name, predicate, signal }: {
+async function* waitForDeployment({ containerCtx, name, predicate, signal, progress }: {
   containerCtx: ContainerContext
   name: string
   predicate: (deployment: Deployment) => boolean | Promise<boolean>
   signal: AbortSignal
-}): Promise<Deployment> {
+  progress: (deployment: Deployment) => string
+}): ServerResponse<Deployment> {
   const deploymentWatcher = await watchDeployments(containerCtx, {
     labelSelector: `ctnr.io/name=${name}`,
     signal,
@@ -129,8 +132,11 @@ async function waitForDeployment({ containerCtx, name, predicate, signal }: {
     while (true) {
       const { done, value } = await reader.read()
       const deployment = value?.object as Deployment
-      if (deployment?.metadata?.name === name && await predicate(deployment)) {
-        return deployment
+      if (deployment?.metadata?.name === name) {
+        yield progress(deployment)
+        if (await predicate(deployment)) {
+          return deployment
+        }
       }
       if (done) {
         return deployment

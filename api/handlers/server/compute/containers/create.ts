@@ -152,7 +152,11 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
 
   // Check if the deployment already exists
   let deployment = await ctx.kube.client['karmada'].AppsV1.namespace(ctx.project.namespace).getDeployment(name).catch(
-    () => null
+    // deno-lint-ignore no-explicit-any
+    (error: any) => {
+      if (error.httpCode === 404) return null
+      throw error
+    },
   )
   if (deployment) {
     if (force) {

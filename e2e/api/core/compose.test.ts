@@ -13,7 +13,7 @@ const catalogFixtures: { path: string; services: string[] }[] = [
 Deno.test('Core API - Compose Command Tests', async (t) => {
   for (const fixture of catalogFixtures) {
     await t.step(`should map ${fixture.path} to a stack (json output)`, async () => {
-      const result = await runCliCommand(['compose', fixture.path, '--output', 'json'])
+      const result = await runCliCommand(['compose', 'config', fixture.path, '--output', 'json'])
 
       assertEquals(result.code, 0, `stderr: ${result.stderr}`)
       for (const service of fixture.services) {
@@ -22,16 +22,33 @@ Deno.test('Core API - Compose Command Tests', async (t) => {
     })
   }
 
-  // Regression guard: `ctnr compose` is documented as a local/offline command (no cluster
-  // round-trip), so it must not require Zitadel auth config. Without this, CLI bootstrap
-  // eagerly resolved Zitadel config for every command and crashed here with
+  // Regression guard: `ctnr compose config` is documented as a local/offline command (no
+  // cluster round-trip), so it must not require Zitadel auth config. Without this, CLI
+  // bootstrap eagerly resolved Zitadel config for every command and crashed here with
   // "ZITADEL_ISSUER and ZITADEL_CLIENT_ID environment variables are required".
   await t.step('should work without ZITADEL_ISSUER/ZITADEL_CLIENT_ID set', async () => {
-    const result = await runCliCommand(['compose', 'catalog/ghost/docker-compose.yaml', '--output', 'json'], {
+    const result = await runCliCommand(['compose', 'config', 'catalog/ghost/docker-compose.yaml', '--output', 'json'], {
       env: { ZITADEL_ISSUER: '', ZITADEL_CLIENT_ID: '' },
     })
 
     assertEquals(result.code, 0, `stderr: ${result.stderr}`)
     assert(!result.stderr.includes('ZITADEL_ISSUER'))
+  })
+
+  // `compose up`/`compose down` act on the cluster, so this offline (PR-blocking) suite only
+  // exercises their CLI wiring via --help, which never makes a network round-trip. Live-cluster
+  // coverage lives in e2e/api/core/compose-up-down.test.ts (non-PR-blocking e2e-api-core job).
+  await t.step('compose up --help should describe the up subcommand', async () => {
+    const result = await runCliCommand(['compose', 'up', '--help'])
+
+    assertEquals(result.code, 0, `stderr: ${result.stderr}`)
+    assertStringIncludes(result.stdout.toLowerCase(), 'file')
+  })
+
+  await t.step('compose down --help should describe the down subcommand', async () => {
+    const result = await runCliCommand(['compose', 'down', '--help'])
+
+    assertEquals(result.code, 0, `stderr: ${result.stderr}`)
+    assertStringIncludes(result.stdout.toLowerCase(), 'file')
   })
 })

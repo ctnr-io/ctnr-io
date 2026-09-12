@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from '@std/assert'
-import { sortByDependencies } from './deploy.ts'
+import { sortByDependencies } from './up.ts'
 import type { Stack } from 'core/schemas/compute/stack.ts'
 
 function service(overrides: Partial<Stack['services'][string]> = {}): Stack['services'][string] {

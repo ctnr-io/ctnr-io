@@ -21,10 +21,13 @@ export async function deleteContainer(
 	await kubeClient.AppsV1.namespace(namespace).deleteDeployment(name, {
 		abortSignal: signal,
 	})
-	// Service is optional (only created when the container declared ports), so ignore not-found
+	// Service is optional (only created when the container declared ports), so ignore not-found only
 	await kubeClient.CoreV1.namespace(namespace).deleteService(name, {
 		abortSignal: signal,
-	}).catch(() => {})
+		// deno-lint-ignore no-explicit-any
+	}).catch((error: any) => {
+		if (error.httpCode !== 404) throw error
+	})
 }
 
 /**

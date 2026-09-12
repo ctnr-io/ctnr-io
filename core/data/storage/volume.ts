@@ -92,7 +92,9 @@ export async function* waitForVolumeReady(
     }
 
     if (pvc.status?.phase === 'Failed') {
-      throw new Error(`Volume provisioning failed: Unknown error`)
+      const condition = pvc.status.conditions?.find((c) => c.reason || c.message)
+      const detail = condition && [condition.reason, condition.message].filter(Boolean).join(': ')
+      throw new Error(`Volume provisioning failed: ${detail || 'Unknown error'}`)
     }
 
     attempts++

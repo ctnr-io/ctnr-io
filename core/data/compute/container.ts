@@ -111,8 +111,9 @@ export async function getDeployment(
 	const { kubeClient, namespace } = ctx
 	try {
 		return await kubeClient.AppsV1.namespace(namespace).getDeployment(name, { abortSignal: options.signal })
-	} catch {
-		return null
+	} catch (error: any) {
+		if (error.httpCode === 404) return null
+		throw error
 	}
 }
 

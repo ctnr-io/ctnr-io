@@ -13,8 +13,10 @@ import type {
   ContainerLastTermination,
   ContainerPort,
   ContainerReplicas,
+  ContainerRuntime,
   ContainerStatus,
 } from 'core/schemas/compute/container.ts'
+import { assertKataCpuMinimum, runtimeClassNameFor } from 'core/rules/compute/runtime.ts'
 import type { PodMetrics } from 'infra/kubernetes/types/metrics.ts'
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
@@ -38,6 +40,7 @@ export interface ContainerInput {
   memory?: string
   ephemeralStorage?: string
   restart?: 'always' | 'on-failure' | 'never'
+  runtime?: ContainerRuntime
 }
 
 /**
@@ -514,7 +517,10 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
     cpu = '250m',
     memory = '256M',
     ephemeralStorage = '1G',
+    runtime = 'containerd',
   } = input
+
+  assertKataCpuMinimum(runtime, cpu)
 
   // Parse replicas parameter
   let replicaCount: number
@@ -571,6 +577,7 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
         },
         spec: {
           restartPolicy: 'Always',
+          runtimeClassName: runtimeClassNameFor(runtime),
           hostNetwork: false,
           hostPID: false,
           hostIPC: false,

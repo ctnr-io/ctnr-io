@@ -49,6 +49,16 @@ export const ContainerReplicas = z.object({
 export type ContainerReplicas = z.infer<typeof ContainerReplicas>
 
 /**
+ * Container runtime selection.
+ * - 'kata': per-pod VM/kernel isolation via the 'kata' runtimeClass, for untrusted
+ *   tenant workloads. Requires nested-virt on the node and at least 1 CPU.
+ * - 'containerd': the default shared-kernel runtime (no runtimeClass). Runs everywhere,
+ *   including cheap edge nodes without nested-virt.
+ */
+export const ContainerRuntime = z.enum(['kata', 'containerd'])
+export type ContainerRuntime = z.infer<typeof ContainerRuntime>
+
+/**
  * Container status enum matching deployment states
  */
 export const ContainerStatus = z.enum([
@@ -157,5 +167,6 @@ export const CreateContainerInput = z.object({
   args: z.array(z.string()).optional(),
   workingDir: z.string().optional(),
   cluster: z.enum(['eu-1']).optional(),
+  runtime: ContainerRuntime.optional().default('containerd'),
 })
 export type CreateContainerInput = z.infer<typeof CreateContainerInput>

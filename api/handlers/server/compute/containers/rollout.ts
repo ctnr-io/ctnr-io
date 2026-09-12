@@ -6,6 +6,7 @@ import { containerInputToDeployment } from 'core/transform/container.ts'
 import { ensureVolume } from 'core/data/storage/volume.ts'
 import { VolumeMount } from 'core/schemas/mod.ts'
 import { normalizeQuantity } from 'core/transform/resources.ts'
+import { KATA_RUNTIME_CLASS } from 'core/rules/compute/runtime.ts'
 
 export const Meta = {
   aliases: {
@@ -61,6 +62,9 @@ export const Input = z.object({
   restart: z.enum(['always', 'on-failure', 'never']).optional().default('never').describe(
     'Restart policy for the container',
   ),
+  runtime: z.enum(['kata', 'containerd']).optional().describe(
+    "Container runtime: 'kata' for VM-isolated untrusted workloads (needs nested-virt and >= 1 CPU), 'containerd' otherwise",
+  ),
 })
 
 export type Input = z.infer<typeof Input>
@@ -79,6 +83,7 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
     replicas: inputReplicas,
     cpu: inputCpu,
     memory: inputMemory,
+    runtime: inputRuntime,
   } = input
 
   const containerCtx = {
@@ -104,7 +109,7 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
   const existingAnnotations = existingDeployment.metadata?.annotations ?? {}
 
   // Merge configuration: use input if provided, otherwise use existing
-  const image = inputImage || existingContainer?.image || '' 
+  const image = inputImage || existingContainer?.image || ''
 
   // Use normalizeQuantity to safely extract resource values from Kubernetes objects
   const cpu = inputCpu ?? (normalizeQuantity(existingContainer?.resources?.limits?.cpu) || '250m')
@@ -112,6 +117,12 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
 
   // Safely extract ephemeral-storage, handling invalid values
   const ephemeralStorage = normalizeQuantity(existingContainer?.resources?.limits?.['ephemeral-storage']) || '1G'
+
+  // Preserve the existing runtime unless the caller overrides it
+  const existingRuntime = existingDeployment.spec?.template?.spec?.runtimeClassName === KATA_RUNTIME_CLASS
+    ? 'kata'
+    : 'containerd'
+  const runtime = inputRuntime ?? existingRuntime
 
   const interactive = inputInteractive ?? (existingContainer?.stdin || false)
   const terminal = inputTerminal ?? (existingContainer?.tty || false)
@@ -197,6 +208,7 @@ export default async function* rolloutContainer(request: ServerRequest<Input>): 
     cpu,
     memory,
     ephemeralStorage,
+    runtime,
   })
 
   // Preserve the current replica count from the existing deployment

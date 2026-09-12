@@ -19,7 +19,7 @@ export function extractDeploymentMinimumResourceUsage(deployment: Deployment): R
   const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
-  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
+  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
   const annotations = deployment.metadata?.annotations || {}
   const minReplicas = parseInt(annotations['ctnr.io/min-replicas'] || '1', 10)
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * minReplicas
@@ -35,7 +35,7 @@ export function extractDeploymentMaximumResourceUsage(deployment: Deployment): R
   const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
-  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
+  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
   const annotations = deployment.metadata?.annotations || {}
   const maxReplicas = parseInt(annotations['ctnr.io/max-replicas'] || '1', 10)
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * maxReplicas
@@ -50,7 +50,7 @@ export function extractDeploymentCurrentResourceUsage(deployment: Deployment): R
   const memory = resources?.limits?.memory.serialize() || resources?.requests?.memory.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
-  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'G'
+  const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
   const currentReplicas = deployment.status?.readyReplicas ?? deployment.status?.availableReplicas ?? 0
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * currentReplicas
   const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * currentReplicas

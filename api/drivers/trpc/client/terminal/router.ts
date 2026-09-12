@@ -33,8 +33,9 @@ import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from '../context.ts'
 import login from 'api/handlers/client/auth/login_from_terminal.ts'
 import logout from 'api/handlers/client/auth/logout.ts'
-import compose, * as Compose from 'api/handlers/client/compute/compose.ts'
-import deploy, * as Deploy from 'api/handlers/client/compute/deploy.ts'
+import composeConfig, * as ComposeConfig from 'api/handlers/client/compute/compose/config.ts'
+import composeUp, * as ComposeUp from 'api/handlers/client/compute/compose/up.ts'
+import composeDown, * as ComposeDown from 'api/handlers/client/compute/compose/down.ts'
 import { Unsubscribable } from '@trpc/server/observable'
 import { ClientContext } from 'api/context/mod.ts'
 import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
@@ -148,17 +149,24 @@ export const TRPCCLientTerminalRouter = trpc.router({
   login: trpc.procedure.mutation(transformQueryProcedure(login)),
   logout: trpc.procedure.mutation(logout),
 
-  // Compose ingestion (local mapping, no cluster round-trip)
-  compose: trpc.procedure
-    .meta(Compose.Meta)
-    .input(Compose.Input)
-    .mutation(transformQueryProcedure(compose)),
-
-  // Compose stack deploy: parses the compose file, then creates each service as a container
-  deploy: trpc.procedure
-    .meta(Deploy.Meta)
-    .input(Deploy.Input)
-    .mutation(transformQueryProcedure(deploy)),
+  // Compose: docker-compose.yaml -> ctnr Stack, deployed onto the cluster
+  compose: trpc.router({
+    // Local mapping only, no cluster round-trip
+    config: trpc.procedure
+      .meta(ComposeConfig.Meta)
+      .input(ComposeConfig.Input)
+      .mutation(transformQueryProcedure(composeConfig)),
+    // Creates each service as a container, in dependency order
+    up: trpc.procedure
+      .meta(ComposeUp.Meta)
+      .input(ComposeUp.Input)
+      .mutation(transformQueryProcedure(composeUp)),
+    // Removes each service's container, in reverse dependency order
+    down: trpc.procedure
+      .meta(ComposeDown.Meta)
+      .input(ComposeDown.Input)
+      .mutation(transformQueryProcedure(composeDown)),
+  }),
 
   // Core container procedures
   run: createSubscribeMutation(Run.Meta, Run.Input, (server) => server.core.run),

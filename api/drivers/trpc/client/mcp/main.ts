@@ -24,7 +24,13 @@ function isZodType(value: unknown): value is z.ZodType {
     typeof (value as { parse: unknown }).parse === 'function'
 }
 
-const procedureDefs = TRPCCLientTerminalRouter._def.procedures as Record<string, { _def: { inputs: unknown[] } }>
+// `_def.procedures` is flattened to dot-separated keys at runtime (e.g. "compose.config") even
+// for nested routers, but its static type still reflects the nested shape - go through
+// `unknown` since the two types don't structurally overlap.
+const procedureDefs = TRPCCLientTerminalRouter._def.procedures as unknown as Record<
+  string,
+  { _def: { inputs: unknown[] } }
+>
 
 const tools = Object.entries(procedureDefs)
   .filter(([name]) => !SKIPPED_PROCEDURES.has(name))

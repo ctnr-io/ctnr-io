@@ -238,8 +238,9 @@ export async function listDomains(
     }))
     
     return domains
-  } catch {
-    return []
+  } catch (error: any) {
+    if (error.httpCode === 404) return []
+    throw error
   }
 }
 

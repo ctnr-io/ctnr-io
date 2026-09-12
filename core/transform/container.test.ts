@@ -49,3 +49,12 @@ Deno.test('a digest reference is kept whole', () => {
 Deno.test('stopping has no dedicated status text (the case is unreachable and was removed)', () => {
   assertEquals(buildStatusText('stopping', new Date()), 'Unknown')
 })
+
+Deno.test('containerInputToDeployment defaults memory/ephemeralStorage in decimal units matching create.ts', () => {
+  const deployment = containerInputToDeployment({ name: 'app', namespace: 'ns', image: 'nginx:1.27' }) as Deployment
+  const resources = deployment.spec?.template?.spec?.containers?.[0]?.resources
+  assertEquals(resources?.limits?.memory?.serialize(), '256M')
+  assertEquals(resources?.limits?.['ephemeral-storage']?.serialize(), '1G')
+  assertEquals(resources?.requests?.memory?.serialize(), '256M')
+  assertEquals(resources?.requests?.['ephemeral-storage']?.serialize(), '1G')
+})

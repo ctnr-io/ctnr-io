@@ -6,6 +6,7 @@
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
+import type { OwnerReference } from '@cloudydeno/kubernetes-apis/meta/v1'
 import type {
   Container,
   ContainerInstance,
@@ -13,7 +14,6 @@ import type {
   ContainerPort,
   ContainerReplicas,
   ContainerStatus,
-  ContainerSummary,
 } from 'core/schemas/compute/container.ts'
 import type { PodMetrics } from 'infra/kubernetes/types/metrics.ts'
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
@@ -49,37 +49,6 @@ export interface TransformContainerOptions {
   routes?: {
     http: HTTPRoute[]
     ingress: IngressRoute[]
-  }
-}
-
-/**
- * Transform a Kubernetes Deployment to a ContainerSummary DTO (lightweight)
- */
-export function deploymentToContainerSummary(deployment: Deployment): ContainerSummary {
-  const metadata = deployment.metadata ?? {}
-  const spec = deployment.spec
-  const status = deployment.status ?? {}
-  const container = spec?.template?.spec?.containers?.[0]
-
-  // Extract resource info
-  const resources = container?.resources ?? {}
-  const limits = resources.limits ?? {}
-  const requests = resources.requests ?? {}
-
-  const cpuLimit = normalizeQuantity(limits.cpu) || normalizeQuantity(requests.cpu) || '250m'
-  const memoryLimit = normalizeQuantity(limits.memory) || normalizeQuantity(requests.memory) || '512Mi'
-
-  return {
-    name: metadata.name ?? '',
-    image: extractImageName(container?.image ?? ''),
-    status: mapDeploymentStatus(status),
-    createdAt: new Date(metadata.creationTimestamp ?? Date.now()),
-    cpu: cpuLimit,
-    memory: memoryLimit,
-    replicas: {
-      current: status.readyReplicas ?? 0,
-      desired: spec?.replicas ?? 1,
-    },
   }
 }
 
@@ -185,17 +154,18 @@ export function mapDeploymentStatus(status: Deployment['status']): ContainerStat
   const progressingCondition = conditions.find((c) => c.type === 'Progressing')
   const availableCondition = conditions.find((c) => c.type === 'Available')
 
+  // Deployment is scaled to zero (checked before Progressing: a scale-down still
+  // reports a stale 'NewReplicaSetCreated'/'ReplicaSetUpdated' reason)
+  if (replicas === 0) {
+    return 'stopped'
+  }
+
   // Deployment is scaling up
   if (
     progressingCondition?.reason === 'NewReplicaSetCreated' ||
     progressingCondition?.reason === 'ReplicaSetUpdated'
   ) {
     return 'starting'
-  }
-
-  // Deployment is scaling down
-  if (replicas === 0) {
-    return 'stopped'
   }
 
   // All replicas ready
@@ -253,7 +223,7 @@ export function extractReplicas(
       const ownerRefs = pod.metadata?.ownerReferences ?? []
       const labels = pod.metadata?.labels ?? {}
       // Match by owner reference or by label
-      return ownerRefs.some((ref) => ref.name?.startsWith(deploymentName)) ||
+      return ownerRefs.some((ref) => isReplicaSetOfDeployment(ref, deploymentName)) ||
         labels['ctnr.io/name'] === deploymentName
     })
 
@@ -282,6 +252,19 @@ export function extractReplicas(
     current: currentReplicas,
     instances,
   }
+}
+
+/**
+ * True when `ref` is the ReplicaSet that owns `deploymentName`'s pods (exact name match on
+ * the `<deploymentName>-<pod-template-hash>` convention, not a prefix match - a prefix match
+ * lets e.g. container `web` claim `web-api`'s pods)
+ */
+function isReplicaSetOfDeployment(ref: OwnerReference, deploymentName: string): boolean {
+  if (ref.kind !== 'ReplicaSet' || !ref.name.startsWith(deploymentName)) {
+    return false
+  }
+  const suffix = ref.name.slice(deploymentName.length)
+  return /^-[0-9a-z]+$/.test(suffix)
 }
 
 /**
@@ -442,8 +425,6 @@ export function buildStatusText(
       return `Up ${formatStatusDuration(now - createdAt.getTime())}`
     case 'starting':
       return 'Starting'
-    case 'stopping':
-      return 'Stopping'
     case 'pending':
       return 'Created'
     case 'stopped':
@@ -458,31 +439,6 @@ export function buildStatusText(
     default:
       return 'Unknown'
   }
-}
-
-/**
- * Extract cluster names from labels
- */
-export function extractClusters(labels: Record<string, string>): string[] {
-  const clusters: string[] = []
-
-  // Check for Karmada cluster labels
-  const clusterLabel = labels['karmada.io/managed'] || labels['propagationpolicy.karmada.io/name']
-  if (clusterLabel) {
-    // If managed by Karmada, extract cluster info from other labels
-    const targetClusters = labels['karmada.io/cluster']
-    if (targetClusters) {
-      clusters.push(...targetClusters.split(','))
-    }
-  }
-
-  // Check for ctnr.io cluster label
-  const ctnrCluster = labels['ctnr.io/cluster']
-  if (ctnrCluster) {
-    clusters.push(ctnrCluster)
-  }
-
-  return clusters.length > 0 ? clusters : ['karmada']
 }
 
 /**
@@ -544,8 +500,8 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
     command,
     replicas = 1,
     cpu = '250m',
-    memory = '256Mi',
-    ephemeralStorage = '1Gi',
+    memory = '256M',
+    ephemeralStorage = '1G',
   } = input
 
   // Parse replicas parameter

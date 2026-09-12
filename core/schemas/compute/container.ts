@@ -139,23 +139,6 @@ export const Container = z.object({
 export type Container = z.infer<typeof Container>
 
 /**
- * Container summary - lightweight version for list views
- */
-export const ContainerSummary = z.object({
-  name: z.string(),
-  image: z.string(),
-  status: ContainerStatus,
-  createdAt: z.date(),
-  cpu: z.string(),
-  memory: z.string(),
-  replicas: z.object({
-    current: z.number(),
-    desired: z.number(),
-  }),
-})
-export type ContainerSummary = z.infer<typeof ContainerSummary>
-
-/**
  * Container creation input
  */
 export const CreateContainerInput = z.object({

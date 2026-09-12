@@ -3,11 +3,13 @@ import { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ServerContext } from 'api/context/mod.ts'
 import { ContainerName, Publish } from 'lib/api/schemas.ts'
-import { ensureVolume } from 'core/data/storage/volume.ts'
+import { ensureVolume, isVolumeExists } from 'core/data/storage/volume.ts'
 import { containerInputToDeployment, defaultContainerName } from 'core/transform/container.ts'
 import { hash } from 'node:crypto'
 import { VolumeMount } from 'core/schemas/mod.ts'
 import { ensureService } from 'infra/kubernetes/mod.ts'
+import { checkUsage } from 'core/rules/billing/usage.ts'
+import { parseResourceToPrimitiveValue } from 'core/rules/billing/resource.ts'
 
 export const Meta = {
   aliases: {
@@ -113,6 +115,24 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
       name: volumeName,
       mountPath,
       size,
+    })
+  }
+
+  // Gate on credit balance before provisioning billed storage for any volumes
+  // that don't exist yet, mirroring the compute start.ts checkUsage pattern.
+  const newVolumesStorageGi = (await Promise.all(
+    volumeDevices.map(async (volDevice) => {
+      const exists = await isVolumeExists(volDevice.name, ctx.project.namespace, ctx.kube.client['karmada'])
+      return exists ? 0 : parseResourceToPrimitiveValue(volDevice.size, 'storage')
+    }),
+  )).reduce((sum, gi) => sum + gi, 0)
+
+  if (newVolumesStorageGi > 0) {
+    yield* checkUsage({
+      kubeClient: ctx.kube.client['karmada'],
+      namespace: ctx.project.namespace,
+      signal,
+      additionalResource: { cpu: '0', memory: '0', storage: `${newVolumesStorageGi}Gi`, replicas: 1 },
     })
   }
 

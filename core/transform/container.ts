@@ -6,6 +6,7 @@
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
 import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
+import type { OwnerReference } from '@cloudydeno/kubernetes-apis/meta/v1'
 import type {
   Container,
   ContainerInstance,
@@ -222,7 +223,7 @@ export function extractReplicas(
       const ownerRefs = pod.metadata?.ownerReferences ?? []
       const labels = pod.metadata?.labels ?? {}
       // Match by owner reference or by label
-      return ownerRefs.some((ref) => ref.name?.startsWith(deploymentName)) ||
+      return ownerRefs.some((ref) => isReplicaSetOfDeployment(ref, deploymentName)) ||
         labels['ctnr.io/name'] === deploymentName
     })
 
@@ -251,6 +252,19 @@ export function extractReplicas(
     current: currentReplicas,
     instances,
   }
+}
+
+/**
+ * True when `ref` is the ReplicaSet that owns `deploymentName`'s pods (exact name match on
+ * the `<deploymentName>-<pod-template-hash>` convention, not a prefix match - a prefix match
+ * lets e.g. container `web` claim `web-api`'s pods)
+ */
+function isReplicaSetOfDeployment(ref: OwnerReference, deploymentName: string): boolean {
+  if (ref.kind !== 'ReplicaSet' || !ref.name.startsWith(deploymentName)) {
+    return false
+  }
+  const suffix = ref.name.slice(deploymentName.length)
+  return /^-[0-9a-z]+$/.test(suffix)
 }
 
 /**

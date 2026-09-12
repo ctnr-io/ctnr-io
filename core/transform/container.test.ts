@@ -1,6 +1,13 @@
 import { assertEquals } from '@std/assert'
 import type { Deployment } from '@cloudydeno/kubernetes-apis/apps/v1'
-import { buildStatusText, containerInputToDeployment, deploymentToContainer, mapDeploymentStatus } from './container.ts'
+import type { Pod } from '@cloudydeno/kubernetes-apis/core/v1'
+import {
+  buildStatusText,
+  containerInputToDeployment,
+  deploymentToContainer,
+  extractReplicas,
+  mapDeploymentStatus,
+} from './container.ts'
 
 function deploymentWithImage(image: string): Deployment {
   return containerInputToDeployment({ name: 'app', namespace: 'ns', image }) as Deployment
@@ -83,4 +90,26 @@ Deno.test('a genuine scale-up (replicas>0) still reports starting', () => {
     ],
   }
   assertEquals(mapDeploymentStatus(status), 'starting')
+})
+
+function podOwnedBy(podName: string, replicaSetName: string): Pod {
+  return {
+    metadata: {
+      name: podName,
+      ownerReferences: [
+        { apiVersion: 'apps/v1', kind: 'ReplicaSet', name: replicaSetName, uid: 'uid' },
+      ],
+    },
+    status: {},
+  } as Pod
+}
+
+Deno.test('a deployment does not claim pods owned by a differently-named deployment sharing its prefix', () => {
+  const deployment = containerInputToDeployment({ name: 'web', namespace: 'ns', image: 'nginx:1.27' }) as Deployment
+  const pods = [
+    podOwnedBy('web-abc123-xyz', 'web-abc123'),
+    podOwnedBy('web-api-def456-xyz', 'web-api-def456'),
+  ]
+  const replicas = extractReplicas(deployment, pods)
+  assertEquals(replicas.instances.map((i) => i.name), ['web-abc123-xyz'])
 })

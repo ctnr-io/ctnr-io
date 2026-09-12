@@ -94,8 +94,9 @@ export async function containerExists(
 	try {
 		await kubeClient.AppsV1.namespace(namespace).getDeployment(name)
 		return true
-	} catch {
-		return false
+	} catch (error: any) {
+		if (error.httpCode === 404) return false
+		throw error
 	}
 }
 

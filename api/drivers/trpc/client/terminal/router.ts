@@ -42,9 +42,16 @@ import { SubscribeProcedureOutput } from '../../server/procedures/_utils.ts'
 import { createDeferer } from 'lib/api/defer.ts'
 import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import { colorStatusLine, red } from 'lib/api/colors.ts'
+import { step } from 'lib/api/progress.ts'
 import z from 'zod'
 
 export const trpc = initTRPC.context<TrpcClientContext>().create()
+
+// Default sink: progress and final table/status content share the same stdout stream, as before.
+const toStdout = (value: unknown) => console.info(typeof value === 'string' ? colorStatusLine(value) : value)
+// Progress-only sink for commands that visibly wait (run/start): status lines go to stderr,
+// keeping stdout free for `--output json|yaml|name` and TTY-gated no-op like lib/api/colors.ts.
+const toStderr = (value: unknown) => typeof value === 'string' ? step(value) : toStdout(value)
 
 export function transformSubscribeResolver<
   Input,
@@ -59,6 +66,7 @@ export function transformSubscribeResolver<
     onStopped?: () => void
   }) => Unsubscribable,
   { input, signal }: { ctx: TrpcClientContext; input: Input; signal?: AbortSignal },
+  print: (value: unknown) => void = toStdout,
 ): Promise<Output> {
   let result: Output
   return new Promise<Output>((resolve, reject) =>
@@ -71,7 +79,7 @@ export function transformSubscribeResolver<
       onData: (data: SubscribeProcedureOutput<Output>) => {
         switch (data.type) {
           case 'yield':
-            console.info(typeof data.value === 'string' ? colorStatusLine(data.value) : data.value)
+            print(data.value)
             return
           case 'return':
             result = data.value as Output
@@ -86,6 +94,7 @@ type TRPClientRequest<Input, Context = ClientContext> = { ctx: Context; input: I
 
 export function transformQueryProcedure<Input, Output, Context extends ClientContext = ClientContext>(
   procedure: (opts: ClientRequest<Input, Context>) => ClientResponse<Output>,
+  print: (value: unknown) => void = toStdout,
 ) {
   return async function (opts: TRPClientRequest<Input, Context>): Promise<Output> {
     const defer = createDeferer()
@@ -99,7 +108,7 @@ export function transformQueryProcedure<Input, Output, Context extends ClientCon
         if (done) {
           return value
         }
-        console.info(typeof value === 'string' ? colorStatusLine(value) : value)
+        print(value)
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -117,12 +126,16 @@ export function createSubscribeQuery<Input, Output>(
   Meta: any,
   Input: z.ZodType<Input>,
   subscribePath: (server: any) => { subscribe: (input: Input, opts: any) => Unsubscribable },
+  opts: { progress?: boolean } = {},
 ) {
+  const print = opts.progress ? toStderr : toStdout
   return trpc.procedure
     .meta(Meta)
     .input(Input)
     .query(({ input, signal, ctx }: any) =>
-      ctx.connect((server: any) => transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx }))
+      ctx.connect((server: any) =>
+        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx }, print)
+      )
     )
 }
 
@@ -131,12 +144,16 @@ export function createSubscribeMutation<Input, Output>(
   Meta: any,
   Input: z.ZodType<Input>,
   subscribePath: (server: any) => { subscribe: (input: Input, opts: any) => Unsubscribable },
+  opts: { progress?: boolean } = {},
 ) {
+  const print = opts.progress ? toStderr : toStdout
   return trpc.procedure
     .meta(Meta)
     .input(Input)
     .mutation(({ input, signal, ctx }: any) =>
-      ctx.connect((server: any) => transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx }))
+      ctx.connect((server: any) =>
+        transformSubscribeResolver(subscribePath(server).subscribe, { input, signal, ctx }, print)
+      )
     )
 }
 
@@ -160,16 +177,16 @@ export const TRPCCLientTerminalRouter = trpc.router({
     up: trpc.procedure
       .meta(ComposeUp.Meta)
       .input(ComposeUp.Input)
-      .mutation(transformQueryProcedure(composeUp)),
+      .mutation(transformQueryProcedure(composeUp, toStderr)),
     // Removes each service's container, in reverse dependency order
     down: trpc.procedure
       .meta(ComposeDown.Meta)
       .input(ComposeDown.Input)
-      .mutation(transformQueryProcedure(composeDown)),
+      .mutation(transformQueryProcedure(composeDown, toStderr)),
   }),
 
   // Core container procedures
-  run: createSubscribeMutation(Run.Meta, Run.Input, (server) => server.core.run),
+  run: createSubscribeMutation(Run.Meta, Run.Input, (server) => server.core.run, { progress: true }),
   create: createSubscribeMutation(Create.Meta, Create.Input, (server) => server.core.run),
   list: createSubscribeQuery(List.Meta, List.Input.extend(WithWideOutputDefault), (server) => server.core.list),
   ps: createSubscribeQuery(List.Meta, List.Input.extend(WithWideOutputDefault), (server) => server.core.list),
@@ -183,7 +200,7 @@ export const TRPCCLientTerminalRouter = trpc.router({
   restart: createSubscribeMutation(Restart.Meta, Restart.Input, (server) => server.core.restart),
   rollout: createSubscribeMutation(Rollout.Meta, Rollout.Input, (server) => server.core.rollout),
   route: createSubscribeMutation(Route.Meta, Route.Input, (server) => server.core.route),
-  start: createSubscribeMutation(Start.Meta, Start.Input, (server) => server.core.start),
+  start: createSubscribeMutation(Start.Meta, Start.Input, (server) => server.core.start, { progress: true }),
   stop: createSubscribeMutation(Stop.Meta, Stop.Input, (server) => server.core.stop),
   // // Storage volumes procedures
   // volumes: trpc.router({

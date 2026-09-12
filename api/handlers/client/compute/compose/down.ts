@@ -3,6 +3,7 @@ import { parseComposeFile } from 'core/transform/compose.ts'
 import { ClientRequest, ClientResponse } from 'lib/api/types.ts'
 import type { TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
 import { sortByDependencies } from './up.ts'
+import { step } from 'lib/api/progress.ts'
 
 export const Meta = {} as const
 
@@ -44,7 +45,7 @@ export default async function* down(
           {
             onData: (data) => {
               const message = data as { type: string; value?: unknown }
-              if (message.type === 'yield') console.info(message.value)
+              if (message.type === 'yield' && typeof message.value === 'string') step(message.value)
             },
             onError: reject,
             onComplete: () => {

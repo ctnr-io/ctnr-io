@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { ContainerName, PortName } from 'lib/api/schemas.ts'
+import { ContainerName, Name, PortName } from 'lib/api/schemas.ts'
 import getContainer from 'api/handlers/server/compute/containers/get.ts'
 import { ContainerData } from 'api/handlers/server/compute/containers/list.ts'
 import { ensureRoute } from 'core/data/network/route.ts'
@@ -16,7 +16,7 @@ export const Meta = {
 }
 
 export const Input = z.object({
-  name: z.string().describe('Route name, must be unique'),
+  name: Name.describe('Route name, must be unique'),
   container: ContainerName,
   domain: z.string().regex(/^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$/)
     .optional().describe(

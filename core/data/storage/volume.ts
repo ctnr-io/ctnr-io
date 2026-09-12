@@ -28,7 +28,10 @@ export async function* ensureVolume(
     const pvc = await kubeClient.CoreV1.namespace(namespace).getPersistentVolumeClaim(name)
     yield `Volume ${name} already exists`
     return pvc
-  } catch {
+  } catch (error: any) {
+    if (error.httpCode !== 404) {
+      throw error
+    }
     // Volume doesn't exist, proceed with creation
   }
 

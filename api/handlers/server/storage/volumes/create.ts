@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { ensureVolume, isVolumeExists, waitForVolumeReady } from 'core/data/storage/volume.ts'
 import { VolumeSize } from 'core/schemas/storage/volume.ts'
+import { checkUsage } from 'core/rules/billing/usage.ts'
 
 export const Meta = {
   aliases: {
@@ -20,7 +21,7 @@ export const Input = z.object({
 export type Input = z.infer<typeof Input>
 
 export default async function* (
-  { ctx, input }: ServerRequest<Input>,
+  { ctx, input, signal }: ServerRequest<Input>,
 ): ServerResponse<void> {
   const { name, size } = input
 
@@ -30,6 +31,15 @@ export default async function* (
     if (exists) {
       throw new Error(`Volume ${name} already exists`)
     }
+
+    // Gate on credit balance before provisioning billed storage, mirroring
+    // the compute start.ts checkUsage pattern.
+    yield* checkUsage({
+      kubeClient: ctx.kube.client.karmada,
+      namespace: ctx.project.namespace,
+      signal,
+      additionalResource: { cpu: '0', memory: '0', storage: size, replicas: 1 },
+    })
 
     // Create the volume using ensureVolume
     for await (

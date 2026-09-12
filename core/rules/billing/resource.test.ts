@@ -249,3 +249,58 @@ Deno.test('current usage falls back to 0 when neither readyReplicas nor availabl
     replicas: 0,
   })
 })
+
+// --- optional-chaining guard: limits object present but missing cpu/memory keys ---
+
+Deno.test('minimum usage falls back to requests cpu/memory when limits omits those keys instead of throwing', () => {
+  const partialLimitsDeployment = deploymentWithResources({
+    limits: { 'ephemeral-storage': '1Gi' },
+    requests: { cpu: '100m', memory: '256Mi' },
+  })
+  assertEquals(extractDeploymentMinimumResourceUsage(partialLimitsDeployment), {
+    cpu: '100m',
+    memory: '256MiB',
+    storage: '0.3333333333333333Gi',
+    replicas: 1,
+  })
+
+  // control: full limits (cpu + memory present) still resolves from limits, not requests
+  const fullLimitsDeployment = deploymentWithResources({
+    limits: { cpu: '250m', memory: '512Mi', 'ephemeral-storage': '1Gi' },
+    requests: { cpu: '999m', memory: '999Mi' },
+  })
+  assertEquals(extractDeploymentMinimumResourceUsage(fullLimitsDeployment), {
+    cpu: '250m',
+    memory: '512MiB',
+    storage: '0.3333333333333333Gi',
+    replicas: 1,
+  })
+})
+
+Deno.test('maximum usage falls back to requests cpu/memory when limits omits those keys instead of throwing', () => {
+  const deployment = deploymentWithResources({
+    limits: { 'ephemeral-storage': '1Gi' },
+    requests: { cpu: '100m', memory: '256Mi' },
+    annotations: { 'ctnr.io/max-replicas': '2' },
+  })
+  assertEquals(extractDeploymentMaximumResourceUsage(deployment), {
+    cpu: '200m',
+    memory: '512MiB',
+    storage: '0.6666666666666666Gi',
+    replicas: 2,
+  })
+})
+
+Deno.test('current usage falls back to requests cpu/memory when limits omits those keys instead of throwing', () => {
+  const deployment = deploymentWithResources({
+    limits: { 'ephemeral-storage': '1Gi' },
+    requests: { cpu: '100m', memory: '256Mi' },
+    status: { readyReplicas: 3 },
+  })
+  assertEquals(extractDeploymentCurrentResourceUsage(deployment), {
+    cpu: '300m',
+    memory: '768MiB',
+    storage: '1Gi',
+    replicas: 3,
+  })
+})

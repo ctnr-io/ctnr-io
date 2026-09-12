@@ -96,8 +96,8 @@ export async function deleteDomain(
   // Delete certificate if exists
   try {
     await kubeClient.CertManagerV1(namespace).deleteCertificate(certificateName)
-  } catch {
-    // Certificate might not exist
+  } catch (error: any) {
+    if (error.httpCode !== 404) throw error
   }
 
   // Delete associated Routes

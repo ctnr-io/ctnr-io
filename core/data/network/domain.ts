@@ -100,8 +100,12 @@ export async function deleteDomain(
     if (error.httpCode !== 404) throw error
   }
 
-  // Delete associated Routes
-  const routes = await listRoutes(kubeClient, namespace, { domain: name })
+  // Delete associated Routes (root domain itself and any subdomain hostname)
+  const domainToMatch = rootDomain ?? name
+  const allRoutes = await listRoutes(kubeClient, namespace)
+  const routes = allRoutes.filter(
+    (route) => route.domain === domainToMatch || route.domain.endsWith(`.${domainToMatch}`)
+  )
   await Promise.all(routes.map((route) => deleteRoute(kubeClient, namespace, route.name)))
 }
 

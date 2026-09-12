@@ -48,7 +48,10 @@ export async function stopContainer(
 	// Delete HPA if exists
 	await kubeClient.AutoScalingV2Api.namespace(namespace).deleteHorizontalPodAutoscaler(name, {
 		abortSignal: signal,
-	}).catch(() => {})
+		// deno-lint-ignore no-explicit-any
+	}).catch((error: any) => {
+		if (error.httpCode !== 404) throw error
+	})
 }
 
 /**

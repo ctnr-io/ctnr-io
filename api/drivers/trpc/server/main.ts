@@ -95,9 +95,9 @@ const websocketHandler = applyWSSHandler({
   keepAlive: {
     enabled: true,
     // server ping message interval in milliseconds
-    pingMs: 1000,
+    pingMs: 30000,
     // connection is terminated if pong message is not received in this many milliseconds
-    pongWaitMs: 1000,
+    pongWaitMs: 5000,
   },
 })
 

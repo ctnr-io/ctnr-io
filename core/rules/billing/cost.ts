@@ -37,18 +37,7 @@ export function calculateTotalCost(
   daily: number
   monthly: number
 } {
-  // Parse resources to standardized units
-  const cpuCores = parseResourceToPrimitiveValue(cpu, 'cpu') / 1000
-  const memoryGi = parseResourceToPrimitiveValue(memory, 'memory') / 1024
-  const storageGi = parseResourceToPrimitiveValue(storage, 'storage')
-
-  return calculateCost(
-    `${cpuCores}`,
-    `${memoryGi}G`,
-    `${storageGi}G`,
-    1,
-    rates,
-  )
+  return calculateCost(cpu, memory, storage, 1, rates)
 }
 
 /**

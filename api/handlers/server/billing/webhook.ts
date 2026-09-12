@@ -88,6 +88,12 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
       return new Response('Internal Server Error', { status: 500 })
     }
 
+    // Payment already processed (invoice already created): short-circuit to avoid double invoicing/crediting on replay
+    if (metadata.data.invoiceUrl) {
+      console.info(`Payment ${paymentId} already processed, skipping`)
+      return new Response('Payment already processed')
+    }
+
     // Create an invoice
     console.info('Creating invoice in Qonto for client', qontoClientId)
 

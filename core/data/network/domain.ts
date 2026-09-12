@@ -121,8 +121,9 @@ export async function domainExists(
     const ns = await kubeClient.CoreV1.getNamespace(namespace)
     const status = ns.metadata?.annotations?.[`domain.ctnr.io/${rootDomain}`]
     return status !== undefined && status !== null && status !== ''
-  } catch {
-    return false
+  } catch (error: any) {
+    if (error.httpCode === 404) return false
+    throw error
   }
 }
 

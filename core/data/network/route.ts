@@ -214,19 +214,17 @@ export async function deleteRoute(
   try {
     await kubeClient.GatewayNetworkingV1(namespace).deleteHTTPRoute(name)
     return
-  } catch {
+  } catch (error: any) {
     // Not an HTTPRoute, try IngressRoute
+    if (error.httpCode !== 404) throw error
   }
 
   // Try to delete as IngressRoute
   await kubeClient.TraefikV1Alpha1(namespace).deleteIngressRoute(name)
 
   // Delete the associated rate-limit Middleware if it exists
-  await kubeClient.TraefikV1Alpha1(namespace).deleteMiddleware(`${name}-rate-limit`).catch((err) => {
-    // Ignore 404 (middleware may not exist for older routes), but log unexpected errors
-    if (!String(err).includes('404')) {
-      console.warn(`Failed to delete rate-limit middleware for route ${name}:`, err)
-    }
+  await kubeClient.TraefikV1Alpha1(namespace).deleteMiddleware(`${name}-rate-limit`).catch((error: any) => {
+    if (error.httpCode !== 404) throw error
   })
 
   // Note: the Service is NOT deleted here even if this was the container's last route.

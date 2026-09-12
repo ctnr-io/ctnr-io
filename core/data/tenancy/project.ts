@@ -282,7 +282,8 @@ export async function getProject(
       balance: { credits: getTotalCredits(getNamespaceBalance(ns)), currency: 'EUR' },
       createdAt: ns.metadata?.creationTimestamp ?  new Date(ns.metadata.creationTimestamp).toISOString() : undefined,
 		}
-	} catch {
-		return null
+	} catch (error: any) {
+		if (error.httpCode === 404) return null
+		throw error
 	}
 }

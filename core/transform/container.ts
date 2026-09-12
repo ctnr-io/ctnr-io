@@ -499,19 +499,33 @@ export function extractEnvironment(envVars: Array<{ name?: string; value?: strin
 }
 
 /**
+ * Split an image reference into name and tag/digest
+ */
+function splitImageRef(image: string): { name: string; tag?: string } {
+  const digestAt = image.indexOf('@')
+  if (digestAt !== -1) {
+    return { name: image.slice(0, digestAt), tag: image.slice(digestAt + 1) }
+  }
+  const lastColon = image.lastIndexOf(':')
+  // A colon before the last '/' belongs to a registry port, not to a tag.
+  if (lastColon === -1 || lastColon < image.lastIndexOf('/')) {
+    return { name: image }
+  }
+  return { name: image.slice(0, lastColon), tag: image.slice(lastColon + 1) }
+}
+
+/**
  * Extract image name without tag
  */
 function extractImageName(image: string): string {
-  const [name] = image.split(':')
-  return name ?? image
+  return splitImageRef(image).name
 }
 
 /**
  * Extract image tag
  */
 function extractImageTag(image: string): string | undefined {
-  const parts = image.split(':')
-  return parts.length > 1 ? parts[1] : undefined
+  return splitImageRef(image).tag
 }
 
 /**
@@ -602,8 +616,11 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
               tty: terminal,
               command: command ? ['sh', '-c', command] : undefined,
               env: env.length === 0 ? [] : env.map((e) => {
-                const [name, value] = e.split('=')
-                return { name, value }
+                // Only the first '=' separates the name: values legitimately contain more.
+                const separator = e.indexOf('=')
+                return separator === -1
+                  ? { name: e, value: '' }
+                  : { name: e.slice(0, separator), value: e.slice(separator + 1) }
               }),
               ports: publish.map((p) => ({
                 name: p.name,

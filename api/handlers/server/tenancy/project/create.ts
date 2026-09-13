@@ -3,9 +3,10 @@ import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as shortUUID from '@opensrc/short-uuid'
 import { Name, Project, ClusterName } from 'lib/api/schemas.ts'
 import deleteProjectHandler from 'api/handlers/server/tenancy/project/delete.ts'
-import selectProject from './select.ts'
 import { ServerProjectContext } from 'api/context/mod.ts'
+import { createServerProjectContext } from 'api/context/server/project.ts'
 import { ensureProject } from 'core/data/tenancy/project.ts'
+import { ProjectNamespaceLabels } from 'core/rules/tenancy/project.ts'
 
 export const Meta = {
   aliases: {
@@ -27,6 +28,15 @@ const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid2
 export default async function* createProject(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<Project> {
   const { input, ctx, signal } = request
 
+  // Reject duplicate names per owner: a name-based lookup can't tell same-named projects apart.
+  const existing = await ctx.kube.client.karmada.CoreV1.getNamespaceList({
+    labelSelector: `${ProjectNamespaceLabels.OwnerId}=${ctx.auth.user.id},${ProjectNamespaceLabels.Name}=${input.name}`,
+    abortSignal: signal,
+  })
+  if (existing.items.length > 0) {
+    throw new Error(`Project "${input.name}" already exists`)
+  }
+
   // Generate new project ID
   const projectId = shortUUIDtranslator.new()
 
@@ -42,11 +52,11 @@ export default async function* createProject(request: ServerRequest<Input, Serve
 
     yield `Project ${input.name} created successfully`
 
-    // Set project as current project in context
-    yield* selectProject({
-      ...request,
-      input: { name: input.name },
-    })
+    // Select by the ID just minted, never by name (ambiguous across same-named projects).
+    request.ctx = {
+      ...ctx,
+      ...(await createServerProjectContext(ctx, { id: project.id }, signal)),
+    }
 
     return {
       id: project.id,

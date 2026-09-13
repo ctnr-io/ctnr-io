@@ -5,11 +5,18 @@ import type { TrpcClientContext } from 'api/drivers/trpc/client/context.ts'
 import { sortByDependencies } from './up.ts'
 import { step } from 'lib/api/progress.ts'
 
-export const Meta = {} as const
+export const Meta = {
+  aliases: {
+    options: {
+      'volumes': 'v',
+    },
+  },
+}
 
 export const Input = z.object({
   file: z.string().meta({ positional: true }).describe('Path to a docker-compose.yaml file'),
   name: z.string().optional().describe('Stack name to use if the compose file has none'),
+  volumes: z.boolean().optional().describe("Also delete each service's volumes"),
 })
 export type Input = z.infer<typeof Input>
 
@@ -18,7 +25,8 @@ export type Output = void
 /**
  * Tear down a docker-compose.yaml stack from the cluster: parses it into a ctnr Stack, then
  * removes each service's container (name-prefixed with the stack name), in reverse dependency
- * order, reusing the existing single-container remove path.
+ * order, reusing the existing single-container remove path. With `volumes`, also reclaims each
+ * service's volumes via the existing volume-delete path.
  */
 export default async function* down(
   { ctx, input }: ClientRequest<Input, TrpcClientContext>,
@@ -30,6 +38,8 @@ export default async function* down(
 
   const order = sortByDependencies(stack.services).reverse()
   yield `📦 Tearing down stack "${stack.name}" (${order.length} service(s)): ${order.join(', ')}`
+
+  const deletedVolumes = new Set<string>()
 
   for (const serviceName of order) {
     const containerName = `${stack.name}-${serviceName}`
@@ -56,6 +66,34 @@ export default async function* down(
         )
       })
     )
+
+    if (!input.volumes) continue
+
+    for (const mount of stack.services[serviceName].volume ?? []) {
+      const volumeName = mount.split(':')[0]
+      if (deletedVolumes.has(volumeName)) continue
+      deletedVolumes.add(volumeName)
+
+      yield `🗑️  Deleting volume ${volumeName}...`
+      await ctx.connect((server) =>
+        new Promise<void>((resolve, reject) => {
+          const subscription = server.storage.volumes.delete.subscribe(
+            { name: volumeName },
+            {
+              onData: (data) => {
+                const message = data as { type: string; value?: unknown }
+                if (message.type === 'yield' && typeof message.value === 'string') step(message.value)
+              },
+              onError: reject,
+              onComplete: () => {
+                subscription.unsubscribe()
+                resolve()
+              },
+            },
+          )
+        })
+      )
+    }
   }
 
   yield `✅ Tore down stack "${stack.name}"`

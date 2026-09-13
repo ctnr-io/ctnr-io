@@ -20,6 +20,7 @@ export const Meta = {
 export const Input = z.object({
   output: z.enum(['wide', 'name', 'json', 'yaml', 'raw']).optional(),
   name: ContainerName.optional(),
+  stack: z.string().optional().describe('Filter by compose stack name (ctnr.io/stack label)'),
   all: z.boolean().optional().describe(
     'Show all containers (default hides stopped containers)',
   ),
@@ -57,7 +58,7 @@ export default async function* listContainersApiHandler<T extends OutputType = '
   request: ServerRequest<Input<T>>,
 ): ServerResponse<Output<T>> {
   const { ctx, input } = request
-  const { output = 'raw', name, all, quiet, fields = ['basic'] } = input
+  const { output = 'raw', name, stack, all, quiet, fields = ['basic'] } = input
 
   // Determine which fields to fetch
   const requestedFields = new Set(fields)
@@ -72,15 +73,16 @@ export default async function* listContainersApiHandler<T extends OutputType = '
   // Fetch containers using core/data
   const fetchedContainers = await listContainers(containerCtx, {
     name,
+    stack,
     includeMetrics: fetchAll || requestedFields.has('metrics'),
     includeRoutes: fetchAll || requestedFields.has('routes'),
     includePods: fetchAll || requestedFields.has('replicas'),
   })
 
   // Docker-style default: hide stopped containers unless --all is passed.
-  // A specific --name lookup (used by `get`/`inspect`) always returns its match
-  // regardless of status, matching `docker inspect`.
-  const containers = (all || name) ? fetchedContainers : fetchedContainers.filter((c) => c.status !== 'stopped')
+  // A specific --name/--stack lookup (used by `get`/`inspect`/compose down) always
+  // returns its matches regardless of status, matching `docker inspect`.
+  const containers = (all || name || stack) ? fetchedContainers : fetchedContainers.filter((c) => c.status !== 'stopped')
 
   // --quiet forces the name-only output, like `docker ps -q`.
   const effectiveOutput = quiet ? 'name' : output

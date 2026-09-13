@@ -40,6 +40,10 @@ export interface ContainerInput {
   memory?: string
   ephemeralStorage?: string
   restart?: 'always' | 'on-failure' | 'never'
+  // Set when the container is one service of a `ctnr compose` stack, so teardown/listing
+  // can query the cluster by label instead of reconstructing names from the local file.
+  stack?: string
+  stackService?: string
   runtime?: ContainerRuntime
 }
 
@@ -518,6 +522,8 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
     memory = '256M',
     ephemeralStorage = '1G',
     runtime = 'containerd',
+    stack,
+    stackService,
   } = input
 
   assertKataCpuMinimum(runtime, cpu)
@@ -542,6 +548,8 @@ export function containerInputToDeployment(input: ContainerInput): Deployment {
 
   const labels: Record<string, string> = {
     'ctnr.io/name': name,
+    ...(stack ? { 'ctnr.io/stack': stack } : {}),
+    ...(stackService ? { 'ctnr.io/stack-service': stackService } : {}),
   }
 
   const annotations: Record<string, string> = {

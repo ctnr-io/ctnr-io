@@ -47,6 +47,8 @@ export default async function* deploy(
             volume: service.volume,
             restart: service.restart,
             detach: true,
+            stack: stack.name,
+            stackService: serviceName,
           },
           {
             onData: (data) => {

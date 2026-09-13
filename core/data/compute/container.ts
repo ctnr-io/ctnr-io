@@ -133,6 +133,7 @@ export function watchDeployments(
 
 export interface ListContainersOptions {
 	name?: string
+	stack?: string
 	includeMetrics?: boolean
 	includeRoutes?: boolean
 	includePods?: boolean
@@ -147,11 +148,14 @@ export async function listContainers(
 	options: ListContainersOptions = {},
 ): Promise<Container[]> {
 	const { kubeClient, namespace } = ctx
-	const { name, includeMetrics, includeRoutes, includePods, signal } = options
+	const { name, stack, includeMetrics, includeRoutes, includePods, signal } = options
 
-	// Fetch deployments with optional name filter
+	// Fetch deployments, optionally filtered by container name and/or compose stack label
+	const labelSelectors = ['ctnr.io/name']
+	if (name) labelSelectors.push(`ctnr.io/name=${name}`)
+	if (stack) labelSelectors.push(`ctnr.io/stack=${stack}`)
 	const deploymentList = await kubeClient.AppsV1.namespace(namespace).getDeploymentList({
-		labelSelector: name ? `ctnr.io/name=${name}` : 'ctnr.io/name',
+		labelSelector: labelSelectors.join(','),
 		abortSignal: signal,
 	})
 

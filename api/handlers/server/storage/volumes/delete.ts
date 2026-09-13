@@ -23,7 +23,7 @@ export type Input = z.infer<typeof Input>
 export default async function* (
   { ctx, input }: ServerRequest<Input>,
 ): ServerResponse<void> {
-  const { name, force: _force = false } = input
+  const { name, force } = input
   const { namespace } = ctx.project
   const kubeClient = ctx.kube.client.karmada
 
@@ -35,7 +35,7 @@ export default async function* (
     }
 
     // Delete the volume
-    for await (const message of deleteVolume(name, namespace, kubeClient)) {
+    for await (const message of deleteVolume(name, namespace, kubeClient, force)) {
       yield message
     }
   } catch (error) {

@@ -77,8 +77,9 @@ export default async function* down(
       yield `🗑️  Deleting volume ${volumeName}...`
       await ctx.connect((server) =>
         new Promise<void>((resolve, reject) => {
+          // force: true - the just-removed container's pod may still be terminating and referencing this PVC.
           const subscription = server.storage.volumes.delete.subscribe(
-            { name: volumeName },
+            { name: volumeName, force: true },
             {
               onData: (data) => {
                 const message = data as { type: string; value?: unknown }

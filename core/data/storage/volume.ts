@@ -125,12 +125,28 @@ export async function isVolumeExists(
 }
 
 /**
+ * Names of pods in the namespace that mount the given PVC.
+ */
+export async function getVolumeAttachedPods(
+  name: string,
+  namespace: string,
+  kubeClient: KubeClient,
+): Promise<string[]> {
+  const podList = await kubeClient.CoreV1.namespace(namespace).getPodList({})
+  return podList.items
+    .filter((pod) => pod.spec?.volumes?.some((volume) => volume.persistentVolumeClaim?.claimName === name))
+    .map((pod) => pod.metadata?.name ?? '')
+    .filter(Boolean)
+}
+
+/**
  * Delete a volume (PersistentVolumeClaim)
  */
 export async function* deleteVolume(
   name: string,
   namespace: string,
   kubeClient: KubeClient,
+  force: boolean = false,
 ): AsyncGenerator<string, boolean> {
   try {
     // Check if volume exists
@@ -141,6 +157,15 @@ export async function* deleteVolume(
       return false
     }
     throw error
+  }
+
+  if (!force) {
+    const attachedPods = await getVolumeAttachedPods(name, namespace, kubeClient)
+    if (attachedPods.length > 0) {
+      throw new Error(
+        `Volume ${name} is attached to pod(s): ${attachedPods.join(', ')}. Use --force to delete anyway.`,
+      )
+    }
   }
 
   yield `Deleting volume ${name}...`

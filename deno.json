@@ -10,7 +10,8 @@
     "app:start": "dotenvx run -- bun --cwd app start --tunnel",
     "app:build": "dotenvx run -- /bin/sh -c 'cd app && ./scripts/generate-router-types.sh && bunx expo export --platform web'",
     "app:serve": "dotenvx run -- /bin/sh -c 'cd app && bunx serve dist -l 8080'",
-    "env": "dotenvx run -- env"
+    "env": "dotenvx run -- env",
+    "ci:local": "act pull_request -W .github/workflows/open-pr_build-images.yaml -j test ; act pull_request -W .github/workflows/open-pr_build-images.yaml -j typecheck-app ; act pull_request -W .github/workflows/open-pr_build-images.yaml -j e2e-api-core-compose"
   },
   "imports": {
     "@cloudydeno/kubernetes-apis": "jsr:@cloudydeno/kubernetes-apis@^0.5.2",

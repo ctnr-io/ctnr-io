@@ -231,6 +231,37 @@ deno test -A
 deno test -A e2e/api/core/
 ```
 
+### Local CI (act)
+
+Run the PR-blocking GitHub Actions gates locally with [`act`](https://github.com/nektos/act)
+before pushing, to save GitHub Actions minutes. This runs only the three jobs that gate a PR
+(`test`, `typecheck-app`, `e2e-api-core-compose`) - the build/publish/live-cluster jobs need
+registry credentials and a real cluster, so they stay GitHub-only.
+
+Prerequisites: Docker running locally, and `act` (`brew install act`, this was verified against
+`0.2.89`). On Apple Silicon, `.actrc` already sets `--container-architecture linux/amd64` since
+act's runner images are amd64-only.
+
+```bash
+deno task ci:local
+```
+
+This is wired from `.actrc` (runner image pin + arch flag) and
+`.github/act/pull_request.event.json` (a minimal synthetic `pull_request` event payload, since
+act has no real PR to read one from).
+
+**Known caveats, both upstream/environment issues, not bugs in this wiring:**
+
+- Every job using `denoland/setup-deno@v2` ends with `🏁 Job failed` even when every real step
+  above it shows `✅ Success` (Main Type check / Lint / Format check, or the actual test run).
+  The failure is act's own `Post Setup Deno` cleanup step, which can't find `node` in `$PATH`
+  inside the runner container - a known act limitation
+  ([nektos/act#107](https://github.com/nektos/act/issues/107)), unresolved as of act `0.2.89`.
+  Read the step-level output, not the final job status.
+- `typecheck-app`'s `npm install` can fail resolving a `git+ssh://github.com/...` dependency if
+  your machine has no working SSH access to GitHub from inside the act container. Not something
+  this wiring can fix locally; rely on GitHub CI for that job if it fails for you.
+
 ## 🤝 Contributing
 
 We love contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a pull request.

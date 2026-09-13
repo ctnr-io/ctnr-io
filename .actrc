@@ -1,0 +1,5 @@
+# nektos/act config - run the PR-blocking CI gates locally before pushing.
+# See README.md "Local CI (act)" for usage.
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+--container-architecture linux/amd64
+--eventpath .github/act/pull_request.event.json

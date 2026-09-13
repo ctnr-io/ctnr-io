@@ -1,0 +1,14 @@
+{
+  "action": "synchronize",
+  "number": 0,
+  "pull_request": {
+    "number": 0,
+    "head": {
+      "ref": "local-act-run",
+      "sha": "0000000000000000000000000000000000000000"
+    },
+    "base": {
+      "ref": "main"
+    }
+  }
+}

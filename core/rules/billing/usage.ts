@@ -1,5 +1,5 @@
 import { FreeTier } from 'core/rules/billing/utils.ts'
-import { ensureFederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.ts'
+import { ensureFederatedResourceQuota, FederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.ts'
 import { calculateTotalCost } from './cost.ts'
 import { Balance, ensureDailyFreeCredits, getNamespaceBalance, getNextBalance, getTotalCredits, updateBalance } from './balance.ts'
 import {
@@ -282,6 +282,27 @@ export async function getUsage(opts: {
   return result
 }
 
+// Preserves existing overall fields since ensureFederatedResourceQuota replaces the whole object; freezes growth only, doesn't reclaim existing PVCs.
+export function buildStorageFreezeQuotaPatch(opts: {
+  namespace: string
+  existingOverall?: FederatedResourceQuota['spec']['overall']
+}): FederatedResourceQuota {
+  return {
+    apiVersion: 'policy.karmada.io/v1alpha1',
+    kind: 'FederatedResourceQuota',
+    metadata: {
+      name: 'ctnr-resource-quota',
+      namespace: opts.namespace,
+    },
+    spec: {
+      overall: {
+        ...opts.existingOverall,
+        'requests.storage': '0Gi',
+      },
+    },
+  }
+}
+
 export async function* checkUsage(opts: {
   kubeClient: KubeClient
   namespace: string
@@ -361,6 +382,19 @@ export async function* checkUsage(opts: {
             })
           }),
         )
+
+        // Freeze storage quota too - scaling deployments to 0 doesn't stop PVC cost from accruing.
+        await kubeClient.KarmadaV1Alpha1(namespace).getFederatedResourceQuota('ctnr-resource-quota', {
+          abortSignal: signal,
+        }).catch(() => undefined).then((existingResourceQuota) =>
+          ensureFederatedResourceQuota(
+            kubeClient,
+            buildStorageFreezeQuotaPatch({ namespace, existingOverall: existingResourceQuota?.spec?.overall }),
+            signal,
+          )
+        ).catch((error) => {
+          console.error(`Failed to freeze storage quota in namespace ${namespace}:`, error)
+        })
       }
       throw new Error('Credit breach detected')
     }

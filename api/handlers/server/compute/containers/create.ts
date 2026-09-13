@@ -80,6 +80,8 @@ export const Input = z.object({
   runtime: z.enum(['kata', 'containerd']).optional().default('containerd').describe(
     "Container runtime: 'kata' for VM-isolated untrusted workloads (needs nested-virt and >= 1 CPU), 'containerd' otherwise",
   ),
+  stack: z.string().optional().describe('Internal: compose stack name this container belongs to'),
+  stackService: z.string().optional().describe('Internal: compose service name within the stack'),
 })
 
 export type Input = z.infer<typeof Input>
@@ -101,6 +103,8 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     cpu,
     memory,
     runtime,
+    stack,
+    stackService,
   } = input
 
   const ephemeralStorage = '1G'
@@ -171,6 +175,8 @@ export default async function* (request: ServerRequest<Input>): ServerResponse<{
     memory,
     ephemeralStorage,
     runtime,
+    stack,
+    stackService,
   })
 
   // Start with 0 replicas, will be updated when starting

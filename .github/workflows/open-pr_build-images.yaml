@@ -110,7 +110,7 @@ jobs:
         run: deno test -A e2e/api/core/compose.test.ts
 
   compute-tags:
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       branch_tag: ${{ steps.tags.outputs.branch_tag }}
@@ -377,9 +377,9 @@ jobs:
 
   # Live-cluster e2e (needs the ctnr-preview appset + pr<N>.api.ctnr.io to be
   # reachable, unproven on this cluster). Never ran on pull_request; kept
-  # runnable on demand / weekly instead of deleted.
+  # runnable on demand instead of deleted.
   preview-e2e:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: [compute-tags]
     runs-on: ubuntu-latest
     env:

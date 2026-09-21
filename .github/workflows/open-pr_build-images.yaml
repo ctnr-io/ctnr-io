@@ -4,6 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to run preview-e2e against'
+        required: true
+        type: string
   schedule:
     - cron: '0 6 * * 1'
 
@@ -105,7 +110,7 @@ jobs:
         run: deno test -A e2e/api/core/compose.test.ts
 
   compute-tags:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     outputs:
       branch_tag: ${{ steps.tags.outputs.branch_tag }}
@@ -375,10 +380,10 @@ jobs:
   # runnable on demand / weekly instead of deleted.
   preview-e2e:
     if: github.event_name != 'pull_request'
-    needs: [compute-tags, publish-app-image, publish-api-image]
+    needs: [compute-tags]
     runs-on: ubuntu-latest
     env:
-      PR: ${{ github.event.pull_request.number }}
+      PR: ${{ inputs.pr_number || github.event.pull_request.number }}
       SHA: ${{ needs.compute-tags.outputs.short_sha }}
     steps:
       - name: Checkout code
@@ -409,7 +414,7 @@ jobs:
       - name: Run Playwright smoke suite against the preview
         working-directory: e2e/web
         env:
-          BASE_URL: https://pr${{ github.event.pull_request.number }}.app.ctnr.io
+          BASE_URL: https://pr${{ env.PR }}.app.ctnr.io
         run: |
           npm install
           npx playwright install --with-deps chromium
@@ -419,7 +424,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-pr${{ github.event.pull_request.number }}
+          name: playwright-report-pr${{ env.PR }}
           path: e2e/web/playwright-report/
           if-no-files-found: ignore
 

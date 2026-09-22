@@ -30,7 +30,7 @@ export const ProjectSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
   cluster: ClusterName,
-	namespace: z.string(),
+  namespace: z.string(),
 })
 
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>

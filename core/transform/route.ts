@@ -6,15 +6,15 @@ import type { Route, RouteProtocol, RouteStatus, RouteSummary, RouteType } from 
 import type { HTTPRoute } from 'infra/kubernetes/types/gateway.ts'
 import type { IngressRoute } from 'infra/kubernetes/types/traefik.ts'
 
-  // Extract path from first rule match
-  function normalizePath(raw?: string | null): string {
-    const path = (raw ?? '/') || '/'
-    let normalized = path.startsWith('/') ? path : `/${path}`
-    if (normalized.length > 1 && normalized.endsWith('/')) {
-      normalized = normalized.slice(0, -1)
-    }
-    return normalized
+// Extract path from first rule match
+function normalizePath(raw?: string | null): string {
+  const path = (raw ?? '/') || '/'
+  let normalized = path.startsWith('/') ? path : `/${path}`
+  if (normalized.length > 1 && normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1)
   }
+  return normalized
+}
 
 /**
  * Transform a Gateway API HTTPRoute to a Route DTO
@@ -31,7 +31,6 @@ export function httpRouteToRoute(httpRoute: HTTPRoute): Route {
   const backendRef = firstRule?.backendRefs?.[0]
   const container = backendRef?.name ?? 'unknown'
   const port = backendRef?.port.toString() ?? '80'
-
 
   const pathMatch = firstRule?.matches?.[0]?.path
   const path = normalizePath(pathMatch?.value ?? '/')

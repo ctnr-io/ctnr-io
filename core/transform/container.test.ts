@@ -59,7 +59,10 @@ Deno.test('defaultContainerName keeps the app name on a ported registry', () => 
 })
 
 Deno.test('defaultContainerName keeps the app name on a digest reference', () => {
-  assertEquals(defaultContainerName('app@sha256:0000000000000000000000000000000000000000000000000000000000000000'), 'app')
+  assertEquals(
+    defaultContainerName('app@sha256:0000000000000000000000000000000000000000000000000000000000000000'),
+    'app',
+  )
 })
 
 Deno.test('defaultContainerName sanitizes a plain tagged image', () => {

@@ -1,48 +1,45 @@
-import { KubeClient } from 'infra/kubernetes/mod.ts'
-import { QontoClient, CreateClientRequest } from 'infra/qonto/mod.ts'
-import { match } from 'ts-pattern'
 import type { Invoice } from 'core/schemas/billing/invoice.ts'
 import type { MollieClient } from '@mollie/api-client'
 
 export interface InvoiceContext {
-	mollieClient: MollieClient
-	mollieCustomerId: string
+  mollieClient: MollieClient
+  mollieCustomerId: string
 }
 
 export interface ListInvoicesOptions {
-	cursor?: string
-	limit?: number
+  cursor?: string
+  limit?: number
 }
 
 /**
  * List invoices (payments) from Mollie
  */
 export async function listInvoices(
-	ctx: InvoiceContext,
-	options: ListInvoicesOptions = {},
+  ctx: InvoiceContext,
+  options: ListInvoicesOptions = {},
 ): Promise<Invoice[]> {
-	const { mollieClient, mollieCustomerId } = ctx
-	const { limit = 20 } = options
+  const { mollieClient, mollieCustomerId } = ctx
+  const { limit = 20 } = options
 
-	const payments = await mollieClient.customerPayments.page({
-		customerId: mollieCustomerId,
-		limit,
-	})
+  const payments = await mollieClient.customerPayments.page({
+    customerId: mollieCustomerId,
+    limit,
+  })
 
-	return payments.map((payment): Invoice => ({
-		id: payment.id,
-		amount: {
-			value: payment.amount.value,
-			currency: payment.amount.currency,
-		},
-		description: payment.description ?? '',
-		status: payment.status === 'paid' ? 'paid' : payment.status === 'failed' ? 'failed' : 'pending',
-		createdAt: payment.createdAt ?? '',
-		paidAt: payment.paidAt ?? undefined,
-		expiredAt: payment.expiredAt ?? undefined,
-		credits: Math.round(Number(payment.amount.value) * 100), // Convert EUR to credits (1 EUR = 100 credits)
-    downloadUrl: (payment.metadata as Record<string, string>)['invoiceUrl']
-	}))
+  return payments.map((payment): Invoice => ({
+    id: payment.id,
+    amount: {
+      value: payment.amount.value,
+      currency: payment.amount.currency,
+    },
+    description: payment.description ?? '',
+    status: payment.status === 'paid' ? 'paid' : payment.status === 'failed' ? 'failed' : 'pending',
+    createdAt: payment.createdAt ?? '',
+    paidAt: payment.paidAt ?? undefined,
+    expiredAt: payment.expiredAt ?? undefined,
+    credits: Math.round(Number(payment.amount.value) * 100), // Convert EUR to credits (1 EUR = 100 credits)
+    downloadUrl: (payment.metadata as Record<string, string>)['invoiceUrl'],
+  }))
 }
 
 // export async function ensureInvoice(opts: {

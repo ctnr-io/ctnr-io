@@ -73,18 +73,18 @@ export const Volume = z.object({
   // Identity
   id: z.string(),
   name: z.string(),
-  
+
   // Capacity
   size: z.string(),
-  
+
   // Status
   status: VolumeStatus,
   createdAt: z.date(),
-  
+
   // Storage configuration
   accessMode: VolumeAccessMode,
   storageClass: z.string(),
-  
+
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),
   annotations: z.record(z.string(), z.string()).optional(),

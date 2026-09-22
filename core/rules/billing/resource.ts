@@ -211,4 +211,3 @@ export function parseResourceToPrimitiveValue(
       return 0
   }
 }
-

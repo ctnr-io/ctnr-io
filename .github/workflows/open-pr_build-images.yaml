@@ -136,7 +136,8 @@ jobs:
         run: |
           BRANCH_NAME="${{ github.head_ref }}"
           SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/-\{2,\}/-/g')
-          SHORT_SHA="${{ github.sha }}"
+          # github.sha is the ephemeral merge commit on pull_request; the ArgoCD preview generator asks for head_short_sha.
+          SHORT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           SHORT_SHA="${SHORT_SHA:0:7}"
           SEMVER="${{ steps.semver.outputs.next }}"
           VERSION="${SEMVER:-$SHORT_SHA}"

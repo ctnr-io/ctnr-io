@@ -115,6 +115,7 @@ jobs:
     outputs:
       branch_tag: ${{ steps.tags.outputs.branch_tag }}
       short_sha: ${{ steps.tags.outputs.short_sha }}
+      full_sha: ${{ steps.tags.outputs.full_sha }}
       version: ${{ steps.tags.outputs.version }}
     steps:
       - name: Checkout code
@@ -137,12 +138,13 @@ jobs:
           BRANCH_NAME="${{ github.head_ref }}"
           SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/-\{2,\}/-/g')
           # github.sha is the ephemeral merge commit on pull_request; the ArgoCD preview generator asks for head_short_sha.
-          SHORT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
-          SHORT_SHA="${SHORT_SHA:0:7}"
+          FULL_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          SHORT_SHA="${FULL_SHA:0:7}"
           SEMVER="${{ steps.semver.outputs.next }}"
           VERSION="${SEMVER:-$SHORT_SHA}"
           echo "branch_tag=${SANITIZED_BRANCH}" >> $GITHUB_OUTPUT
           echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "full_sha=${FULL_SHA}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
   build-cli:
@@ -288,7 +290,7 @@ jobs:
         uses: softprops/action-gh-release@v2.3.2
         with:
           tag_name: ${{ needs.compute-tags.outputs.version }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ needs.compute-tags.outputs.full_sha }}
           name: Branch build ${{ needs.compute-tags.outputs.version }} (${{ needs.compute-tags.outputs.branch_tag }})
           draft: true
           prerelease: true
@@ -328,7 +330,7 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/api:${{ needs.compute-tags.outputs.branch_tag }}
             ghcr.io/${{ github.repository_owner }}/api:${{ needs.compute-tags.outputs.short_sha }}
-            ghcr.io/${{ github.repository_owner }}/api:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/api:${{ needs.compute-tags.outputs.full_sha }}
           build-args: |
             CTNR_VERSION=${{ needs.compute-tags.outputs.short_sha }}
 
@@ -372,7 +374,7 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/app:${{ needs.compute-tags.outputs.branch_tag }}
             ghcr.io/${{ github.repository_owner }}/app:${{ needs.compute-tags.outputs.short_sha }}
-            ghcr.io/${{ github.repository_owner }}/app:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/app:${{ needs.compute-tags.outputs.full_sha }}
           build-args: |
             CTNR_VERSION=${{ needs.compute-tags.outputs.short_sha }}
 

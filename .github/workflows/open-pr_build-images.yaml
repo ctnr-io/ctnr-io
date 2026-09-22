@@ -17,13 +17,12 @@ permissions:
   packages: write
 
 jobs:
-  # PR-blocking gate. Type check covers cli/, core/ and the deno-consumable parts
-  # of lib/; lib/env/app-env.ts and lib/shadcn/utils.ts are excluded because they
-  # import app-only npm packages the root deno.json does not declare, and the
-  # typecheck-app job already covers them via app/tsconfig.json. Lint and fmt stay
-  # on cli/ only, since core/, api/, lib/ and infra/ carry pre-existing lint/fmt
-  # debt and api/ does not type-check clean yet - intentionally left out rather
-  # than faked green.
+  # PR-blocking gate. Type check covers cli/, core/, catalog/, api/ and the
+  # deno-consumable parts of lib/. Everything excluded is excluded for the same
+  # reason: it imports app-only npm packages the root deno.json does not declare
+  # (react, react-native, expo), and typecheck-app already covers it via
+  # app/tsconfig.json. Lint and fmt stay on cli/ only - the other trees carry
+  # pre-existing lint/fmt debt, left out rather than faked green.
   test:
     runs-on: ubuntu-latest
     steps:
@@ -39,7 +38,10 @@ jobs:
         run: deno run -A jsr:@tmpl/gen .
 
       - name: Type check
-        run: deno check cli/ core/ lib/api/ lib/log/ lib/node/ lib/ts/
+        run: |
+          deno check cli/ core/ catalog/ lib/api/ lib/log/ lib/node/ lib/ts/
+          deno check $(find api -name '*.ts' -o -name '*.tsx' \
+            | grep -v -e 'drivers/trpc/client/expo/' -e 'handlers/client/auth/login_from_app.ts')
 
       - name: Lint
         run: deno lint cli/

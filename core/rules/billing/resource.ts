@@ -19,6 +19,7 @@ function extractResourceUsageForReplicas(deployment: Deployment, replicas: numbe
   const memory = resources?.limits?.memory?.serialize() || resources?.requests?.memory?.serialize() || '512M'
   const ephemeralStorage = resources?.limits?.['ephemeral-storage']?.serialize() ||
     resources?.requests?.['ephemeral-storage']?.serialize() || '1G'
+  // Ephemeral storage is unreplicated; Ceph replicates persistent storage x3, so a third of the price is its real cost.
   const storage = parseResourceToPrimitiveValue(ephemeralStorage, 'storage') / 3 + 'Gi'
   const totalCpu = parseResourceToPrimitiveValue(cpu, 'cpu') * replicas
   const totalMemory = parseResourceToPrimitiveValue(memory, 'memory') * replicas

@@ -30,7 +30,7 @@ Everything else lives elsewhere:
 | -------------------------- | ---------------------------------------------------------- |
 | `ZITADEL_ISSUER`           | OIDC issuer, e.g. `https://iam.mk8s.eu`                    |
 | `ZITADEL_CLIENT_ID`        | public PKCE client id (no secret)                          |
-| `ZITADEL_IDP_ID`           | optional: preselect a federated IdP (`idp_hint`)           |
+| `ZITADEL_IDP_ID`           | optional: jump straight to a federated IdP (login scope)   |
 | `ZITADEL_MANAGEMENT_TOKEN` | optional: service-account/PAT for management API user CRUD |
 
 ```sh

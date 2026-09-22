@@ -100,13 +100,12 @@ export function buildAuthorizeUrl(config: ZitadelConfig, discovery: OidcDiscover
   url.searchParams.set('client_id', config.clientId)
   url.searchParams.set('redirect_uri', opts.redirectUri)
   url.searchParams.set('response_type', 'code')
-  url.searchParams.set('scope', opts.scopes ?? 'openid profile email offline_access')
+  const scopes = opts.scopes ?? 'openid profile email offline_access'
+  // Zitadel skips its own login page only on this scope; the `idp_hint` query param is ignored by the v2 login UI.
+  url.searchParams.set('scope', config.idpId ? `${scopes} urn:zitadel:iam:org:idp:id:${config.idpId}` : scopes)
   url.searchParams.set('code_challenge', opts.codeChallenge)
   url.searchParams.set('code_challenge_method', 'S256')
   url.searchParams.set('state', opts.state)
-  if (config.idpId) {
-    url.searchParams.set('idp_hint', config.idpId)
-  }
   return url.toString()
 }
 

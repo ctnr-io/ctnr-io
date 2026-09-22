@@ -36,6 +36,11 @@ const RATE_LIMIT_AVERAGE = 100  // requests per period
 const RATE_LIMIT_BURST = 200    // max burst
 const RATE_LIMIT_PERIOD = '1s'  // sliding window
 
+// Deployment-specific cluster resource names, overridable per-cluster (e.g. mk8s.eu).
+const PUBLIC_GATEWAY_NAME = Deno.env.get('CTNR_PUBLIC_GATEWAY_NAME') || 'public-gateway'
+const PUBLIC_GATEWAY_NAMESPACE = Deno.env.get('CTNR_PUBLIC_GATEWAY_NAMESPACE') || 'kube-public'
+const CLUSTER_ISSUER_NAME = Deno.env.get('CTNR_CLUSTER_ISSUER_NAME') || 'letsencrypt'
+
 /**
  * Ensure a route exists (Service + HTTPRoute)
  */
@@ -95,13 +100,13 @@ export async function ensureRoute(
           // https => websecure, http => web
           protocol === 'https'
             ? {
-              name: 'public-gateway',
-              namespace: 'kube-public',
+              name: PUBLIC_GATEWAY_NAME,
+              namespace: PUBLIC_GATEWAY_NAMESPACE,
               sectionName: 'websecure',
             }
             : {
-              name: 'public-gateway',
-              namespace: 'kube-public',
+              name: PUBLIC_GATEWAY_NAME,
+              namespace: PUBLIC_GATEWAY_NAMESPACE,
               sectionName: 'web',
             },
         ],
@@ -188,7 +193,7 @@ export async function ensureRoute(
           dnsNames: [hostname],
           secretName: `${name}-tls`,
           issuerRef: {
-            name: 'letsencrypt',
+            name: CLUSTER_ISSUER_NAME,
             kind: 'ClusterIssuer',
           },
         },

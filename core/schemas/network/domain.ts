@@ -54,27 +54,27 @@ export const Domain = z.object({
   // Identity
   id: z.string(),
   name: z.string(),
-  
+
   // Root domain info
   rootDomain: z.string(),
   subdomain: z.string().optional(),
-  
+
   // Status
   status: DomainStatus,
   createdAt: z.date(),
-  
+
   // Verification
   verification: DomainVerification.optional(),
-  
+
   // DNS records
   records: z.array(DNSRecord).optional(),
-  
+
   // Associated routes
   routes: z.array(z.string()).optional(),
-  
+
   // Cluster info
   cluster: z.string().optional(),
-  
+
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),
   annotations: z.record(z.string(), z.string()).optional(),

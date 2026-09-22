@@ -1,7 +1,14 @@
 import { FreeTier } from 'core/rules/billing/utils.ts'
 import { ensureFederatedResourceQuota, FederatedResourceQuota, KubeClient } from 'infra/kubernetes/mod.ts'
 import { calculateTotalCost } from './cost.ts'
-import { Balance, ensureDailyFreeCredits, getNamespaceBalance, getNextBalance, getTotalCredits, updateBalance } from './balance.ts'
+import {
+  Balance,
+  ensureDailyFreeCredits,
+  getNamespaceBalance,
+  getNextBalance,
+  getTotalCredits,
+  updateBalance,
+} from './balance.ts'
 import {
   extractDeploymentCurrentResourceUsage,
   parseResourceToPrimitiveValue,
@@ -227,8 +234,7 @@ export async function getUsage(opts: {
     resources.storage.percentage >= 100
 
   // Check if current usage is within free tier limits
-  const currentUsageWithinFreeTier =
-    parseResourceToPrimitiveValue(resources.cpu.used, 'cpu') <= freeTierLimits.cpu &&
+  const currentUsageWithinFreeTier = parseResourceToPrimitiveValue(resources.cpu.used, 'cpu') <= freeTierLimits.cpu &&
     parseResourceToPrimitiveValue(resources.memory.used, 'memory') <= freeTierLimits.memory &&
     parseResourceToPrimitiveValue(resources.storage.used, 'storage') <= freeTierLimits.storage
 
@@ -320,7 +326,9 @@ export async function* checkUsage(opts: {
   // Display current usage information
   yield `${usage.tier === 'free' ? '🆓' : '⚡️'} Account Status: ${
     usage.tier === 'free' ? 'Free Tier' : 'Paid'
-  } | Credits: ${getTotalCredits(usage.balance)} (free: ${usage.balance.freeCredits}, paid: ${usage.balance.paidCredits})`
+  } | Credits: ${
+    getTotalCredits(usage.balance)
+  } (free: ${usage.balance.freeCredits}, paid: ${usage.balance.paidCredits})`
 
   // Check status and provide appropriate messages
   switch (usage.status) {
@@ -457,7 +465,9 @@ export async function* checkUsage(opts: {
     case 'normal':
       yield `✅ Usage and credit check passed`
       yield `📊 Usage: CPU ${usage.resources.cpu.used}/${usage.resources.cpu.limit} (${usage.resources.cpu.percentage}%), Memory ${usage.resources.memory.used}/${usage.resources.memory.limit} (${usage.resources.memory.percentage}%), Storage ${usage.resources.storage.used}/${usage.resources.storage.limit} (${usage.resources.storage.percentage}%)`
-      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${getTotalCredits(usage.balance)} credits)`
+      yield `💰 Daily cost: ${usage.costs.current.daily.toFixed(4)} credits (Balance: ${
+        getTotalCredits(usage.balance)
+      } credits)`
       break
 
     default:

@@ -21,10 +21,10 @@ export type RouteStatus = z.infer<typeof RouteStatus>
  * Route type - the underlying Kubernetes resource type
  */
 export const RouteType = z.enum([
-  'HTTPRoute',      // Gateway API HTTPRoute
-  'IngressRoute',   // Traefik IngressRoute
-  'TLSRoute',       // Gateway API TLSRoute
-  'TCPRoute',       // Gateway API TCPRoute
+  'HTTPRoute', // Gateway API HTTPRoute
+  'IngressRoute', // Traefik IngressRoute
+  'TLSRoute', // Gateway API TLSRoute
+  'TCPRoute', // Gateway API TCPRoute
 ])
 export type RouteType = z.infer<typeof RouteType>
 
@@ -74,32 +74,32 @@ export const Route = z.object({
   // Identity
   id: z.string(),
   name: z.string(),
-  
+
   // Routing
   domain: z.string(),
   path: z.string().optional().default('/'),
-  
+
   // Backend
   container: z.string(),
   port: z.string(),
   backends: z.array(RouteBackend).optional(),
-  
+
   // Protocol
   protocol: RouteProtocol,
-  
+
   // Status
   status: RouteStatus,
   createdAt: z.date(),
-  
+
   // TLS
   tls: RouteTLS.optional(),
-  
+
   // Type info
   type: RouteType.optional(),
-  
+
   // Cluster info
   cluster: z.string().optional(),
-  
+
   // Labels and annotations
   labels: z.record(z.string(), z.string()).optional(),
   annotations: z.record(z.string(), z.string()).optional(),

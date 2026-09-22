@@ -28,7 +28,7 @@ export function getNamespaceName(projectId: string, userId: string): string {
 export async function deleteProject(
   kubeClient: KubeClient,
   input: { userId: string; projectId: string },
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
   const namespaceName = getNamespaceName(input.projectId, input.userId)
   await kubeClient.CoreV1.deleteNamespace(namespaceName, { abortSignal: signal })
@@ -37,7 +37,7 @@ export async function deleteProject(
 /**
  * Ensure that a project exists and is properly set up.
  * This must be called everytime a project is accessed to ensure it's properly configured.
- * 
+ *
  * 0. Determine the cluster in which the project will be created.
  * 1. Create namespace representing the project in a specific Kubernetes cluster.
  * 2. Add network policies to the namespace.
@@ -47,11 +47,11 @@ export async function deleteProject(
  * The project will be owned by the authenticated user.
  */
 export async function ensureProject(kubeClient: KubeClient, input: {
-	userId: string,
-	projectId: string,
-	projectName?: string,
+  userId: string
+  projectId: string
+  projectName?: string
 }, signal: AbortSignal): Promise<Project> {
-const { userId, projectId } = input
+  const { userId, projectId } = input
 
   // 0. Determine resources names like namespace, propagation policy, network policies, etc.
   // Determine namespace name
@@ -67,7 +67,8 @@ const { userId, projectId } = input
   const ownerId = namespaceObj?.metadata?.labels?.[ProjectNamespaceLabels.OwnerId] || userId
 
   // Determine cluster name
-  const cluster = (namespaceObj?.metadata?.labels?.[ProjectNamespaceLabels.Cluster] ?? ClusterNames[Math.floor(Math.random() * 10 % ClusterNames.length)]) as ClusterName
+  const cluster = (namespaceObj?.metadata?.labels?.[ProjectNamespaceLabels.Cluster] ??
+    ClusterNames[Math.floor(Math.random() * 10 % ClusterNames.length)]) as ClusterName
 
   const propagationPolicy = 'ctnr-project-propagation-policy'
   const networkPolicyName = 'ctnr-project-network-policy'
@@ -243,13 +244,15 @@ const { userId, projectId } = input
   }
 
   return {
-		id: projectId,
-		name: projectName,
-		ownerId: ownerId,
-		cluster: cluster,
+    id: projectId,
+    name: projectName,
+    ownerId: ownerId,
+    cluster: cluster,
     namespace: namespaceName,
     balance: { credits: getTotalCredits(balance), currency: 'EUR' },
-    createdAt: namespaceObj.metadata?.creationTimestamp ?  new Date(namespaceObj.metadata.creationTimestamp).toISOString() : undefined,
+    createdAt: namespaceObj.metadata?.creationTimestamp
+      ? new Date(namespaceObj.metadata.creationTimestamp).toISOString()
+      : undefined,
   }
 }
 
@@ -257,33 +260,33 @@ const { userId, projectId } = input
  * Get a project by ID
  */
 export async function getProject(
-	kubeClient: KubeClient,
-	input: { userId: string; projectId: string },
-	signal?: AbortSignal
+  kubeClient: KubeClient,
+  input: { userId: string; projectId: string },
+  signal?: AbortSignal,
 ): Promise<Project | null> {
-	const { userId, projectId } = input
-	const namespaceName = getNamespaceName(projectId, userId)
+  const { userId, projectId } = input
+  const namespaceName = getNamespaceName(projectId, userId)
 
-	try {
-		const ns = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal })
-		if (!ns.metadata?.labels?.[ProjectNamespaceLabels.Id]) {
-			return null
-		}
-		if (ns.metadata.labels[ProjectNamespaceLabels.OwnerId] !== userId) {
-			return null
-		}
+  try {
+    const ns = await kubeClient.CoreV1.getNamespace(namespaceName, { abortSignal: signal })
+    if (!ns.metadata?.labels?.[ProjectNamespaceLabels.Id]) {
+      return null
+    }
+    if (ns.metadata.labels[ProjectNamespaceLabels.OwnerId] !== userId) {
+      return null
+    }
 
-		return {
-			id: ns.metadata.labels[ProjectNamespaceLabels.Id],
-			name: ns.metadata.labels[ProjectNamespaceLabels.Name] || 'default',
-			ownerId: ns.metadata.labels[ProjectNamespaceLabels.OwnerId] || userId,
-			cluster: (ns.metadata.labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
+    return {
+      id: ns.metadata.labels[ProjectNamespaceLabels.Id],
+      name: ns.metadata.labels[ProjectNamespaceLabels.Name] || 'default',
+      ownerId: ns.metadata.labels[ProjectNamespaceLabels.OwnerId] || userId,
+      cluster: (ns.metadata.labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
       namespace: namespaceName,
       balance: { credits: getTotalCredits(getNamespaceBalance(ns)), currency: 'EUR' },
-      createdAt: ns.metadata?.creationTimestamp ?  new Date(ns.metadata.creationTimestamp).toISOString() : undefined,
-		}
-	} catch (error: any) {
-		if (error.httpCode === 404) return null
-		throw error
-	}
+      createdAt: ns.metadata?.creationTimestamp ? new Date(ns.metadata.creationTimestamp).toISOString() : undefined,
+    }
+  } catch (error: any) {
+    if (error.httpCode === 404) return null
+    throw error
+  }
 }

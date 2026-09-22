@@ -3,7 +3,7 @@
  * Converts between Kubernetes Namespace and Project DTOs
  */
 import type { Namespace } from '@cloudydeno/kubernetes-apis/core/v1'
-import type { Project, ProjectSummary, ClusterName } from 'core/schemas/mod.ts'
+import type { ClusterName, Project, ProjectSummary } from 'core/schemas/mod.ts'
 import { getNamespaceBalance, getTotalCredits } from 'core/rules/billing/balance.ts'
 import { ProjectNamespaceLabels } from 'core/rules/tenancy/project.ts'
 
@@ -38,7 +38,7 @@ export function namespaceToProjectSummary(ns: Namespace): ProjectSummary {
     id: labels[ProjectNamespaceLabels.Id] || '',
     name: labels[ProjectNamespaceLabels.Name] || '',
     cluster: (labels[ProjectNamespaceLabels.Cluster] || 'eu-1') as ClusterName,
-		namespace: ns.metadata?.name || '',
+    namespace: ns.metadata?.name || '',
   }
 }
 

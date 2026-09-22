@@ -38,7 +38,7 @@ export function getRootDomain(name: string): string | null {
  */
 export async function ensureDomain(
   ctx: DomainContext,
-  name: string
+  name: string,
 ): Promise<EnsureDomainResult> {
   const { kubeClient, namespace, project } = ctx
 
@@ -75,7 +75,7 @@ export async function ensureDomain(
  */
 export async function deleteDomain(
   ctx: DomainContext,
-  name: string
+  name: string,
 ): Promise<void> {
   const { kubeClient, namespace } = ctx
 
@@ -104,7 +104,7 @@ export async function deleteDomain(
   const domainToMatch = rootDomain ?? name
   const allRoutes = await listRoutes(kubeClient, namespace)
   const routes = allRoutes.filter(
-    (route) => route.domain === domainToMatch || route.domain.endsWith(`.${domainToMatch}`)
+    (route) => route.domain === domainToMatch || route.domain.endsWith(`.${domainToMatch}`),
   )
   await Promise.all(routes.map((route) => deleteRoute(kubeClient, namespace, route.name)))
 }
@@ -114,7 +114,7 @@ export async function deleteDomain(
  */
 export async function domainExists(
   ctx: DomainContext,
-  name: string
+  name: string,
 ): Promise<boolean> {
   const { kubeClient, namespace } = ctx
 
@@ -136,7 +136,7 @@ export async function domainExists(
  */
 export async function markDomainVerified(
   ctx: DomainContext,
-  name: string
+  name: string,
 ): Promise<void> {
   const { kubeClient, namespace } = ctx
 
@@ -159,7 +159,7 @@ export async function markDomainVerified(
  */
 export async function getDomainVerificationStatus(
   ctx: DomainContext,
-  name: string
+  name: string,
 ): Promise<'verified' | 'pending' | 'failed'> {
   const { kubeClient, namespace } = ctx
 
@@ -188,7 +188,7 @@ export interface ListDomainsOptions {
  */
 export async function listDomains(
   ctx: DomainContext,
-  options: ListDomainsOptions = {}
+  options: ListDomainsOptions = {},
 ): Promise<Domain[]> {
   const { kubeClient, namespace } = ctx
   const { name: filterName } = options
@@ -196,52 +196,51 @@ export async function listDomains(
   try {
     const ns = await kubeClient.CoreV1.getNamespace(namespace)
     const annotations = ns.metadata?.annotations ?? {}
-    
+
     const domains: Domain[] = []
 
     // Iterate asynchronously
-    await Promise.all(Object.entries(annotations).map(async ([key, value]) => {
+    await Promise.all(
+      Object.entries(annotations).map(async ([key, value]) => {
+        // Match domain.ctnr.io/* annotations
+        const match = key.match(/^domain\.ctnr\.io\/(.+)$/)
+        if (!match) return Promise.resolve()
 
-      // Match domain.ctnr.io/* annotations
-      const match = key.match(/^domain\.ctnr\.io\/(.+)$/)
-      if (!match) return Promise.resolve()
-      
-      const rootDomain = match[1]
-      if (!rootDomain) return Promise.resolve()
-      
-      // Apply name filter
-      if (filterName && rootDomain !== filterName) return Promise.resolve()
+        const rootDomain = match[1]
+        if (!rootDomain) return Promise.resolve()
 
-      // Map annotation value to status
-      let status: DomainStatus = value === 'verified' ? 'verified' : 'pending'
-      if (status === 'pending') {
-        // Further check if verification actually failed
-        const isVerified = await isDomainVerified(rootDomain, ctx.project.id)
-        if (isVerified) {
-          await markDomainVerified(ctx, rootDomain)
-          status = 'verified'
+        // Apply name filter
+        if (filterName && rootDomain !== filterName) return Promise.resolve()
+
+        // Map annotation value to status
+        let status: DomainStatus = value === 'verified' ? 'verified' : 'pending'
+        if (status === 'pending') {
+          // Further check if verification actually failed
+          const isVerified = await isDomainVerified(rootDomain, ctx.project.id)
+          if (isVerified) {
+            await markDomainVerified(ctx, rootDomain)
+            status = 'verified'
+          }
         }
-      }
-     
-      // Get verification record
-      const verificationRecord = getVerificationRecord(rootDomain, ctx.project.id)
 
-      domains.push({
-        id: `${namespace}/${rootDomain}`,
-        name: rootDomain,
-        rootDomain,
-        status,
-        createdAt: ns.metadata?.creationTimestamp 
-          ? new Date(ns.metadata.creationTimestamp) 
-          : new Date(),
-        verification: {
-          type: verificationRecord.type as 'TXT',
-          name: verificationRecord.name,
-          value: verificationRecord.value,
-        },
-      })
-    }))
-    
+        // Get verification record
+        const verificationRecord = getVerificationRecord(rootDomain, ctx.project.id)
+
+        domains.push({
+          id: `${namespace}/${rootDomain}`,
+          name: rootDomain,
+          rootDomain,
+          status,
+          createdAt: ns.metadata?.creationTimestamp ? new Date(ns.metadata.creationTimestamp) : new Date(),
+          verification: {
+            type: verificationRecord.type as 'TXT',
+            name: verificationRecord.name,
+            value: verificationRecord.value,
+          },
+        })
+      }),
+    )
+
     return domains
   } catch (error: any) {
     if (error.httpCode === 404) return []
@@ -264,7 +263,6 @@ export interface DomainVerificationResult {
   recordName: string
   recordValue: string
 }
-
 
 /**
  * Check if domain is already verified without waiting

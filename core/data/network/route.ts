@@ -1,4 +1,3 @@
-
 import { httpRouteToRoute, ingressRouteToRoute } from 'core/transform/route.ts'
 import type { Route } from 'core/schemas/network/route.ts'
 import { getContainer } from '../compute/container.ts'
@@ -6,14 +5,14 @@ import { isDomainVerified } from './domain.ts'
 import { ClusterName } from '../../schemas/common.ts'
 import { normalizePath } from 'trpc-to-openapi'
 import {
-  KubeClient,
-  ensureService,
+  ensureCertificate,
   ensureHTTPRoute,
   ensureIngressRoute,
   ensureMiddleware,
-  ensureCertificate,
+  ensureService,
   HTTPRoute,
   IngressRoute,
+  KubeClient,
   Middleware,
 } from 'infra/kubernetes/mod.ts'
 
@@ -32,9 +31,9 @@ export interface EnsureRouteInput {
  * Default rate limit applied to every IngressRoute (custom-domain traffic).
  * Keeps bandwidth usage well within Contabo's unlimited-but-fair-use limits.
  */
-const RATE_LIMIT_AVERAGE = 100  // requests per period
-const RATE_LIMIT_BURST = 200    // max burst
-const RATE_LIMIT_PERIOD = '1s'  // sliding window
+const RATE_LIMIT_AVERAGE = 100 // requests per period
+const RATE_LIMIT_BURST = 200 // max burst
+const RATE_LIMIT_PERIOD = '1s' // sliding window
 
 // Deployment-specific cluster resource names, overridable per-cluster (e.g. mk8s.eu).
 const PUBLIC_GATEWAY_NAME = Deno.env.get('CTNR_PUBLIC_GATEWAY_NAME') || 'public-gateway'
@@ -120,7 +119,7 @@ export async function ensureRoute(
             path: {
               value: normalizedPath,
               type: 'PathPrefix',
-            }
+            },
           }],
         }],
       },

@@ -1,11 +1,11 @@
 /**
  * Default pricing rates (€0.01 = 1 credit)
- * 
+ *
  * Based on Contabo VPS 20 infrastructure costs:
  * - CPU: €0.84/core/mo base + 20% K8s overhead = €1.00/core/mo actual
  * - Memory: €0.42/Gi/mo base + 20% K8s overhead = €0.50/Gi/mo actual
  * - Storage: €0.04/Gi/mo × 3 (Rook-Ceph replication) + 25% overhead = €0.15/Gi/mo actual
- * 
+ *
  * Rates set at ~2.5x margin for sustainable operations
  */
 export const DEFAULT_RATES = {

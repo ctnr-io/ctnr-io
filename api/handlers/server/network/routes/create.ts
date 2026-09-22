@@ -91,10 +91,11 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
         await new Promise((resolve) => setTimeout(resolve, 15000))
       }
       if (!verified) {
-        throw new Error(`Domain ${input.domain} is not verified yet. Please complete the DNS verification steps and try again.`)
+        throw new Error(
+          `Domain ${input.domain} is not verified yet. Please complete the DNS verification steps and try again.`,
+        )
       }
     }
-
 
     // Create route using core/data (handles ctnr.io hostnames)
     await ensureRoute(kubeClient, {
@@ -108,7 +109,7 @@ export default async function* createRoute(request: ServerRequest<Input>): Serve
       })),
       project: { id: ctx.project.id, cluster: ctx.project.cluster },
       path: input.path || '/',
-      protocol: input.protocol, 
+      protocol: input.protocol,
     }, signal)
 
     yield `Route created successfully for container ${input.container}:`

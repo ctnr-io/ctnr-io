@@ -1,6 +1,6 @@
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
-import { getBillingClient, type BillingClientContext } from 'core/data/billing/client.ts'
+import { type BillingClientContext, getBillingClient } from 'core/data/billing/client.ts'
 import type { BillingClient } from 'core/schemas/billing/client.ts'
 
 export const Meta = {}
@@ -22,7 +22,7 @@ export default async function* ({ ctx }: ServerRequest<Input>): ServerResponse<O
   }
 
   const client = await getBillingClient(billingClientCtx)
-  
+
   if (!client) {
     // Return default client
     return {

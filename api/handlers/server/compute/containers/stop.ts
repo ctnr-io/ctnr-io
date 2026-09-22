@@ -19,10 +19,14 @@ export default async function* stopContainerHandler(request: ServerRequest<Input
   const { ctx, input, signal } = request
   const { name } = input
 
-  await stopContainer({
-    kubeClient: ctx.kube.client.karmada,
-    namespace: ctx.project.namespace,
-  }, name, signal)
+  await stopContainer(
+    {
+      kubeClient: ctx.kube.client.karmada,
+      namespace: ctx.project.namespace,
+    },
+    name,
+    signal,
+  )
 
   yield `⏸️  Stopped containers ${name}`
 }

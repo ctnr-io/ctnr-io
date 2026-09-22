@@ -13,21 +13,21 @@ import * as Get from 'api/handlers/server/compute/containers/get.ts'
 import * as Create from 'api/handlers/server/compute/containers/create.ts'
 
 // Storage handlers
-import * as ListVolumes from 'api/handlers/server/storage/volumes/list.ts'
-import * as CreateVolume from 'api/handlers/server/storage/volumes/create.ts'
-import * as DeleteVolume from 'api/handlers/server/storage/volumes/delete.ts'
+// import * as ListVolumes from 'api/handlers/server/storage/volumes/list.ts'
+// import * as CreateVolume from 'api/handlers/server/storage/volumes/create.ts'
+// import * as DeleteVolume from 'api/handlers/server/storage/volumes/delete.ts'
 
 // Network handlers
-import * as ListDomains from 'api/handlers/server/network/domains/list.ts'
-import * as CreateDomain from 'api/handlers/server/network/domains/create.ts'
-import * as DeleteDomain from 'api/handlers/server/network/domains/delete.ts'
-import * as ListRoutes from 'api/handlers/server/network/routes/list.ts'
-import * as CreateRoute from 'api/handlers/server/network/routes/create.ts'
-import * as DeleteRoute from 'api/handlers/server/network/routes/delete.ts'
+// import * as ListDomains from 'api/handlers/server/network/domains/list.ts'
+// import * as CreateDomain from 'api/handlers/server/network/domains/create.ts'
+// import * as DeleteDomain from 'api/handlers/server/network/domains/delete.ts'
+// import * as ListRoutes from 'api/handlers/server/network/routes/list.ts'
+// import * as CreateRoute from 'api/handlers/server/network/routes/create.ts'
+// import * as DeleteRoute from 'api/handlers/server/network/routes/delete.ts'
 
 // Tenancy handlers
-import * as ListProject from 'api/handlers/server/tenancy/project/list.ts'
-import * as GetProject from 'api/handlers/server/tenancy/project/get.ts'
+// import * as ListProject from 'api/handlers/server/tenancy/project/list.ts'
+// import * as GetProject from 'api/handlers/server/tenancy/project/get.ts'
 
 import { initTRPC } from '@trpc/server'
 import { TrpcClientContext } from '../context.ts'

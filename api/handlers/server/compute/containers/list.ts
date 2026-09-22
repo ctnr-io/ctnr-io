@@ -82,7 +82,9 @@ export default async function* listContainersApiHandler<T extends OutputType = '
   // Docker-style default: hide stopped containers unless --all is passed.
   // A specific --name/--stack lookup (used by `get`/`inspect`/compose down) always
   // returns its matches regardless of status, matching `docker inspect`.
-  const containers = (all || name || stack) ? fetchedContainers : fetchedContainers.filter((c) => c.status !== 'stopped')
+  const containers = (all || name || stack)
+    ? fetchedContainers
+    : fetchedContainers.filter((c) => c.status !== 'stopped')
 
   // --quiet forces the name-only output, like `docker ps -q`.
   const effectiveOutput = quiet ? 'name' : output

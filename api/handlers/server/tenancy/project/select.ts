@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { Project, ClusterName } from 'lib/api/schemas.ts'
+import { ClusterName, Project } from 'lib/api/schemas.ts'
 import { createServerProjectContext } from 'api/context/server/project.ts'
 import { ServerProjectContext } from 'api/context/mod.ts'
 import { ensureProject } from 'core/data/tenancy/project.ts'
@@ -30,13 +30,14 @@ export default async function* selectProject(
 
   // Find the project by name
   const projectName = input.name || ''
-  const labelSelector = `${ProjectNamespaceLabels.OwnerId}=${ctx.auth.user.id},${ProjectNamespaceLabels.Name}=${projectName}`
-  
+  const labelSelector =
+    `${ProjectNamespaceLabels.OwnerId}=${ctx.auth.user.id},${ProjectNamespaceLabels.Name}=${projectName}`
+
   const namespaces = await ctx.kube.client.karmada.CoreV1.getNamespaceList({
     labelSelector,
     abortSignal: signal,
   })
-  
+
   if (namespaces.items.length === 0) {
     throw new Error(`Project not found`)
   }

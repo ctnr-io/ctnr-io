@@ -29,7 +29,7 @@ export default async function* (
   await deleteRoute(
     ctx.kube.client.karmada,
     ctx.project.namespace,
-    input.name
+    input.name,
   )
   yield `Route ${input.name} deleted`
 }

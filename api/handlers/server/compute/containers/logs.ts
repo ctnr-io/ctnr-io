@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { combineReadableStreamsToAsyncGenerator } from 'lib/api/streams.ts'
 import { ContainerName } from 'lib/api/schemas.ts'
-import list from '../../storage/volumes/list.ts'
 
 export const Meta = {
   aliases: {
@@ -34,16 +33,14 @@ export default async function* ({ ctx, input, signal }: ServerRequest<Input>): S
   let pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: signal,
-  }).then(list => list.items)
+  }).then((list) => list.items)
 
   if (pods.length === 0) {
     throw new Error(`No replicas found for container ${name}`)
   }
 
   // Filter by replica if specified
-  pods = replicas && replicas.length > 0
-    ? pods.filter((pod) => replicas.includes(pod.metadata?.name || ''))
-    : pods
+  pods = replicas && replicas.length > 0 ? pods.filter((pod) => replicas.includes(pod.metadata?.name || '')) : pods
 
   const tailLines = tail ? Math.floor(tail / pods.length) : undefined
 

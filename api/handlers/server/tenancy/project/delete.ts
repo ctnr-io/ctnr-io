@@ -20,7 +20,9 @@ export type Input = z.infer<typeof Input>
 /**
  * Delete the whole project and its resources by deleting the namespace.
  */
-export default async function* deleteProjectHandler(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<void> {
+export default async function* deleteProjectHandler(
+  request: ServerRequest<Input, ServerProjectContext>,
+): ServerResponse<void> {
   const { ctx, input, signal } = request
 
   // Check if project exists and belongs to the caller

@@ -25,7 +25,9 @@ export default async function* ({ ctx }: WorkerRequest<Input>): WorkerResponse<O
           { labelSelector: 'ctnr.io/project-id' },
         )
 
-        const projects = namespaces.items.map(namespaceToProject).filter((p): p is Project => Boolean(p.id && p.ownerId))
+        const projects = namespaces.items.map(namespaceToProject).filter((p): p is Project =>
+          Boolean(p.id && p.ownerId)
+        )
 
         for (const project of projects) {
           try {

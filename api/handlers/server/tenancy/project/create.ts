@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import * as shortUUID from '@opensrc/short-uuid'
-import { Name, Project, ClusterName } from 'lib/api/schemas.ts'
+import { ClusterName, Name, Project } from 'lib/api/schemas.ts'
 import deleteProjectHandler from 'api/handlers/server/tenancy/project/delete.ts'
 import { ServerProjectContext } from 'api/context/mod.ts'
 import { createServerProjectContext } from 'api/context/server/project.ts'
@@ -25,7 +25,9 @@ const shortUUIDtranslator = shortUUID.createTranslator(shortUUID.constants.uuid2
 /**
  * Create a new project for the user.
  */
-export default async function* createProject(request: ServerRequest<Input, ServerProjectContext>): ServerResponse<Project> {
+export default async function* createProject(
+  request: ServerRequest<Input, ServerProjectContext>,
+): ServerResponse<Project> {
   const { input, ctx, signal } = request
 
   // Reject duplicate names per owner: a name-based lookup can't tell same-named projects apart.

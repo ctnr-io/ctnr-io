@@ -3,6 +3,11 @@ import { toQuantity } from '@cloudydeno/kubernetes-apis/common.ts'
 import { KubeClient } from 'infra/kubernetes/mod.ts'
 import type { Volume, VolumeStatus } from 'core/schemas/storage/volume.ts'
 
+// Deployment-specific default StorageClass, overridable per-cluster (e.g. mk8s.eu, which
+// ships no cluster-default StorageClass). Unset preserves the previous behaviour of
+// omitting storageClassName entirely (relies on annotation-based default SC resolution).
+const DEFAULT_STORAGE_CLASS = Deno.env.get('CTNR_DEFAULT_STORAGE_CLASS')
+
 export interface CreateVolumeOptions {
   name: string
   size: string
@@ -53,6 +58,7 @@ export async function* ensureVolume(
     spec: {
       accessModes: ['ReadWriteMany'],
       volumeMode: 'Filesystem',
+      ...(DEFAULT_STORAGE_CLASS ? { storageClassName: DEFAULT_STORAGE_CLASS } : {}),
       resources: {
         requests: {
           storage: toQuantity(size),
@@ -224,7 +230,7 @@ export async function listVolumes(
         size: spec.resources?.requests?.storage?.serialize() ?? 'Unknown',
         status: volumeStatus,
         createdAt: metadata.creationTimestamp ? new Date(metadata.creationTimestamp) : new Date(),
-        storageClass: spec.storageClassName ?? 'default',
+        storageClass: spec.storageClassName ?? (DEFAULT_STORAGE_CLASS || 'default'),
         accessMode:
           (spec.accessModes?.[0] as 'ReadWriteOnce' | 'ReadOnlyMany' | 'ReadWriteMany' | 'ReadWriteOncePod') ??
             'ReadWriteOnce',

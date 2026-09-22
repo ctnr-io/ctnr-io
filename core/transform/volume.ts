@@ -119,7 +119,7 @@ export function volumeInputToPvc(input: {
     },
     spec: {
       accessModes: [input.accessMode ?? 'ReadWriteOnce'],
-      storageClassName: input.storageClass ?? 'default',
+      storageClassName: input.storageClass ?? (Deno.env.get('CTNR_DEFAULT_STORAGE_CLASS') || 'default'),
       resources: {
         requests: {
           storage: input.size as unknown,

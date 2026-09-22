@@ -1,6 +1,6 @@
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
 import { z } from 'zod'
-import { listInvoices, type InvoiceContext } from 'core/data/billing/invoice.ts'
+import { type InvoiceContext, listInvoices } from 'core/data/billing/invoice.ts'
 import type { Invoice } from 'core/schemas/billing/invoice.ts'
 
 export const Meta = {}

@@ -34,7 +34,7 @@ export async function createServerContext(opts: {
   const billingContext = await createBillingContext({
     ...kubeContext,
     ...authContext,
-    ...projectContext
+    ...projectContext,
   }, signal)
 
   return {

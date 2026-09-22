@@ -2,7 +2,7 @@ import { WebhookRequest, WebhookResponse } from 'lib/api/types.ts'
 import z from 'zod'
 import { PaymentMetadataV1 } from 'core/rules/billing/utils.ts'
 import { formatDate } from 'date-fns'
-import { getProject, getNamespaceName } from 'core/data/tenancy/project.ts'
+import { getNamespaceName, getProject } from 'core/data/tenancy/project.ts'
 import { addCredits } from 'core/rules/billing/balance.ts'
 
 export const Meta = {
@@ -59,7 +59,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
     const project = await getProject(
       ctx.kube.client['karmada'],
       { userId: ownerId, projectId },
-      controller.signal
+      controller.signal,
     )
     if (!project) {
       console.error(`Project not found for payment ${paymentId}:`, {
@@ -118,7 +118,7 @@ export default async function* ({ ctx, input }: WebhookRequest<Input>): WebhookR
         vat_rate: '0.2',
       }],
       // We cannot set it as paid now
-      status:  Deno.env.get('QONTO_API_CUSTOM_INVOICE_STATUS') || 'unpaid',
+      status: Deno.env.get('QONTO_API_CUSTOM_INVOICE_STATUS') || 'unpaid',
     }).catch((err) => {
       console.error('Failed to create invoice in Qonto:', err)
       throw err

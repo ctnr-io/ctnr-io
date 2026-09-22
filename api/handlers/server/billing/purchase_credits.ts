@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { match } from 'ts-pattern'
 import { SequenceType } from '@mollie/api-client'
 import { BillingClient, PaymentMetadataV1 } from 'core/rules/billing/utils.ts'
-import { ensureBillingClient, type BillingClientContext } from 'core/data/billing/client.ts'
+import { type BillingClientContext, ensureBillingClient } from 'core/data/billing/client.ts'
 import type { BillingClient as BillingClientDTO } from 'core/schemas/billing/client.ts'
 
 export const Meta = {}

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ServerRequest, ServerResponse } from 'lib/api/types.ts'
-import { listDomains as listDomainsData, type DomainContext } from 'core/data/network/domain.ts'
+import { type DomainContext, listDomains as listDomainsData } from 'core/data/network/domain.ts'
 import type { Domain } from 'core/schemas/network/domain.ts'
 
 export const Meta = {
@@ -72,7 +72,8 @@ export default async function* listDomains(
 
           yield domain.name.padEnd(25) +
             domain.status.padEnd(12) +
-            (`${domain.verification?.type} ${domain.verification?.name} ${domain.verification?.value}` || 'unknown').padEnd(12) +
+            (`${domain.verification?.type} ${domain.verification?.name} ${domain.verification?.value}` || 'unknown')
+              .padEnd(12) +
             age
         }
         return

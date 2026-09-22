@@ -33,19 +33,17 @@ export default async function* ({ ctx, input, signal, defer }: ServerRequest<Inp
 
   const clusterClient = ctx.kube.client[ctx.project.cluster]
 
-  let pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
+  const pods = await clusterClient.CoreV1.namespace(ctx.project.namespace).getPodList({
     labelSelector: `ctnr.io/name=${name}`,
     abortSignal: signal,
-  }).then(list => list.items)
+  }).then((list) => list.items)
 
   if (pods.length === 0) {
     throw new Error(`No replicas found for container ${name}`)
   }
 
   // Filter by replica if specified
-  const [pod] = replica
-    ? pods.filter((pod) => replica.includes(pod.metadata?.name || ''))
-    : pods
+  const [pod] = replica ? pods.filter((pod) => replica.includes(pod.metadata?.name || '')) : pods
 
   const podName = pod.metadata?.name!
   const containerName = pod.spec?.containers?.[0]?.name!

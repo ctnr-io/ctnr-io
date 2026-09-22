@@ -21,8 +21,7 @@ jobs:
   # deno-consumable parts of lib/. Everything excluded is excluded for the same
   # reason: it imports app-only npm packages the root deno.json does not declare
   # (react, react-native, expo), and typecheck-app already covers it via
-  # app/tsconfig.json. Lint and fmt cover cli/, core/ and catalog/; api/ still
-  # carries pre-existing lint/fmt debt, left out rather than faked green.
+  # app/tsconfig.json. Lint and fmt cover cli/, core/, catalog/ and api/.
   test:
     runs-on: ubuntu-latest
     steps:
@@ -44,10 +43,10 @@ jobs:
             | grep -v -e 'drivers/trpc/client/expo/' -e 'handlers/client/auth/login_from_app.ts')
 
       - name: Lint
-        run: deno lint cli/ core/ catalog/
+        run: deno lint cli/ core/ catalog/ api/
 
       - name: Format check
-        run: deno fmt --check cli/ core/ catalog/
+        run: deno fmt --check cli/ core/ catalog/ api/
 
       # Cluster-free unit tests. The e2e/ suites need a live API, so they gate
       # elsewhere; these run in under a second on a plain runner.

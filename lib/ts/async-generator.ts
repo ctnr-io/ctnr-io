@@ -37,8 +37,8 @@ export async function* createAsyncGeneratorListener<
 
 export async function returnAG<T>(gen: AsyncGenerator<unknown, T, unknown>): Promise<T> {
   let result: T
-	for await (const value of gen) {
+  for await (const value of gen) {
     result = value as T
-  };
-	return result!;
+  }
+  return result!
 }

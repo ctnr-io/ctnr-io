@@ -1828,6 +1828,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@astral/astral@~0.5.2",
       "jsr:@cloudydeno/kubernetes-apis@~0.5.2",
       "jsr:@cloudydeno/kubernetes-client@~0.7.5",
       "jsr:@opensrc/short-uuid@1",

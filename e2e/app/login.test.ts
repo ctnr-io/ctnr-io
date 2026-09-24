@@ -16,7 +16,7 @@ Deno.test({
   name: 'web login: app leaves the login page after Zitadel auth',
   ignore: !TEST_EMAIL || !TEST_PASSWORD,
   async fn() {
-    const { launch } = await import('jsr:@astral/astral@^0.5.2')
+    const { launch } = await import('@astral/astral')
     const browser = await launch()
     try {
       const page = await browser.newPage(`${APP_URL}/login`)

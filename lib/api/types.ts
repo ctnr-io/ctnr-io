@@ -1,7 +1,12 @@
 import { ClientContext, ServerContext, WebhookContext, WorkerContext } from 'api/context/mod.ts'
 import { Deferer } from 'lib/api/defer.ts'
 
-export type ServerRequest<Input = unknown, Context = ServerContext> = { ctx: Context; input: Input; signal: AbortSignal; defer: Deferer }
+export type ServerRequest<Input = unknown, Context = ServerContext> = {
+  ctx: Context
+  input: Input
+  signal: AbortSignal
+  defer: Deferer
+}
 
 export type ServerResponse<Output> = AsyncGenerator<
   string,

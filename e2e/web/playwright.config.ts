@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import process from 'node:process'
 
 // BASE_URL points at the deployed app (default: production). CI sets it to the PR preview URL.
 export default defineConfig({

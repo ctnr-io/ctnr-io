@@ -21,7 +21,7 @@ jobs:
   # deno-consumable parts of lib/. Everything excluded is excluded for the same
   # reason: it imports app-only npm packages the root deno.json does not declare
   # (react, react-native, expo), and typecheck-app already covers it via
-  # app/tsconfig.json. Lint and fmt cover cli/, core/, catalog/ and api/.
+  # app/tsconfig.json. Lint and fmt cover the whole repo except app/.
   test:
     runs-on: ubuntu-latest
     steps:
@@ -33,8 +33,12 @@ jobs:
         with:
           deno-version: 2.5
 
+      # jsr:@tmpl/gen's own output (infra/qonto/client.ts, lib/env/cli-static-env.gen.ts)
+      # is not deno-fmt-conformant, so re-format it before the gate below.
       - name: Generate static env (cli/ depends on it)
-        run: deno run -A jsr:@tmpl/gen .
+        run: |
+          deno run -A jsr:@tmpl/gen .
+          deno fmt cli/ core/ catalog/ api/ lib/ infra/ e2e/
 
       - name: Type check
         run: |
@@ -43,10 +47,10 @@ jobs:
             | grep -v -e 'drivers/trpc/client/expo/' -e 'handlers/client/auth/login_from_app.ts')
 
       - name: Lint
-        run: deno lint cli/ core/ catalog/ api/
+        run: deno lint cli/ core/ catalog/ api/ lib/ infra/ e2e/
 
       - name: Format check
-        run: deno fmt --check cli/ core/ catalog/ api/
+        run: deno fmt --check cli/ core/ catalog/ api/ lib/ infra/ e2e/
 
       # Cluster-free unit tests. The e2e/ suites need a live API, so they gate
       # elsewhere; these run in under a second on a plain runner.

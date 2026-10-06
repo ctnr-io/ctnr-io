@@ -30,40 +30,40 @@ export type CertificatePrivateKey = {
 export type CertificateSpec = {
   /** Name of the Secret to store the certificate */
   secretName: string
-  
+
   /** Reference to the issuer */
   issuerRef: CertificateIssuerRef
-  
+
   /** Common name (CN) for the certificate */
   commonName?: string
-  
+
   /** DNS names (SANs) for the certificate */
   dnsNames?: string[]
-  
+
   /** IP addresses (SANs) for the certificate */
   ipAddresses?: string[]
-  
+
   /** URIs (SANs) for the certificate */
   uris?: string[]
-  
+
   /** Email addresses (SANs) for the certificate */
   emailAddresses?: string[]
-  
+
   /** Certificate duration */
   duration?: string
-  
+
   /** Time before expiry to renew */
   renewBefore?: string
-  
+
   /** Private key configuration */
   privateKey?: CertificatePrivateKey
-  
+
   /** Usages for the certificate */
   usages?: string[]
-  
+
   /** Whether the certificate is a CA */
   isCA?: boolean
-  
+
   /** Secret template for additional labels/annotations */
   secretTemplate?: {
     labels?: Record<string, string>

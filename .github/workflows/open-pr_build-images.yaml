@@ -55,7 +55,7 @@ jobs:
       # Cluster-free unit tests. The e2e/ suites need a live API, so they gate
       # elsewhere; these run in under a second on a plain runner.
       - name: Unit tests
-        run: deno test -A core/ catalog/ api/handlers/client/compute/compose/up.test.ts
+        run: deno test -A core/ catalog/ api/
 
   # PR-blocking gate for app/. deno check is incompatible with the app's
   # react-native jsx mode (hundreds of unrelated errors), so this uses the

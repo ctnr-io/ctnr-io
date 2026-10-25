@@ -1,7 +1,7 @@
 # infra/zitadel
 
 Raw Zitadel SDK wrapper + the auth adapter that provides user/auth management for ctnr. Zitadel is the platform OIDC IdP
-running at `iam.mk8s.eu`, and is the sole identity provider.
+running at `iam.ctnr.io`, and is the sole identity provider.
 
 ## What it is
 
@@ -28,14 +28,14 @@ Everything else lives elsewhere:
 
 | Var                        | Purpose                                                    |
 | -------------------------- | ---------------------------------------------------------- |
-| `ZITADEL_ISSUER`           | OIDC issuer, e.g. `https://iam.mk8s.eu`                    |
+| `ZITADEL_ISSUER`           | OIDC issuer, e.g. `https://iam.ctnr.io`                    |
 | `ZITADEL_CLIENT_ID`        | public PKCE client id (no secret)                          |
 | `ZITADEL_IDP_ID`           | optional: jump straight to a federated IdP (login scope)   |
 | `ZITADEL_MANAGEMENT_TOKEN` | optional: service-account/PAT for management API user CRUD |
 
 ```sh
 # .env
-ZITADEL_ISSUER="https://iam.mk8s.eu"
+ZITADEL_ISSUER="https://iam.ctnr.io"
 ZITADEL_CLIENT_ID="<zitadel-app-client-id>"
 
 deno task trpc:server:run   # server validates request tokens against Zitadel

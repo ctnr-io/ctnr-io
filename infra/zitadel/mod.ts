@@ -17,7 +17,7 @@ function encodeBase64Url(bytes: Uint8Array): string {
 }
 
 export interface ZitadelConfig {
-  /** OIDC issuer URL, e.g. https://iam.mk8s.eu */
+  /** OIDC issuer URL, e.g. https://iam.ctnr.io */
   issuer: string
   /** OIDC public client id (PKCE, no secret). */
   clientId: string
